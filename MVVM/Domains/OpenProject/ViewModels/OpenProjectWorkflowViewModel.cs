@@ -73,7 +73,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
         }
         
         [ObservableProperty]
-        private string projectStatus = "No project selected";
+        private string projectStatus = "No workshop selected";
         
         [ObservableProperty]
         private DateTime? lastModified;
@@ -118,13 +118,13 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             try
             {
                 IsLoadingProject = true;
-                ProjectStatus = "Selecting project file...";
+                ProjectStatus = "Selecting workshop file...";
                 
                 _logger.LogInformation("Opening project file dialog");
                 
                 var fileDialog = new OpenFileDialog
                 {
-                    Title = "Open Test Case Editor Project",
+                    Title = "Open a Requirements Workshop",
                     Filter = "Test Case Editor Session|*.tcex.json|JSON Files|*.json|All Files|*.*",
                     CheckFileExists = true,
                     Multiselect = false
@@ -155,26 +155,26 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                         _logger.LogInformation($"Project file selected: {selectedPath}");
                         
                         // Open immediately
-                        ProjectStatus = "Opening project...";
+                        ProjectStatus = "Opening workshop...";
                         var success = await _mediator.OpenProjectFileAsync(SelectedProjectPath);
                         
                         if (success)
                         {
                             _recentFilesService.AddRecentFile(SelectedProjectPath);
                             OnPropertyChanged(nameof(RecentProjects));
-                            ProjectStatus = "Project opened successfully";
+                            ProjectStatus = "Requirements Workshop opened successfully";
                             _logger.LogInformation($"Project opened successfully: {SelectedProjectPath}");
                         }
                         else
                         {
-                            ProjectStatus = "Failed to open project";
+                            ProjectStatus = "Failed to open Requirements Workshop";
                             _logger.LogWarning($"Failed to open project: {SelectedProjectPath}");
                         }
                     }
                 }
                 else
                 {
-                    ProjectStatus = "No project selected";
+                    ProjectStatus = "No workshop selected";
                     _logger.LogInformation("Project file selection cancelled");
                 }
             }
@@ -194,11 +194,11 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             SelectedProjectPath = "";
             IsProjectSelected = false;
             ProjectName = "";
-            ProjectStatus = "No project selected";
+            ProjectStatus = "No workshop selected";
             RequirementCount = 0;
             LastModified = null;
             
-            _logger.LogInformation("Project selection cleared");
+            _logger.LogInformation("Workshop selection cleared");
         }
 
         private void PopulateMainProjectMetadata(string filePath)
@@ -298,12 +298,12 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             {
                 ProjectName = Path.GetFileNameWithoutExtension(ProjectName);
             }
-            ProjectStatus = $"Selected: {ProjectName}";
+            ProjectStatus = $"Selected workshop: {ProjectName}";
         }
 
         private void OnProjectOpened(OpenProjectEvents.ProjectOpened eventData)
         {
-            ProjectStatus = "Project opened successfully";
+            ProjectStatus = "Requirements Workshop opened successfully";
             ProjectName = eventData.WorkspaceName;
             
             // Automatically scan for Jama attachments after project opens
@@ -326,7 +326,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
 
         private void OnProjectOpenFailed(OpenProjectEvents.ProjectOpenFailed eventData)
         {
-            ProjectStatus = $"Failed to open project: {eventData.ErrorMessage}";
+            ProjectStatus = $"Failed to open Requirements Workshop: {eventData.ErrorMessage}";
         }
 
         private void OnWorkspaceLoaded(OpenProjectEvents.WorkspaceLoaded eventData)
@@ -352,8 +352,8 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             get
             {
                 if (IsLoadingProject) return "Loading...";
-                if (IsProjectSelected) return "📁 Change Project";
-                return "📁 Select Project File";
+                if (IsProjectSelected) return "📁 Change Workshop";
+                return "📁 Select Workshop File";
             }
         }
 
@@ -365,8 +365,8 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             get
             {
                 if (IsLoadingProject) return "Opening...";
-                if (IsProjectSelected) return $"✅ Open {ProjectName}";
-                return "Open Project";
+                if (IsProjectSelected) return $"✅ Open Workshop: {ProjectName}";
+                return "Open a Workshop";
             }
         }
 
@@ -440,7 +440,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             try
             {
                 IsLoadingProject = true;
-                ProjectStatus = "Opening project...";
+                ProjectStatus = "Opening workshop...";
                 
                 // Set path and populate metadata
                 SelectedProjectPath = filePath;
@@ -459,12 +459,12 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                 {
                     _recentFilesService.AddRecentFile(filePath);
                     OnPropertyChanged(nameof(RecentProjects));
-                    ProjectStatus = "Project opened successfully";
+                    ProjectStatus = "Requirements Workshop opened successfully";
                     _logger.LogInformation($"Project opened successfully: {filePath}");
                 }
                 else
                 {
-                    ProjectStatus = "Failed to open project";
+                    ProjectStatus = "Failed to open Requirements Workshop";
                     _logger.LogWarning($"Failed to open project: {filePath}");
                 }
             }
@@ -665,7 +665,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
     }
 
     /// <summary>
-    /// Model for displaying recent project information
+    /// Model for displaying recent workshop information
     /// </summary>
     public class RecentProjectInfo
     {

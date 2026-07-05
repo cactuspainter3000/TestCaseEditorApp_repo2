@@ -14,7 +14,7 @@ using TestCaseEditorApp.Services;
 namespace TestCaseEditorApp.MVVM.Domains.Title.ViewModels
 {
     /// <summary>
-    /// Title bar ViewModel - manages project title display and global actions (save, undo)
+    /// Title bar ViewModel - manages workshop title display and global actions (save, undo)
     /// UI Infrastructure domain (like SideMenu) - coordinates across business domains
     /// </summary>
     public partial class TitleViewModel : ObservableObject
@@ -76,24 +76,24 @@ namespace TestCaseEditorApp.MVVM.Domains.Title.ViewModels
 
         private void OnProjectCreated(NewProjectEvents.ProjectCreated evt)
         {
-            ProjectTitle = $"Test Case Generator - {evt.WorkspaceName}";
+            ProjectTitle = $"Requirements Workshop - {evt.WorkspaceName}";
             HasProject = true;
             HasUnsavedChanges = false;
-            _logger.LogInformation("[TitleVM] Project created: {Name}", evt.WorkspaceName);
+            _logger.LogInformation("[TitleVM] Workshop created: {Name}", evt.WorkspaceName);
         }
 
         private void OnProjectOpened(OpenProjectEvents.ProjectOpened evt)
         {
-            ProjectTitle = $"Test Case Generator - {evt.WorkspaceName}";
+            ProjectTitle = $"Requirements Workshop - {evt.WorkspaceName}";
             HasProject = true;
             HasUnsavedChanges = false;
-            _logger.LogInformation("[TitleVM] Project opened: {Name}", evt.WorkspaceName);
+            _logger.LogInformation("[TitleVM] Workshop opened: {Name}", evt.WorkspaceName);
         }
 
         private void OnProjectSaved(NewProjectEvents.ProjectSaved evt)
         {
             HasUnsavedChanges = false;
-            _logger.LogInformation("[TitleVM] Project saved");
+            _logger.LogInformation("[TitleVM] Workshop saved");
         }
 
         private void OnWorkspaceModified(NewProjectEvents.WorkspaceModified evt)
@@ -107,20 +107,20 @@ namespace TestCaseEditorApp.MVVM.Domains.Title.ViewModels
             ProjectTitle = "Systems ATE APP";
             HasProject = false;
             HasUnsavedChanges = false;
-            _logger.LogInformation("[TitleVM] Project closed");
+            _logger.LogInformation("[TitleVM] Workshop closed");
         }
 
         private async Task SaveProjectAsync()
         {
             try
             {
-                _logger.LogInformation("[TitleVM] Saving project");
+                _logger.LogInformation("[TitleVM] Saving workshop");
                 await _newProjectMediator.SaveProjectAsync();
-                _logger.LogInformation("[TitleVM] Project saved successfully");
+                _logger.LogInformation("[TitleVM] Workshop saved successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[TitleVM] Error saving project");
+                _logger.LogError(ex, "[TitleVM] Error saving workshop");
             }
         }
 

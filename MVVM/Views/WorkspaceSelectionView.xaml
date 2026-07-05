@@ -69,7 +69,7 @@
                 </Grid.Style>
                 
                 <TextBlock Grid.Row="0" 
-                          Text="Select an existing workspace:" 
+                          Text="Select an existing Requirements Workshop:" 
                           Foreground="White" 
                           FontSize="14"
                           Margin="0,0,0,10"/>
@@ -98,7 +98,7 @@
                 </Grid.RowDefinitions>
                 
                 <TextBlock Grid.Row="0" 
-                          Text="Create a new workspace:" 
+                          Text="Create a new Requirements Workshop:" 
                           Foreground="DarkOrange" 
                           FontSize="14"
                           Margin="0,0,0,10"/>
@@ -111,7 +111,7 @@
                          BorderBrush="#555555"
                          BorderThickness="1"
                          Padding="8,5"
-                         Tag="Enter workspace name"/>
+                         Tag="Enter workshop name"/>
             </Grid>
 
             <!-- Duplicate name warning -->
@@ -129,13 +129,13 @@
                                       Foreground="Orange" 
                                       FontSize="14"
                                       Margin="0,0,8,0"/>
-                            <TextBlock Text="Duplicate Workspace Name" 
+                            <TextBlock Text="Duplicate Workshop Name" 
                                       Foreground="Orange" 
                                       FontSize="14"
                                       FontWeight="SemiBold"/>
                         </StackPanel>
                         <TextBlock TextWrapping="Wrap" Margin="0,0,0,8">
-                                <Run Text="A workspace named '" Foreground="#CCCCCC" FontSize="13"/>
+                                <Run Text="A workshop named '" Foreground="#CCCCCC" FontSize="13"/>
                                 <Run Text="{Binding DuplicateWorkspaceName}" Foreground="White" FontWeight="SemiBold" FontSize="13"/>
                                 <Run Text="' already exists." Foreground="#CCCCCC" FontSize="13"/>
                         </TextBlock>
@@ -145,7 +145,7 @@
                                   Margin="0,0,0,10"/>
                         
                         <StackPanel Orientation="Horizontal">
-                            <Button Content="Open Existing" 
+                            <Button Content="Open Existing Workshop" 
                                    Padding="12,6"
                                    Margin="0,0,8,0"
                                    Style="{StaticResource ActionButton}"
