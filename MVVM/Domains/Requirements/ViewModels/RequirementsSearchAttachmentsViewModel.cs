@@ -1455,6 +1455,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 System.Action<Requirement> onRequirementDiscovered = (requirement) => {
                     Application.Current?.Dispatcher?.Invoke(() => {
                         streamedRequirementCount++;
+
+                        // Add/update requirement in real time so users see accumulation while scraping continues.
+                        UpsertExtractedRequirement(requirement);
+                        HasExtractedRequirements = ExtractedRequirements.Count > 0;
+                        HasScannedForRequirements = true;
+                        OnPropertyChanged(nameof(GroupedExtractedRequirements));
+                        OnPropertyChanged(nameof(CategoryCounts));
                         
                         // Update progress to show real-time count
                         baseParsingMessage = $"📄 Found {streamedRequirementCount} requirements so far from {SelectedAttachment.Name}...";
@@ -1477,13 +1484,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 // Use real document parsing via mediator with streaming callback
                 var extractedRequirements = await _mediator.ParseAttachmentRequirementsAsync(SelectedAttachment, projectId, progressCallback, onRequirementDiscovered, _parsingCancellationTokenSource.Token);
 
-                // Replace with finalized requirements from parser so UI gets complete provenance fields
-                // (e.g., TraceReference) rather than transient streamed placeholders.
-                ExtractedRequirements.Clear();
-                foreach (var requirement in extractedRequirements)
-                {
-                    ExtractedRequirements.Add(requirement);
-                }
+                // Reconcile streamed list with finalized parser output so users keep live context
+                // while still receiving complete metadata/provenance fields.
+                ReplaceStreamedRequirementsWithFinalResults(extractedRequirements);
 
                 // Notify grouped properties for UI updates
                 OnPropertyChanged(nameof(GroupedExtractedRequirements));
@@ -1697,6 +1700,82 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
 
             return normalized;
+        }
+
+        private void UpsertExtractedRequirement(Requirement requirement)
+        {
+            if (requirement == null)
+            {
+                return;
+            }
+
+            var existing = FindExistingExtractedRequirement(requirement);
+            if (existing == null)
+            {
+                ExtractedRequirements.Add(requirement);
+                return;
+            }
+
+            var index = ExtractedRequirements.IndexOf(existing);
+            if (index >= 0)
+            {
+                ExtractedRequirements[index] = requirement;
+            }
+        }
+
+        private void ReplaceStreamedRequirementsWithFinalResults(IReadOnlyCollection<Requirement> finalizedRequirements)
+        {
+            if (finalizedRequirements == null)
+            {
+                return;
+            }
+
+            // Remove any streamed requirements that did not survive final parsing.
+            var toRemove = ExtractedRequirements
+                .Where(streamed => finalizedRequirements.All(finalized => !AreSameRequirement(streamed, finalized)))
+                .ToList();
+
+            foreach (var requirement in toRemove)
+            {
+                ExtractedRequirements.Remove(requirement);
+            }
+
+            // Upsert finalized requirements to enrich streamed rows with final fields.
+            foreach (var requirement in finalizedRequirements)
+            {
+                UpsertExtractedRequirement(requirement);
+            }
+        }
+
+        private Requirement? FindExistingExtractedRequirement(Requirement candidate)
+        {
+            return ExtractedRequirements.FirstOrDefault(existing => AreSameRequirement(existing, candidate));
+        }
+
+        private static bool AreSameRequirement(Requirement left, Requirement right)
+        {
+            if (!string.IsNullOrWhiteSpace(left.TraceReference) &&
+                !string.IsNullOrWhiteSpace(right.TraceReference) &&
+                string.Equals(left.TraceReference, right.TraceReference, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(left.ApiId) &&
+                !string.IsNullOrWhiteSpace(right.ApiId) &&
+                string.Equals(left.ApiId, right.ApiId, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(left.Item) &&
+                !string.IsNullOrWhiteSpace(right.Item) &&
+                string.Equals(left.Item, right.Item, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private Task ImportExtractedRequirementsAsync()
