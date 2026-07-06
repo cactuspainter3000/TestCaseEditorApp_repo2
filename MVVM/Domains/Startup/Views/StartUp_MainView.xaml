@@ -192,7 +192,8 @@
                                     />
                             <Button Content="Import from Jama"
                                     Command="{Binding ImportFromJamaCommand}"
-                                    Style="{StaticResource TextLinkButtonStyle}"/>
+                                    Style="{StaticResource TextLinkButtonStyle}"
+                                    ToolTip="Import is part of the Create Workshop flow"/>
                         </StackPanel>
                     </StackPanel>
 
@@ -248,7 +249,7 @@
                             <StackPanel>
                                 <TextBlock Text="INGEST" Style="{StaticResource SectionLabelStyle}"/>
                                 <TextBlock Text="Import Requirements" FontSize="19" FontWeight="SemiBold" Foreground="#1D2A3B" Margin="0,8,0,6"/>
-                                <TextBlock Text="Bring in Jama items, documents, or source material." Foreground="#646159" FontSize="13" TextWrapping="Wrap"/>
+                                <TextBlock Text="Step in Create Workshop: bring in Jama items, documents, or source material." Foreground="#646159" FontSize="13" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Button>
 
