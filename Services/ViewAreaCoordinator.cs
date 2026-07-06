@@ -3,6 +3,7 @@ using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Events;
 using TestCaseEditorApp.MVVM.Utils;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Events;
 
 using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
@@ -55,6 +56,9 @@ namespace TestCaseEditorApp.Services
             
             // Subscribe to navigation requests
             _navigationMediator.Subscribe<NavigationEvents.SectionChangeRequested>(OnSectionChangeRequested);
+            
+            // Subscribe to project creation event to auto-navigate to Requirements after successful project creation
+            _workspaceManagementMediator.Subscribe<NewProjectEvents.ProjectCreatedWithWorkspace>(OnProjectCreatedWithWorkspace);
             
             // System.Diagnostics.Debug.WriteLine("*** ViewAreaCoordinator: Successfully subscribed to SectionChangeRequested ***");
             
@@ -149,5 +153,18 @@ namespace TestCaseEditorApp.Services
                 SideMenu.SelectedSection = request.SectionName;
             }
         }
+
+        /// <summary>
+        /// Event handler for successful project creation.
+        /// Auto-navigates to Requirements view after project is created.
+        /// </summary>
+        private void OnProjectCreatedWithWorkspace(NewProjectEvents.ProjectCreatedWithWorkspace projectEvent)
+        {
+            TestCaseEditorApp.Services.Logging.Log.Info($"[ViewAreaCoordinator] Project creation detected: {projectEvent.ProjectName}. Auto-navigating to Requirements view.");
+            
+            // Automatically navigate to Requirements view after successful project creation
+            _navigationMediator.NavigateToSection("requirements", projectEvent);
+        }
     }
 }
+
