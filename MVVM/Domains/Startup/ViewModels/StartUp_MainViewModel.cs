@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.Win32;
 using System.Windows;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Startup.Mediators;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Models;
@@ -31,6 +32,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         private readonly IJamaConnectService _jamaConnectService;
         private readonly AnythingLLMService _anythingLlmService;
         private readonly IOpenProjectMediator _openProjectMediator;
+        private readonly IRequirementsMediator _requirementsMediator;
         
         [ObservableProperty]
         private string title = "Systems ATE APP";
@@ -70,6 +72,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
             IJamaConnectService jamaConnectService,
             AnythingLLMService anythingLlmService,
             IOpenProjectMediator openProjectMediator,
+            IRequirementsMediator requirementsMediator,
             ILogger<StartUp_MainViewModel> logger)
             : base(mediator, logger)
         {
@@ -80,6 +83,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _anythingLlmService = anythingLlmService ?? throw new ArgumentNullException(nameof(anythingLlmService));
             _openProjectMediator = openProjectMediator ?? throw new ArgumentNullException(nameof(openProjectMediator));
+            _requirementsMediator = requirementsMediator ?? throw new ArgumentNullException(nameof(requirementsMediator));
 
             _workspaceContext.WorkspaceChanged += OnWorkspaceChanged;
 
@@ -147,6 +151,33 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         private async Task ViewAllWorkshopsAsync()
         {
             await BrowseWorkshopAsync();
+        }
+
+        [RelayCommand]
+        private void OpenTroubleshootingRequirementsAttachments()
+        {
+            _navigationMediator.NavigateToSection("requirements");
+            _requirementsMediator.NavigateToRequirementsSearchAttachments();
+        }
+
+        [RelayCommand]
+        private void OpenTroubleshootingLlmLearning()
+        {
+            _navigationMediator.NavigateToSection("llm learning");
+        }
+
+        [RelayCommand]
+        private void OpenTroubleshootingLlmGenerator()
+        {
+            _navigationMediator.NavigateToSection("LLMTestCaseGenerator");
+        }
+
+        [RelayCommand]
+        private void OpenTroubleshootingProjectTools()
+        {
+            // Temporary bridge: keeps legacy troubleshooting actions discoverable
+            // while the dashboard consolidates remaining workflows.
+            _navigationMediator.NavigateToSection("Project");
         }
 
         private async Task OpenWorkshopFileAsync(string filePath)

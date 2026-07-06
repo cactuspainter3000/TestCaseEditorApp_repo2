@@ -160,6 +160,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <!-- Hero -->
@@ -366,6 +367,38 @@
                         </StackPanel>
                     </Border>
                 </Grid>
+
+                <!-- Temporary troubleshooting shortcuts (to be removed after full dashboard migration) -->
+                <StackPanel Grid.Row="4" Margin="0,14,0,0">
+                    <TextBlock Text="TROUBLESHOOTING (TEMPORARY)"
+                               Style="{StaticResource SectionLabelStyle}"
+                               Margin="0,0,0,8"/>
+                    <WrapPanel>
+                        <Button Content="Requirements Attachments Search"
+                                Command="{Binding OpenTroubleshootingRequirementsAttachmentsCommand}"
+                                Style="{StaticResource HeroPrimaryButtonStyle}"
+                                Margin="0,0,10,10"
+                                ToolTip="Navigate to Requirements attachment search and parsing tools"/>
+
+                        <Button Content="LLM Learning"
+                                Command="{Binding OpenTroubleshootingLlmLearningCommand}"
+                                Style="{StaticResource HeroPrimaryButtonStyle}"
+                                Margin="0,0,10,10"
+                                ToolTip="Open LLM Learning diagnostic and refinement tools"/>
+
+                        <Button Content="LLM Test Case Generator"
+                                Command="{Binding OpenTroubleshootingLlmGeneratorCommand}"
+                                Style="{StaticResource HeroPrimaryButtonStyle}"
+                                Margin="0,0,10,10"
+                                ToolTip="Open test case generation diagnostics and outputs"/>
+
+                        <Button Content="Project Diagnostics"
+                                Command="{Binding OpenTroubleshootingProjectToolsCommand}"
+                                Style="{StaticResource HeroPrimaryButtonStyle}"
+                                Margin="0,0,10,10"
+                                ToolTip="Temporary access to legacy project troubleshooting actions"/>
+                    </WrapPanel>
+                </StackPanel>
             </Grid>
         </ScrollViewer>
     </Grid>
