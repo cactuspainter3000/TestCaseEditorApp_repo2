@@ -212,8 +212,10 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 var workspaceContext = provider.GetRequiredService<IWorkspaceContext>();
                 var jamaConnectService = provider.GetRequiredService<IJamaConnectService>();
                 var anythingLlmService = provider.GetRequiredService<AnythingLLMService>();
+                var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
                 var openProjectMediator = provider.GetRequiredService<IOpenProjectMediator>();
                 var requirementsMediator = provider.GetRequiredService<IRequirementsMediator>();
+                var workspaceDiagnosticsService = provider.GetRequiredService<IWorkspaceDiagnosticsService>();
                 var logger = provider.GetRequiredService<ILogger<StartUp_MainViewModel>>();
                 return new StartUp_MainViewModel(
                     mediator,
@@ -222,8 +224,10 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                     workspaceContext,
                     jamaConnectService,
                     anythingLlmService,
+                    newProjectMediator,
                     openProjectMediator,
                     requirementsMediator,
+                    workspaceDiagnosticsService,
                     logger);
             });
             services.AddTransient<StartUp_HeaderViewModel>();

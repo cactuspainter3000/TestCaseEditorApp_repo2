@@ -275,6 +275,15 @@
                                 <TextBlock Text="Create verification-ready test scenarios from approved inputs." Foreground="#646159" FontSize="13" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Button>
+
+                        <Button Command="{Binding OpenWorkshopToolsCommand}"
+                                Style="{StaticResource LauncherActionButtonStyle}">
+                            <StackPanel>
+                                <TextBlock Text="WORKSHOP" Style="{StaticResource SectionLabelStyle}"/>
+                                <TextBlock Text="Workshop Tools" FontSize="19" FontWeight="SemiBold" Foreground="#1D2A3B" Margin="0,8,0,6"/>
+                                <TextBlock Text="Open the Workshop workspace and its project actions." Foreground="#646159" FontSize="13" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Button>
                     </WrapPanel>
                 </StackPanel>
 
@@ -370,33 +379,151 @@
 
                 <!-- Temporary troubleshooting shortcuts (to be removed after full dashboard migration) -->
                 <StackPanel Grid.Row="4" Margin="0,14,0,0">
-                    <TextBlock Text="TROUBLESHOOTING (TEMPORARY)"
+                    <TextBlock Text="WORKSHOP ACTIONS"
+                           Style="{StaticResource SectionLabelStyle}"
+                           Margin="0,0,0,8"/>
+                    <WrapPanel>
+                    <Button Content="Save Workshop"
+                        Command="{Binding SaveWorkshopCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+
+                    <Button Content="Close Workshop"
+                        Command="{Binding CloseWorkshopCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+
+                    <Button Content="Dummy Domain"
+                        Command="{Binding OpenDummyDomainCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+
+                    <Button Content="Open Workshop"
+                        Command="{Binding BrowseWorkshopCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+                    </WrapPanel>
+
+                    <TextBlock Text="REQUIREMENTS ACTIONS"
                                Style="{StaticResource SectionLabelStyle}"
                                Margin="0,0,0,8"/>
                     <WrapPanel>
-                        <Button Content="Requirements Attachments Search"
-                                Command="{Binding OpenTroubleshootingRequirementsAttachmentsCommand}"
-                                Style="{StaticResource HeroPrimaryButtonStyle}"
-                                Margin="0,0,10,10"
-                                ToolTip="Navigate to Requirements attachment search and parsing tools"/>
+                    <Button Content="Requirements"
+                        Command="{Binding OpenRequirementsSectionCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
 
-                        <Button Content="LLM Learning"
-                                Command="{Binding OpenTroubleshootingLlmLearningCommand}"
+                    <Button Content="Import Additional Requirements"
+                        Command="{Binding ImportAdditionalRequirementsCommand}"
                                 Style="{StaticResource HeroPrimaryButtonStyle}"
                                 Margin="0,0,10,10"
-                                ToolTip="Open LLM Learning diagnostic and refinement tools"/>
+                        ToolTip="Add more requirements into the current workshop"/>
 
-                        <Button Content="LLM Test Case Generator"
-                                Command="{Binding OpenTroubleshootingLlmGeneratorCommand}"
-                                Style="{StaticResource HeroPrimaryButtonStyle}"
-                                Margin="0,0,10,10"
-                                ToolTip="Open test case generation diagnostics and outputs"/>
+                    <Button Content="Requirements Attachments Search"
+                        Command="{Binding OpenRequirementsSearchAttachmentsCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"
+                        ToolTip="Navigate to Requirements attachment search and parsing tools"/>
+                    </WrapPanel>
 
-                        <Button Content="Project Diagnostics"
-                                Command="{Binding OpenTroubleshootingProjectToolsCommand}"
-                                Style="{StaticResource HeroPrimaryButtonStyle}"
-                                Margin="0,0,10,10"
-                                ToolTip="Temporary access to legacy project troubleshooting actions"/>
+                    <TextBlock Text="LLM ACTIONS"
+                           Style="{StaticResource SectionLabelStyle}"
+                           Margin="0,0,0,8"/>
+                    <WrapPanel>
+                    <Button Content="LLM Learning"
+                        Command="{Binding OpenLLMLearningCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+
+                    <Button Content="Generate Analysis Command"
+                        Command="{Binding GenerateAnalysisCommandCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+
+                    <Button Content="Export for ChatGPT"
+                        Command="{Binding ExportForChatGptCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+
+                    <Button Content="Toggle Auto Export"
+                        Command="{Binding ToggleAutoExportForChatGptCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+
+                    <Button Content="LLM Test Case Generator"
+                        Command="{Binding OpenLLMTestCaseGeneratorCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+
+                    <Button Content="Generate Test Case Command"
+                        Command="{Binding GenerateTestCaseCommandCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+                    </WrapPanel>
+
+                    <TextBlock Text="TEST CASE CREATION"
+                           Style="{StaticResource SectionLabelStyle}"
+                           Margin="0,0,0,8"/>
+                    <WrapPanel>
+                    <Button Content="Test Case Creation"
+                        Command="{Binding OpenTestCaseCreationCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+
+                    <Button Content="Import to Jama Connect..."
+                        Command="{Binding ImportToJamaConnectCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+                    </WrapPanel>
+
+                    <TextBlock Text="DIAGNOSTICS"
+                           Style="{StaticResource SectionLabelStyle}"
+                           Margin="0,0,0,8"/>
+                    <WrapPanel>
+                    <Button Content="Export Analysis Logs (Zip)"
+                        Command="{Binding ExportAnalysisLogsCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+
+                    <Button Content="Probe Jama Lookup Fields"
+                        Command="{Binding ProbeJamaLookupFieldsCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+                    </WrapPanel>
+
+                    <TextBlock Text="TROUBLESHOOTING (TEMPORARY)"
+                           Style="{StaticResource SectionLabelStyle}"
+                           Margin="0,6,0,8"/>
+                    <WrapPanel>
+                    <Button Content="Workshop Tools"
+                        Command="{Binding OpenWorkshopToolsCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+
+                    <Button Content="Requirements Section"
+                        Command="{Binding OpenRequirementsSectionCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+
+                    <Button Content="LLM Learning"
+                        Command="{Binding OpenLLMLearningCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+
+                    <Button Content="LLM Test Case Generator"
+                        Command="{Binding OpenLLMTestCaseGeneratorCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+
+                    <Button Content="Test Case Creation"
+                        Command="{Binding OpenTestCaseCreationCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
+
+                    <Button Content="Project Diagnostics"
+                        Command="{Binding OpenWorkshopToolsCommand}"
+                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                        Margin="0,0,10,10"/>
                     </WrapPanel>
                 </StackPanel>
             </Grid>

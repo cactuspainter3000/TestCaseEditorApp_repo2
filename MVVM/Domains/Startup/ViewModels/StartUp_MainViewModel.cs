@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 using System.Windows;
+using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Startup.Mediators;
@@ -31,8 +32,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         private readonly IWorkspaceContext _workspaceContext;
         private readonly IJamaConnectService _jamaConnectService;
         private readonly AnythingLLMService _anythingLlmService;
+        private readonly INewProjectMediator _newProjectMediator;
         private readonly IOpenProjectMediator _openProjectMediator;
         private readonly IRequirementsMediator _requirementsMediator;
+        private readonly IWorkspaceDiagnosticsService _workspaceDiagnosticsService;
         
         [ObservableProperty]
         private string title = "Systems ATE APP";
@@ -58,6 +61,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         [ObservableProperty]
         private string systemHealthText = "Checking services...";
 
+        [ObservableProperty]
+        private bool autoExportForChatGpt;
+
         public ObservableCollection<StartupRecentWorkshopCard> RecentWorkshops { get; } = new();
 
         public string EmptyRecentWorkshopsMessage => HasRecentWorkshops ? string.Empty : "No recent workshops yet. Create one to get started.";
@@ -71,8 +77,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
             IWorkspaceContext workspaceContext,
             IJamaConnectService jamaConnectService,
             AnythingLLMService anythingLlmService,
+            INewProjectMediator newProjectMediator,
             IOpenProjectMediator openProjectMediator,
             IRequirementsMediator requirementsMediator,
+            IWorkspaceDiagnosticsService workspaceDiagnosticsService,
             ILogger<StartUp_MainViewModel> logger)
             : base(mediator, logger)
         {
@@ -82,8 +90,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
             _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _anythingLlmService = anythingLlmService ?? throw new ArgumentNullException(nameof(anythingLlmService));
+            _newProjectMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
             _openProjectMediator = openProjectMediator ?? throw new ArgumentNullException(nameof(openProjectMediator));
             _requirementsMediator = requirementsMediator ?? throw new ArgumentNullException(nameof(requirementsMediator));
+            _workspaceDiagnosticsService = workspaceDiagnosticsService ?? throw new ArgumentNullException(nameof(workspaceDiagnosticsService));
 
             _workspaceContext.WorkspaceChanged += OnWorkspaceChanged;
 
@@ -112,6 +122,112 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         private void GenerateTestCases()
         {
             _navigationMediator.NavigateToSection("LLMTestCaseGenerator");
+        }
+
+        [RelayCommand]
+        private void OpenWorkshopTools()
+        {
+            _navigationMediator.NavigateToSection("Project");
+        }
+
+        [RelayCommand]
+        private void OpenRequirementsSection()
+        {
+            _navigationMediator.NavigateToSection("requirements");
+        }
+
+        [RelayCommand]
+        private void OpenRequirementsSearchAttachments()
+        {
+            _navigationMediator.NavigateToSection("requirements");
+            _requirementsMediator.NavigateToRequirementsSearchAttachments();
+        }
+
+        [RelayCommand(CanExecute = nameof(CanAccessWorkspaceActions))]
+        private async Task SaveWorkshopAsync()
+        {
+            await _newProjectMediator.SaveProjectAsync();
+            RefreshDashboardData();
+        }
+
+        [RelayCommand(CanExecute = nameof(CanAccessWorkspaceActions))]
+        private async Task CloseWorkshopAsync()
+        {
+            await _newProjectMediator.CloseProjectAsync();
+            RefreshDashboardData();
+        }
+
+        [RelayCommand]
+        private void OpenDummyDomain()
+        {
+            _navigationMediator.NavigateToSection("Dummy");
+        }
+
+        [RelayCommand(CanExecute = nameof(CanAccessWorkspaceActions))]
+        private async Task ImportAdditionalRequirementsAsync()
+        {
+            await _newProjectMediator.ImportAdditionalRequirementsAsync();
+            RefreshDashboardData();
+        }
+
+        [RelayCommand]
+        private void OpenLLMLearning()
+        {
+            _navigationMediator.NavigateToSection("llm learning");
+        }
+
+        [RelayCommand]
+        private void OpenLLMTestCaseGenerator()
+        {
+            _navigationMediator.NavigateToSection("LLMTestCaseGenerator");
+        }
+
+        [RelayCommand]
+        private void OpenTestCaseCreation()
+        {
+            _navigationMediator.NavigateToSection("TestCaseCreation");
+        }
+
+        [RelayCommand]
+        private void GenerateAnalysisCommand()
+        {
+            _navigationMediator.NavigateToSection("requirements");
+        }
+
+        [RelayCommand]
+        private void ExportForChatGpt()
+        {
+            _navigationMediator.NavigateToSection("LLMTestCaseGenerator");
+        }
+
+        [RelayCommand]
+        private void ToggleAutoExportForChatGpt()
+        {
+            AutoExportForChatGpt = !AutoExportForChatGpt;
+        }
+
+        [RelayCommand]
+        private void GenerateTestCaseCommand()
+        {
+            _navigationMediator.NavigateToSection("LLMTestCaseGenerator");
+        }
+
+        [RelayCommand]
+        private void ImportToJamaConnect()
+        {
+            _navigationMediator.NavigateToSection("TestCaseCreation");
+        }
+
+        [RelayCommand]
+        private async Task ExportAnalysisLogsAsync()
+        {
+            await _workspaceDiagnosticsService.ExportAnalysisLogsAsync();
+        }
+
+        [RelayCommand]
+        private async Task ProbeJamaLookupFieldsAsync()
+        {
+            await _workspaceDiagnosticsService.ProbeJamaLookupFieldsAsync();
         }
 
         [RelayCommand]
@@ -151,33 +267,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         private async Task ViewAllWorkshopsAsync()
         {
             await BrowseWorkshopAsync();
-        }
-
-        [RelayCommand]
-        private void OpenTroubleshootingRequirementsAttachments()
-        {
-            _navigationMediator.NavigateToSection("requirements");
-            _requirementsMediator.NavigateToRequirementsSearchAttachments();
-        }
-
-        [RelayCommand]
-        private void OpenTroubleshootingLlmLearning()
-        {
-            _navigationMediator.NavigateToSection("llm learning");
-        }
-
-        [RelayCommand]
-        private void OpenTroubleshootingLlmGenerator()
-        {
-            _navigationMediator.NavigateToSection("LLMTestCaseGenerator");
-        }
-
-        [RelayCommand]
-        private void OpenTroubleshootingProjectTools()
-        {
-            // Temporary bridge: keeps legacy troubleshooting actions discoverable
-            // while the dashboard consolidates remaining workflows.
-            _navigationMediator.NavigateToSection("Project");
         }
 
         private async Task OpenWorkshopFileAsync(string filePath)
@@ -432,6 +521,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         private void OnWorkspaceChanged(object? sender, WorkspaceChangedEventArgs e)
         {
             RefreshDashboardData();
+            SaveWorkshopCommand.NotifyCanExecuteChanged();
+            CloseWorkshopCommand.NotifyCanExecuteChanged();
+            ImportAdditionalRequirementsCommand.NotifyCanExecuteChanged();
         }
 
         private static string FormatRelativeTime(DateTime when)
@@ -481,6 +573,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         protected override bool CanSave() => !IsBusy;
         protected override bool CanCancel() => true;
         protected override bool CanRefresh() => !IsBusy;
+
+        private bool CanAccessWorkspaceActions()
+        {
+            return _workspaceContext.HasWorkspace;
+        }
 
         public override void Dispose()
         {

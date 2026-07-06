@@ -73,6 +73,7 @@ namespace TestCaseEditorApp.Services.DependencyInjection
 
             // Core application services (SINGLETON - app state)
             services.AddSingleton<ChatGptExportService>();
+            services.AddSingleton<IWorkspaceDiagnosticsService, WorkspaceDiagnosticsService>();
 
             return services;
         }
