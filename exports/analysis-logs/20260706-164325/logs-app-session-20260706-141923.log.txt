@@ -1,0 +1,1022 @@
+﻿2026-07-06T14:19:23.5378442Z	Information	Microsoft.Hosting.Lifetime	Application started. Press Ctrl+C to shut down.
+2026-07-06T14:19:23.5440626Z	Information	Microsoft.Hosting.Lifetime	Hosting environment: Production
+2026-07-06T14:19:23.5457250Z	Information	Microsoft.Hosting.Lifetime	Content root path: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows
+2026-07-06T14:19:23.5503728Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-06T14:19:23.5622523Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-06T14:19:23.5821151Z	Information	TestCaseEditorApp.App	Ensuring Ollama service is running...
+2026-07-06T14:19:23.5835247Z	Information	TestCaseEditorApp.App	Runtime session log file: C:\Users\e10653214\TestCaseEditorApp\logs\app-session-20260706-141923.log
+2026-07-06T14:19:23.5856867Z	Information	App	[OllamaProcessManager] Environment variables configured: LOAD_TIMEOUT=10m, KEEP_ALIVE=20m
+2026-07-06T14:19:24.0442143Z	Information	App	[OllamaProcessManager] ✅ Ollama is running and healthy
+2026-07-06T14:19:24.0461439Z	Information	TestCaseEditorApp.App	? Ollama service is ready
+2026-07-06T14:19:24.0489979Z	Information	TestCaseEditorApp.App	Initializing extension system...
+2026-07-06T14:19:24.0526667Z	Information	TestCaseEditorApp.App	Extension discovery completed. Loaded: 0, Errors: 0
+2026-07-06T14:19:24.0570223Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-06T14:19:24.0594192Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-06T14:19:24.0619197Z	Information	App	[OllamaEmbedding] Initialized with model: mxbai-embed-large:335m-v1-fp16, dimensions: 1024
+2026-07-06T14:19:24.0652741Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Service initialized with storage path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\DocumentIndexes
+2026-07-06T14:19:24.0690411Z	Information	TestCaseEditorApp.Services.RequirementAnalysisCache	[AnalysisCache] Initialized with maxSize=500, maxAge=08:00:00
+2026-07-06T14:19:24.0762510Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-06T14:19:24.0784323Z	Information	TestCaseEditorApp.Services.Templates.ServiceComplianceWrapper	ServiceComplianceWrapper initialized with Full Template Form Architecture
+2026-07-06T14:19:24.0842212Z	Information	TestCaseEditorApp.Services.DerivationQualityScorer	DerivationQualityScorer initialized with evaluation framework
+2026-07-06T14:19:24.0868366Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-06T14:19:24.0890593Z	Information	TestCaseEditorApp.Services.SystemCapabilityDerivationService	SystemCapabilityDerivationService initialized with Template Form Architecture with taxonomy containing 14 categories
+2026-07-06T14:19:24.0980204Z	Information	App	[JamaConnect] FromConfiguration called
+2026-07-06T14:19:24.0997783Z	Information	App	[JamaConnect] Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-06T14:19:24.1015420Z	Information	App	[JamaConnect] API Token: NOT SET
+2026-07-06T14:19:24.1031274Z	Information	App	[JamaConnect] Client ID: hpytk1ocbt0p01u
+2026-07-06T14:19:24.1047192Z	Information	App	[JamaConnect] Client Secret: SET
+2026-07-06T14:19:24.1064545Z	Information	App	[JamaConnect] Creating service with OAuth
+2026-07-06T14:19:24.1102590Z	Information	App	[JamaConnect] OAuth constructor - Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-06T14:19:24.1121706Z	Information	App	[JamaConnect] OAuth constructor - Client ID: hpytk1ocbt0p01u
+2026-07-06T14:19:24.1137273Z	Information	App	[JamaConnect] OAuth constructor - Client Secret: SET
+2026-07-06T14:19:24.1160434Z	Information	App	[JamaConnect] OCR service configured for image text extraction
+2026-07-06T14:19:24.1284605Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-06T14:19:24.1307789Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-06T14:19:24.1318905Z	Information	App	[TesseractOCR] Initializing with tessdata path: C:\Users\e10653214\AppData\Local\Programs\Tesseract-OCR\tessdata
+2026-07-06T14:19:24.1339821Z	Information	TestCaseEditorApp.Services.Templates.ABTestingFramework	ABTestingFramework initialized. ComplianceWrapper: True, QualityService: True
+2026-07-06T14:19:24.1359085Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-06T14:19:24.1433448Z	Information	TestCaseEditorApp.Services.Templates.TelemetryDashboardService	📊 TelemetryDashboardService initialized. Integration: QualityService+ABTesting+Compliance
+2026-07-06T14:19:24.1511869Z	Information	App	[OllamaStatusMonitor] HTTP timeout configured: 8s
+2026-07-06T14:19:24.1531072Z	Information	App	[OllamaStatusMonitor] Max supported Ollama version: 0.5.13
+2026-07-06T14:19:24.1609851Z	Information	App	[JamaDocumentParser] Initialized with Template Form Architecture: Envelope=True, Quality=True, Compliance=True, ABTest=True, Telemetry=True, OllamaManager=True, OllamaMonitor=True
+2026-07-06T14:19:24.1839535Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Navigation (NavigationMediator)
+2026-07-06T14:19:24.1904236Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: TestCaseGeneration (TestCaseGenerationMediator)
+2026-07-06T14:19:24.1947138Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: TestFlow (TestFlowMediator)
+2026-07-06T14:19:24.2029498Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: NewProject (NewProjectMediator)
+2026-07-06T14:19:24.2123334Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: OpenProject (OpenProjectMediator)
+2026-07-06T14:19:24.2182457Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Requirements (RequirementsMediator)
+2026-07-06T14:19:24.2685763Z	Information	TestCaseEditorApp.App	Service monitoring started for AnythingLLM
+2026-07-06T14:19:24.2868395Z	Information	TestCaseEditorApp.App	Attempting to auto-start AnythingLLM service...
+2026-07-06T14:19:24.3038679Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-07-06T14:19:24.3064888Z	Information	App	[ServiceMonitor] MEDIATOR DEBUG: NotifyStatusChange for AnythingLLM - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-06T14:19:24.3182112Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-06T14:19:24.3260543Z	Information	App	[ServiceMonitor] AnythingLLM status changed - Available: True, Message: AnythingLLM service is available
+2026-07-06T14:19:24.3717231Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-07-06T14:19:24.3737525Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-07-06T14:19:24.3872444Z	Information	App	[AnythingLLM] Availability check result: True
+2026-07-06T14:19:24.3920454Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=True, Message=Checking AnythingLLM status...
+2026-07-06T14:19:24.3943559Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
+2026-07-06T14:19:24.4010484Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: True, Starting: True
+2026-07-06T14:19:24.4037222Z	Information	App	[AnythingLLM] Availability check result: True
+2026-07-06T14:19:24.4094352Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-06T14:19:24.4109317Z	Information	App	[AnythingLLMMediator] Broadcasting last known status via NotifyStatusUpdated: Available=True, Starting=True, Message=Checking AnythingLLM status...
+2026-07-06T14:19:24.4143666Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-06T14:19:24.4174873Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-06T14:19:24.4208866Z	Information	TestCaseEditorApp.App	AnythingLLM auto-start completed successfully
+2026-07-06T14:19:24.4253690Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-06T14:19:24.4612153Z	Information	TestCaseEditorApp.Services.NavigationService	NavigationService created with initial title: 'Systems ATE APP'
+2026-07-06T14:19:24.4638333Z	Information	TestCaseEditorApp.Services.NavigationService	NavigationService initial TitleChanged event fired with 'Systems ATE APP'
+2026-07-06T14:19:24.4925919Z	Information	App	[RecentFiles] Load() called, path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\recent-files.json
+2026-07-06T14:19:24.4966375Z	Information	App	[RecentFiles] Loaded JSON: [
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B TL Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Top Level C4B Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD-268C4B.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\CMP-6000.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Decagon.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\RTU-42XX.tcex.json"
+]
+2026-07-06T14:19:24.7333281Z	Information	App	[RecentFiles] Deserialized 8 files
+2026-07-06T14:19:24.7357525Z	Information	App	[RecentFiles] After filtering non-existent: 8 files
+2026-07-06T14:19:24.8015981Z	Information	App	[TesseractOCR] Tesseract OCR engine initialized successfully
+2026-07-06T14:19:24.8054023Z	Information	App	[JamaConnect] OCR engine availability: Available
+2026-07-06T14:19:24.8105398Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-07-06T14:19:24.8129486Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel initialized as simple 5-workspace container
+2026-07-06T14:19:25.0677082Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-07-06T14:19:25.0696513Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel initialized as simple 5-workspace container
+2026-07-06T14:19:25.8175234Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-06T14:19:25.8204011Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-06T14:19:27.5240536Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-07-06T14:19:27.6228890Z	Information	App	[Load] ImportSource is missing - attempting auto-detection...
+2026-07-06T14:19:27.6260326Z	Information	App	[Load] Auto-detected Jama workspace (has GlobalId values), set ImportSource = 'Jama'
+2026-07-06T14:19:27.6281808Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaProject field: '' (null: True)
+2026-07-06T14:19:27.6301738Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaTestPlan field: '' (null: True)
+2026-07-06T14:19:27.6318333Z	Information	App	[Load] 🔍 JAMA DEBUG: ImportSource: 'Jama'
+2026-07-06T14:19:27.6340241Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Total GeneratedTestCases loaded: 0
+2026-07-06T14:19:27.6357383Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Requirements with GeneratedTestCases: 0/94
+2026-07-06T14:19:27.6402281Z	Information	TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator	Resolved Jama project ID from configured settings/environment fallback: 686
+2026-07-06T14:19:27.6470586Z	Information	App	[JamaConnect] Getting OAuth token from: https://jama02.rockwellcollins.com/contour/rest/oauth/token
+2026-07-06T14:19:27.6504564Z	Information	App	[JamaConnect] Sending OAuth request...
+2026-07-06T14:19:27.9681079Z	Information	App	[JamaConnect] OAuth response: OK
+2026-07-06T14:19:27.9721057Z	Information	App	[JamaConnect] OAuth content length: 857
+2026-07-06T14:19:27.9745037Z	Information	App	[JamaConnect] OAuth response content: {"access_token":"eyJraWQiOiJvYXV0aEtleVBhaXIiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJocHl0azFvY2J0MHAwMXUiLCJhdWQiOiJocHl0azFvY2J0MHAwMXUiLCJuYmYiOjE3ODMzNDc1NjcsInNjb3BlIjpbInRva2VuX2luZm9ybWF0aW9uIl0sImV4cCI6MTc4MzM1MTE2NywiaWF0IjoxNzgzMzQ3NTY3LCJhcHBsaWNhdGlvbl9kYXRhIjp7IkpBTUFfQ09SRSI6Im5hc2llcnJhIn0sImp0aSI6IjNhZDcyZTE2LTA0MmUtNDlmOC04MjQyLWJlOGI2NDg4YWYzMSIsImNsaWVudF9pZCI6ImhweXRrMW9jYnQwcDAxdSIsInRlbmFudCI6ImNvbnRvdXJfMDIifQ.zbeld0SGDLw-EPoVcu35sr2lgoJsqL3Teg7qS7H25KHdCkWwoONScDRSMrouEKAVUpbD1B_tyFnGfMcRbXP_KSf3tyLg3gWT1_bN0acLSE0NPG87odqNv9rVCV5_DYLwanr8XwafbnzLfaXwaJG3XKUh15wvLv-a2c8nKGdPZsCLwTfArCiA7Wqm2gTgELBb1_iZ-oINkajOPUcmyzRcdNOwP7miEj69vHKMsprUClecHIrufmFYGfGNUamtVmMRPWW3jLOd7UHzoYzBbXDVLcQLQ7q6hKsnsuKQTvT0gLV73srwzjaoDfdeZmp0_BPMxG884EKfPRrUCOk3fItRow","scope":"token_information","token_type":"Bearer","expires_in":3599}
+2026-07-06T14:19:27.9785252Z	Information	App	[JamaConnect] Deserialized token response - AccessToken is null: False
+2026-07-06T14:19:27.9808505Z	Information	App	[JamaConnect] Token obtained: True
+2026-07-06T14:19:27.9827421Z	Information	App	[JamaConnect] Token preview: eyJraWQiOiJvYXV0aEtl...
+2026-07-06T14:19:27.9846457Z	Information	App	[JamaConnect] ✅ OAuth steel trap validation passed!
+2026-07-06T14:19:27.9889385Z	Information	App	[JamaConnect] Fetching requirement item types for project 686: https://jama02.rockwellcollins.com/contour/rest/v1/projects/686/itemtypes
+2026-07-06T14:19:28.2371711Z	Information	App	[JamaConnect] Found requirement item type candidate: ID=53, Display='Component', Key='CMP'
+2026-07-06T14:19:28.2389357Z	Information	App	[JamaConnect] Found requirement item type candidate: ID=54, Display='Set', Key='SET'
+2026-07-06T14:19:28.2414907Z	Information	App	[JamaConnect] Found requirement item type candidate: ID=55, Display='Folder', Key='FLD'
+2026-07-06T14:19:28.2435796Z	Information	App	[JamaConnect] Found requirement item type candidate: ID=56, Display='Text', Key='TXT'
+2026-07-06T14:19:28.2462257Z	Information	App	[JamaConnect] Found requirement item type candidate: ID=193, Display='Requirement', Key='REQ_RC'
+2026-07-06T14:19:28.2480010Z	Information	App	[JamaConnect] Found requirement item type candidate: ID=194, Display='Verification Case', Key='VerCse'
+2026-07-06T14:19:28.2496444Z	Information	App	[JamaConnect] Found requirement item type candidate: ID=195, Display='Verification Procedure', Key='VerProc'
+2026-07-06T14:19:28.2514153Z	Information	App	[JamaConnect] Found requirement item type candidate: ID=196, Display='Design', Key='Design'
+2026-07-06T14:19:28.2531785Z	Information	App	[JamaConnect] Found requirement item type candidate: ID=197, Display='Artifact', Key='Artifact'
+2026-07-06T14:19:28.2548595Z	Information	App	[JamaConnect] Found requirement item type candidate: ID=198, Display='Stakeholder Desire', Key='Stkhldr_Desr'
+2026-07-06T14:19:28.2577168Z	Information	App	[JamaConnect] Selected known requirement item type ID 193: Display='Requirement', Key='REQ_RC'
+2026-07-06T14:19:28.2607321Z	Information	App	[JamaConnect] Using project requirement item type 193 for project 686
+2026-07-06T14:19:28.2624490Z	Information	App	[JamaConnect] Trying enhanced format: https://jama02.rockwellcollins.com/contour/rest/v1/items?project=686&itemType=193&maxResults=50&include=createdBy,modifiedBy,createdDate,modifiedDate
+2026-07-06T14:19:28.6066918Z	Information	App	[JamaConnect] API Response Status: OK
+2026-07-06T14:19:28.6170677Z	Information	App	[JamaConnect] Retrieved 50 items from first page
+2026-07-06T14:19:28.6213461Z	Information	App	[JamaConnect] Sample item 19805875: DocumentKey='MFD268C4B-CMP-1', GlobalId='COL02-CMP-10878292', Item=''
+2026-07-06T14:19:28.6231028Z	Information	App	[JamaConnect] Sample item 19805876: DocumentKey='MFD268C4B-TXT-1', GlobalId='COL02-TXT-10878293', Item=''
+2026-07-06T14:19:28.6250051Z	Information	App	[JamaConnect] Sample item 19820649: DocumentKey='MFD268C4B-TXT-3', GlobalId='COL02-TXT-10879697', Item=''
+2026-07-06T14:19:28.6268177Z	Information	App	[JamaConnect] Fetching page 2 with user metadata: startAt=50
+2026-07-06T14:19:28.9707663Z	Information	App	[JamaConnect] Fetching page 3 with user metadata: startAt=100
+2026-07-06T14:19:29.1854090Z	Information	App	[JamaConnect] Retrieved 94 requirements from 116 total items (requirementType=193)
+2026-07-06T14:19:29.1901413Z	Information	App	[JamaConnect] Converting 94 Jama items to requirements
+2026-07-06T14:19:29.1920660Z	Information	App	[JamaConnect] Building JSON lookup from 3 API response pages
+2026-07-06T14:19:29.1946055Z	Information	App	[JamaConnect] ✅ JSON lookup created with 116 items from ALL pages - OCR processing now available for all requirements
+2026-07-06T14:19:29.1965260Z	Information	App	[JamaConnect] Item 19833108 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1791', GlobalId: 'COL02-REQ_RC-10883314'
+2026-07-06T14:19:29.1984039Z	Information	App	[JamaConnect] Item 19833108 final selected ID: 'MFD268C4B-REQ_RC-1791'
+2026-07-06T14:19:29.2155574Z	Information	App	[JamaConnect] Item 19833108: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.2182647Z	Information	App	[JamaConnect] Item 19833108: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.2219913Z	Information	App	[JamaConnect] Item 19833108: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.2240652Z	Information	App	[JamaConnect] Item 19833108: Scanning all fields for rich content
+2026-07-06T14:19:29.2260200Z	Information	App	[JamaConnect] Item 19833108: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.2281334Z	Information	App	[JamaConnect] Item 19833108: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.2298904Z	Information	App	[JamaConnect] Item 19833109 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1792', GlobalId: 'COL02-REQ_RC-10883315'
+2026-07-06T14:19:29.2315417Z	Information	App	[JamaConnect] Item 19833109 final selected ID: 'MFD268C4B-REQ_RC-1792'
+2026-07-06T14:19:29.2335189Z	Information	App	[JamaConnect] Item 19833109: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.2352709Z	Information	App	[JamaConnect] Item 19833109: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.2372875Z	Information	App	[JamaConnect] Item 19833109: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.2392040Z	Information	App	[JamaConnect] Item 19833109: Scanning all fields for rich content
+2026-07-06T14:19:29.2409202Z	Information	App	[JamaConnect] Item 19833109: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.2430545Z	Information	App	[JamaConnect] Item 19833109: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.2447866Z	Information	App	[JamaConnect] Item 19833111 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1793', GlobalId: 'COL02-REQ_RC-10883316'
+2026-07-06T14:19:29.2464336Z	Information	App	[JamaConnect] Item 19833111 final selected ID: 'MFD268C4B-REQ_RC-1793'
+2026-07-06T14:19:29.2481621Z	Information	App	[JamaConnect] Item 19833111: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.2497957Z	Information	App	[JamaConnect] Item 19833111: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.2516012Z	Information	App	[JamaConnect] Item 19833111: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.2531447Z	Information	App	[JamaConnect] Item 19833111: Scanning all fields for rich content
+2026-07-06T14:19:29.2547964Z	Information	App	[JamaConnect] Item 19833111: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.2564588Z	Information	App	[JamaConnect] Item 19833111: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.2584495Z	Information	App	[JamaConnect] Item 19833112 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1794', GlobalId: 'COL02-REQ_RC-10883317'
+2026-07-06T14:19:29.2602904Z	Information	App	[JamaConnect] Item 19833112 final selected ID: 'MFD268C4B-REQ_RC-1794'
+2026-07-06T14:19:29.2621987Z	Information	App	[JamaConnect] Item 19833112: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.2639488Z	Information	App	[JamaConnect] Item 19833112: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.2655925Z	Information	App	[JamaConnect] Item 19833112: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.2672034Z	Information	App	[JamaConnect] Item 19833112: Scanning all fields for rich content
+2026-07-06T14:19:29.2688922Z	Information	App	[JamaConnect] Item 19833112: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.2704827Z	Information	App	[JamaConnect] Item 19833112: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.2720107Z	Information	App	[JamaConnect] Item 19833113 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1795', GlobalId: 'COL02-REQ_RC-10883318'
+2026-07-06T14:19:29.2736944Z	Information	App	[JamaConnect] Item 19833113 final selected ID: 'MFD268C4B-REQ_RC-1795'
+2026-07-06T14:19:29.2754703Z	Information	App	[JamaConnect] Item 19833113: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.2772353Z	Information	App	[JamaConnect] Item 19833113: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.2791007Z	Information	App	[JamaConnect] Item 19833113: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.2813031Z	Information	App	[JamaConnect] Item 19833113: Scanning all fields for rich content
+2026-07-06T14:19:29.2829959Z	Information	App	[JamaConnect] Item 19833113: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.2845847Z	Information	App	[JamaConnect] Item 19833113: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.2862444Z	Information	App	[JamaConnect] Item 19833114 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1796', GlobalId: 'COL02-REQ_RC-10883319'
+2026-07-06T14:19:29.2878072Z	Information	App	[JamaConnect] Item 19833114 final selected ID: 'MFD268C4B-REQ_RC-1796'
+2026-07-06T14:19:29.2899445Z	Information	App	[JamaConnect] Item 19833114: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.2919133Z	Information	App	[JamaConnect] Item 19833114: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.2939977Z	Information	App	[JamaConnect] Item 19833114: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.2957481Z	Information	App	[JamaConnect] Item 19833114: Scanning all fields for rich content
+2026-07-06T14:19:29.2975306Z	Information	App	[JamaConnect] Item 19833114: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.2991801Z	Information	App	[JamaConnect] Item 19833114: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.3009525Z	Information	App	[JamaConnect] Item 19833116 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1797', GlobalId: 'COL02-REQ_RC-10883320'
+2026-07-06T14:19:29.3030742Z	Information	App	[JamaConnect] Item 19833116 final selected ID: 'MFD268C4B-REQ_RC-1797'
+2026-07-06T14:19:29.3049125Z	Information	App	[JamaConnect] Item 19833116: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.3065118Z	Information	App	[JamaConnect] Item 19833116: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.3087002Z	Information	App	[JamaConnect] Item 19833116: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.3107787Z	Information	App	[JamaConnect] Item 19833116: Scanning all fields for rich content
+2026-07-06T14:19:29.3125742Z	Information	App	[JamaConnect] Item 19833116: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.3141562Z	Information	App	[JamaConnect] Item 19833116: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.3157172Z	Information	App	[JamaConnect] Item 19833117 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1798', GlobalId: 'COL02-REQ_RC-10883321'
+2026-07-06T14:19:29.3173398Z	Information	App	[JamaConnect] Item 19833117 final selected ID: 'MFD268C4B-REQ_RC-1798'
+2026-07-06T14:19:29.3196232Z	Information	App	[JamaConnect] Item 19833117: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.3218889Z	Information	App	[JamaConnect] Item 19833117: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.3235554Z	Information	App	[JamaConnect] Item 19833117: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.3254417Z	Information	App	[JamaConnect] Item 19833117: Scanning all fields for rich content
+2026-07-06T14:19:29.3274559Z	Information	App	[JamaConnect] Item 19833117: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.3291551Z	Information	App	[JamaConnect] Item 19833117: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.3308625Z	Information	App	[JamaConnect] Item 19833118 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1799', GlobalId: 'COL02-REQ_RC-10883322'
+2026-07-06T14:19:29.3323680Z	Information	App	[JamaConnect] Item 19833118 final selected ID: 'MFD268C4B-REQ_RC-1799'
+2026-07-06T14:19:29.3341100Z	Information	App	[JamaConnect] Item 19833118: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.3361299Z	Information	App	[JamaConnect] Item 19833118: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.3378401Z	Information	App	[JamaConnect] Item 19833118: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.3394226Z	Information	App	[JamaConnect] Item 19833118: Scanning all fields for rich content
+2026-07-06T14:19:29.3412123Z	Information	App	[JamaConnect] Item 19833118: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.3428947Z	Information	App	[JamaConnect] Item 19833118: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.3446493Z	Information	App	[JamaConnect] Item 19833119 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1800', GlobalId: 'COL02-REQ_RC-10883323'
+2026-07-06T14:19:29.3462846Z	Information	App	[JamaConnect] Item 19833119 final selected ID: 'MFD268C4B-REQ_RC-1800'
+2026-07-06T14:19:29.3480661Z	Information	App	[JamaConnect] Item 19833119: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.3496451Z	Information	App	[JamaConnect] Item 19833119: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.3511618Z	Information	App	[JamaConnect] Item 19833119: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.3532463Z	Information	App	[JamaConnect] Item 19833119: Scanning all fields for rich content
+2026-07-06T14:19:29.3553867Z	Information	App	[JamaConnect] Item 19833119: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.3569352Z	Information	App	[JamaConnect] Item 19833119: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.3587527Z	Information	App	[JamaConnect] Item 19833120 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1801', GlobalId: 'COL02-REQ_RC-10883324'
+2026-07-06T14:19:29.3604655Z	Information	App	[JamaConnect] Item 19833120 final selected ID: 'MFD268C4B-REQ_RC-1801'
+2026-07-06T14:19:29.3621488Z	Information	App	[JamaConnect] Item 19833120: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.3639756Z	Information	App	[JamaConnect] Item 19833120: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.3655716Z	Information	App	[JamaConnect] Item 19833120: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.3672958Z	Information	App	[JamaConnect] Item 19833120: Scanning all fields for rich content
+2026-07-06T14:19:29.3689583Z	Information	App	[JamaConnect] Item 19833120: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.3708922Z	Information	App	[JamaConnect] Item 19833120: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.3724706Z	Information	App	[JamaConnect] Item 19833121 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1802', GlobalId: 'COL02-REQ_RC-10883325'
+2026-07-06T14:19:29.3745159Z	Information	App	[JamaConnect] Item 19833121 final selected ID: 'MFD268C4B-REQ_RC-1802'
+2026-07-06T14:19:29.3761631Z	Information	App	[JamaConnect] Item 19833121: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.3779837Z	Information	App	[JamaConnect] Item 19833121: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.3801732Z	Information	App	[JamaConnect] Item 19833121: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.3820443Z	Information	App	[JamaConnect] Item 19833121: Scanning all fields for rich content
+2026-07-06T14:19:29.3840747Z	Information	App	[JamaConnect] Item 19833121: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.3862549Z	Information	App	[JamaConnect] Item 19833121: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.3881761Z	Information	App	[JamaConnect] Item 19833122 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1803', GlobalId: 'COL02-REQ_RC-10883326'
+2026-07-06T14:19:29.3899435Z	Information	App	[JamaConnect] Item 19833122 final selected ID: 'MFD268C4B-REQ_RC-1803'
+2026-07-06T14:19:29.3922520Z	Information	App	[JamaConnect] Item 19833122: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.3948084Z	Information	App	[JamaConnect] Item 19833122: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.3971055Z	Information	App	[JamaConnect] Item 19833122: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.3992195Z	Information	App	[JamaConnect] Item 19833122: Scanning all fields for rich content
+2026-07-06T14:19:29.4012504Z	Information	App	[JamaConnect] Item 19833122: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.4033730Z	Information	App	[JamaConnect] Item 19833122: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.4052215Z	Information	App	[JamaConnect] Item 19833123 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1804', GlobalId: 'COL02-REQ_RC-10883327'
+2026-07-06T14:19:29.4070105Z	Information	App	[JamaConnect] Item 19833123 final selected ID: 'MFD268C4B-REQ_RC-1804'
+2026-07-06T14:19:29.4092588Z	Information	App	[JamaConnect] Item 19833123: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.4113634Z	Information	App	[JamaConnect] Item 19833123: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.4132949Z	Information	App	[JamaConnect] Item 19833123: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.4155022Z	Information	App	[JamaConnect] Item 19833123: Scanning all fields for rich content
+2026-07-06T14:19:29.4177171Z	Information	App	[JamaConnect] Item 19833123: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.4196782Z	Information	App	[JamaConnect] Item 19833123: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.4218286Z	Information	App	[JamaConnect] Item 19833124 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1805', GlobalId: 'COL02-REQ_RC-10883328'
+2026-07-06T14:19:29.4236416Z	Information	App	[JamaConnect] Item 19833124 final selected ID: 'MFD268C4B-REQ_RC-1805'
+2026-07-06T14:19:29.4256643Z	Information	App	[JamaConnect] Item 19833124: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.4275517Z	Information	App	[JamaConnect] Item 19833124: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.4293582Z	Information	App	[JamaConnect] Item 19833124: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.4316244Z	Information	App	[JamaConnect] Item 19833124: Scanning all fields for rich content
+2026-07-06T14:19:29.4337198Z	Information	App	[JamaConnect] Item 19833124: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.4357236Z	Information	App	[JamaConnect] Item 19833124: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.4375586Z	Information	App	[JamaConnect] Item 19833125 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1806', GlobalId: 'COL02-REQ_RC-10883329'
+2026-07-06T14:19:29.4394947Z	Information	App	[JamaConnect] Item 19833125 final selected ID: 'MFD268C4B-REQ_RC-1806'
+2026-07-06T14:19:29.4419393Z	Information	App	[JamaConnect] Item 19833125: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.4443876Z	Information	App	[JamaConnect] Item 19833125: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.4467271Z	Information	App	[JamaConnect] Item 19833125: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.4487034Z	Information	App	[JamaConnect] Item 19833125: Scanning all fields for rich content
+2026-07-06T14:19:29.4506209Z	Information	App	[JamaConnect] Item 19833125: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.4524693Z	Information	App	[JamaConnect] Item 19833125: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.4545754Z	Information	App	[JamaConnect] Item 19833126 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1807', GlobalId: 'COL02-REQ_RC-10883330'
+2026-07-06T14:19:29.4564573Z	Information	App	[JamaConnect] Item 19833126 final selected ID: 'MFD268C4B-REQ_RC-1807'
+2026-07-06T14:19:29.4583485Z	Information	App	[JamaConnect] Item 19833126: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.4609677Z	Information	App	[JamaConnect] Item 19833126: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.4633267Z	Information	App	[JamaConnect] Item 19833126: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.4654100Z	Information	App	[JamaConnect] Item 19833126: Scanning all fields for rich content
+2026-07-06T14:19:29.4674632Z	Information	App	[JamaConnect] Item 19833126: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.4696425Z	Information	App	[JamaConnect] Item 19833126: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.4716364Z	Information	App	[JamaConnect] Item 19833127 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1808', GlobalId: 'COL02-REQ_RC-10883331'
+2026-07-06T14:19:29.4739425Z	Information	App	[JamaConnect] Item 19833127 final selected ID: 'MFD268C4B-REQ_RC-1808'
+2026-07-06T14:19:29.4765805Z	Information	App	[JamaConnect] Item 19833127: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.4788726Z	Information	App	[JamaConnect] Item 19833127: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.4811382Z	Information	App	[JamaConnect] Item 19833127: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.4830609Z	Information	App	[JamaConnect] Item 19833127: Scanning all fields for rich content
+2026-07-06T14:19:29.4848787Z	Information	App	[JamaConnect] Item 19833127: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.4872048Z	Information	App	[JamaConnect] Item 19833127: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.4888620Z	Information	App	[JamaConnect] Item 19833128 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1809', GlobalId: 'COL02-REQ_RC-10883332'
+2026-07-06T14:19:29.4908501Z	Information	App	[JamaConnect] Item 19833128 final selected ID: 'MFD268C4B-REQ_RC-1809'
+2026-07-06T14:19:29.4929745Z	Information	App	[JamaConnect] Item 19833128: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.4956484Z	Information	App	[JamaConnect] Item 19833128: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.4982046Z	Information	App	[JamaConnect] Item 19833128: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.5000382Z	Information	App	[JamaConnect] Item 19833128: Scanning all fields for rich content
+2026-07-06T14:19:29.5022450Z	Information	App	[JamaConnect] Item 19833128: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.5046008Z	Information	App	[JamaConnect] Item 19833128: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.5062693Z	Information	App	[JamaConnect] Item 19833129 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1810', GlobalId: 'COL02-REQ_RC-10883333'
+2026-07-06T14:19:29.5084877Z	Information	App	[JamaConnect] Item 19833129 final selected ID: 'MFD268C4B-REQ_RC-1810'
+2026-07-06T14:19:29.5117431Z	Information	App	[JamaConnect] Item 19833129: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.5142436Z	Information	App	[JamaConnect] Item 19833129: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.5162774Z	Information	App	[JamaConnect] Item 19833129: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.5179728Z	Information	App	[JamaConnect] Item 19833129: Scanning all fields for rich content
+2026-07-06T14:19:29.5197403Z	Information	App	[JamaConnect] Item 19833129: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.5215940Z	Information	App	[JamaConnect] Item 19833129: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.5234864Z	Information	App	[JamaConnect] Item 19833130 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1811', GlobalId: 'COL02-REQ_RC-10883334'
+2026-07-06T14:19:29.5255743Z	Information	App	[JamaConnect] Item 19833130 final selected ID: 'MFD268C4B-REQ_RC-1811'
+2026-07-06T14:19:29.5283038Z	Information	App	[JamaConnect] Item 19833130: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.5305018Z	Information	App	[JamaConnect] Item 19833130: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.5323543Z	Information	App	[JamaConnect] Item 19833130: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.5342153Z	Information	App	[JamaConnect] Item 19833130: Scanning all fields for rich content
+2026-07-06T14:19:29.5361116Z	Information	App	[JamaConnect] Item 19833130: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.5381462Z	Information	App	[JamaConnect] Item 19833130: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.5403347Z	Information	App	[JamaConnect] Item 19833131 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1812', GlobalId: 'COL02-REQ_RC-10883335'
+2026-07-06T14:19:29.5424653Z	Information	App	[JamaConnect] Item 19833131 final selected ID: 'MFD268C4B-REQ_RC-1812'
+2026-07-06T14:19:29.5450115Z	Information	App	[JamaConnect] Item 19833131: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.5468319Z	Information	App	[JamaConnect] Item 19833131: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.5489043Z	Information	App	[JamaConnect] Item 19833131: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.5519117Z	Information	App	[JamaConnect] Item 19833131: Scanning all fields for rich content
+2026-07-06T14:19:29.5544423Z	Information	App	[JamaConnect] Item 19833131: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.5565361Z	Information	App	[JamaConnect] Item 19833131: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.5588913Z	Information	App	[JamaConnect] Item 19833132 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1813', GlobalId: 'COL02-REQ_RC-10883336'
+2026-07-06T14:19:29.5611706Z	Information	App	[JamaConnect] Item 19833132 final selected ID: 'MFD268C4B-REQ_RC-1813'
+2026-07-06T14:19:29.5634849Z	Information	App	[JamaConnect] Item 19833132: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.5653643Z	Information	App	[JamaConnect] Item 19833132: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.5670851Z	Information	App	[JamaConnect] Item 19833132: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.5690900Z	Information	App	[JamaConnect] Item 19833132: Scanning all fields for rich content
+2026-07-06T14:19:29.5712951Z	Information	App	[JamaConnect] Item 19833132: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.5734134Z	Information	App	[JamaConnect] Item 19833132: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.5759610Z	Information	App	[JamaConnect] Item 19833133 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1814', GlobalId: 'COL02-REQ_RC-10883337'
+2026-07-06T14:19:29.5789336Z	Information	App	[JamaConnect] Item 19833133 final selected ID: 'MFD268C4B-REQ_RC-1814'
+2026-07-06T14:19:29.5814483Z	Information	App	[JamaConnect] Item 19833133: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.5841638Z	Information	App	[JamaConnect] Item 19833133: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.5864697Z	Information	App	[JamaConnect] Item 19833133: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.5891517Z	Information	App	[JamaConnect] Item 19833133: Scanning all fields for rich content
+2026-07-06T14:19:29.5911444Z	Information	App	[JamaConnect] Item 19833133: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.5934611Z	Information	App	[JamaConnect] Item 19833133: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.5955240Z	Information	App	[JamaConnect] Item 19833134 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1815', GlobalId: 'COL02-REQ_RC-10883338'
+2026-07-06T14:19:29.5978093Z	Information	App	[JamaConnect] Item 19833134 final selected ID: 'MFD268C4B-REQ_RC-1815'
+2026-07-06T14:19:29.6003123Z	Information	App	[JamaConnect] Item 19833134: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.6021019Z	Information	App	[JamaConnect] Item 19833134: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.6046389Z	Information	App	[JamaConnect] Item 19833134: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.6068920Z	Information	App	[JamaConnect] Item 19833134: Scanning all fields for rich content
+2026-07-06T14:19:29.6096906Z	Information	App	[JamaConnect] Item 19833134: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.6117680Z	Information	App	[JamaConnect] Item 19833134: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.6139448Z	Information	App	[JamaConnect] Item 19833135 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1816', GlobalId: 'COL02-REQ_RC-10883339'
+2026-07-06T14:19:29.6158387Z	Information	App	[JamaConnect] Item 19833135 final selected ID: 'MFD268C4B-REQ_RC-1816'
+2026-07-06T14:19:29.6181401Z	Information	App	[JamaConnect] Item 19833135: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.6204559Z	Information	App	[JamaConnect] Item 19833135: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.6226331Z	Information	App	[JamaConnect] Item 19833135: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.6250223Z	Information	App	[JamaConnect] Item 19833135: Scanning all fields for rich content
+2026-07-06T14:19:29.6278418Z	Information	App	[JamaConnect] Item 19833135: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.6303069Z	Information	App	[JamaConnect] Item 19833135: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.6327571Z	Information	App	[JamaConnect] Item 19833136 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1817', GlobalId: 'COL02-REQ_RC-10883340'
+2026-07-06T14:19:29.6354107Z	Information	App	[JamaConnect] Item 19833136 final selected ID: 'MFD268C4B-REQ_RC-1817'
+2026-07-06T14:19:29.6376105Z	Information	App	[JamaConnect] Item 19833136: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.6402119Z	Information	App	[JamaConnect] Item 19833136: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.6426930Z	Information	App	[JamaConnect] Item 19833136: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.6450409Z	Information	App	[JamaConnect] Item 19833136: Scanning all fields for rich content
+2026-07-06T14:19:29.6469237Z	Information	App	[JamaConnect] Item 19833136: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.6489649Z	Information	App	[JamaConnect] Item 19833136: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.6507652Z	Information	App	[JamaConnect] Item 19833137 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1818', GlobalId: 'COL02-REQ_RC-10883341'
+2026-07-06T14:19:29.6525785Z	Information	App	[JamaConnect] Item 19833137 final selected ID: 'MFD268C4B-REQ_RC-1818'
+2026-07-06T14:19:29.6544686Z	Information	App	[JamaConnect] Item 19833137: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.6564160Z	Information	App	[JamaConnect] Item 19833137: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.6581041Z	Information	App	[JamaConnect] Item 19833137: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.6601892Z	Information	App	[JamaConnect] Item 19833137: Scanning all fields for rich content
+2026-07-06T14:19:29.6623711Z	Information	App	[JamaConnect] Item 19833137: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.6645191Z	Information	App	[JamaConnect] Item 19833137: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.6666962Z	Information	App	[JamaConnect] Item 19833138 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1819', GlobalId: 'COL02-REQ_RC-10883342'
+2026-07-06T14:19:29.6686621Z	Information	App	[JamaConnect] Item 19833138 final selected ID: 'MFD268C4B-REQ_RC-1819'
+2026-07-06T14:19:29.6712174Z	Information	App	[JamaConnect] Item 19833138: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.6731380Z	Information	App	[JamaConnect] Item 19833138: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.6753627Z	Information	App	[JamaConnect] Item 19833138: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.6772863Z	Information	App	[JamaConnect] Item 19833138: Scanning all fields for rich content
+2026-07-06T14:19:29.6794211Z	Information	App	[JamaConnect] Item 19833138: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.6816744Z	Information	App	[JamaConnect] Item 19833138: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.6838996Z	Information	App	[JamaConnect] Item 19833139 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1820', GlobalId: 'COL02-REQ_RC-10883343'
+2026-07-06T14:19:29.6861257Z	Information	App	[JamaConnect] Item 19833139 final selected ID: 'MFD268C4B-REQ_RC-1820'
+2026-07-06T14:19:29.6888716Z	Information	App	[JamaConnect] Item 19833139: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.6911401Z	Information	App	[JamaConnect] Item 19833139: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.6940591Z	Information	App	[JamaConnect] Item 19833139: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.6961894Z	Information	App	[JamaConnect] Item 19833139: Scanning all fields for rich content
+2026-07-06T14:19:29.6982827Z	Information	App	[JamaConnect] Item 19833139: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.7002155Z	Information	App	[JamaConnect] Item 19833139: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.7022179Z	Information	App	[JamaConnect] Item 19833140 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1821', GlobalId: 'COL02-REQ_RC-10883344'
+2026-07-06T14:19:29.7041383Z	Information	App	[JamaConnect] Item 19833140 final selected ID: 'MFD268C4B-REQ_RC-1821'
+2026-07-06T14:19:29.7061325Z	Information	App	[JamaConnect] Item 19833140: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.7081267Z	Information	App	[JamaConnect] Item 19833140: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.7102743Z	Information	App	[JamaConnect] Item 19833140: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.7122102Z	Information	App	[JamaConnect] Item 19833140: Scanning all fields for rich content
+2026-07-06T14:19:29.7142379Z	Information	App	[JamaConnect] Item 19833140: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.7164538Z	Information	App	[JamaConnect] Item 19833140: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.7182684Z	Information	App	[JamaConnect] Item 19833141 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1822', GlobalId: 'COL02-REQ_RC-10883345'
+2026-07-06T14:19:29.7201205Z	Information	App	[JamaConnect] Item 19833141 final selected ID: 'MFD268C4B-REQ_RC-1822'
+2026-07-06T14:19:29.7219589Z	Information	App	[JamaConnect] Item 19833141: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.7239726Z	Information	App	[JamaConnect] Item 19833141: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.7259702Z	Information	App	[JamaConnect] Item 19833141: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.7282885Z	Information	App	[JamaConnect] Item 19833141: Scanning all fields for rich content
+2026-07-06T14:19:29.7312205Z	Information	App	[JamaConnect] Item 19833141: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.7339277Z	Information	App	[JamaConnect] Item 19833141: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.7360997Z	Information	App	[JamaConnect] Item 19833142 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1823', GlobalId: 'COL02-REQ_RC-10883346'
+2026-07-06T14:19:29.7384204Z	Information	App	[JamaConnect] Item 19833142 final selected ID: 'MFD268C4B-REQ_RC-1823'
+2026-07-06T14:19:29.7405478Z	Information	App	[JamaConnect] Item 19833142: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.7426932Z	Information	App	[JamaConnect] Item 19833142: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.7452336Z	Information	App	[JamaConnect] Item 19833142: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.7474870Z	Information	App	[JamaConnect] Item 19833142: Scanning all fields for rich content
+2026-07-06T14:19:29.7500436Z	Information	App	[JamaConnect] Item 19833142: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.7519073Z	Information	App	[JamaConnect] Item 19833142: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.7539040Z	Information	App	[JamaConnect] Item 19833143 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1824', GlobalId: 'COL02-REQ_RC-10883347'
+2026-07-06T14:19:29.7557325Z	Information	App	[JamaConnect] Item 19833143 final selected ID: 'MFD268C4B-REQ_RC-1824'
+2026-07-06T14:19:29.7576781Z	Information	App	[JamaConnect] Item 19833143: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.7596791Z	Information	App	[JamaConnect] Item 19833143: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.7619043Z	Information	App	[JamaConnect] Item 19833143: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.7643077Z	Information	App	[JamaConnect] Item 19833143: Scanning all fields for rich content
+2026-07-06T14:19:29.7677723Z	Information	App	[JamaConnect] Item 19833143: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.7704448Z	Information	App	[JamaConnect] Item 19833143: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.7730964Z	Information	App	[JamaConnect] Item 19833144 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1825', GlobalId: 'COL02-REQ_RC-10883348'
+2026-07-06T14:19:29.7749853Z	Information	App	[JamaConnect] Item 19833144 final selected ID: 'MFD268C4B-REQ_RC-1825'
+2026-07-06T14:19:29.7775034Z	Information	App	[JamaConnect] Item 19833144: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.7800610Z	Information	App	[JamaConnect] Item 19833144: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.7822743Z	Information	App	[JamaConnect] Item 19833144: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.7844808Z	Information	App	[JamaConnect] Item 19833144: Scanning all fields for rich content
+2026-07-06T14:19:29.7863189Z	Information	App	[JamaConnect] Item 19833144: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.7883604Z	Information	App	[JamaConnect] Item 19833144: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.7901920Z	Information	App	[JamaConnect] Item 19833145 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1826', GlobalId: 'COL02-REQ_RC-10883349'
+2026-07-06T14:19:29.7923943Z	Information	App	[JamaConnect] Item 19833145 final selected ID: 'MFD268C4B-REQ_RC-1826'
+2026-07-06T14:19:29.7945648Z	Information	App	[JamaConnect] Item 19833145: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.7964919Z	Information	App	[JamaConnect] Item 19833145: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.7983689Z	Information	App	[JamaConnect] Item 19833145: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.8002624Z	Information	App	[JamaConnect] Item 19833145: Scanning all fields for rich content
+2026-07-06T14:19:29.8021314Z	Information	App	[JamaConnect] Item 19833145: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.8040293Z	Information	App	[JamaConnect] Item 19833145: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.8061312Z	Information	App	[JamaConnect] Item 19833146 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1827', GlobalId: 'COL02-REQ_RC-10883350'
+2026-07-06T14:19:29.8081130Z	Information	App	[JamaConnect] Item 19833146 final selected ID: 'MFD268C4B-REQ_RC-1827'
+2026-07-06T14:19:29.8106604Z	Information	App	[JamaConnect] Item 19833146: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.8126969Z	Information	App	[JamaConnect] Item 19833146: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.8147666Z	Information	App	[JamaConnect] Item 19833146: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.8168186Z	Information	App	[JamaConnect] Item 19833146: Scanning all fields for rich content
+2026-07-06T14:19:29.8189047Z	Information	App	[JamaConnect] Item 19833146: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.8209389Z	Information	App	[JamaConnect] Item 19833146: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.8229494Z	Information	App	[JamaConnect] Item 19833147 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1828', GlobalId: 'COL02-REQ_RC-10883351'
+2026-07-06T14:19:29.8248358Z	Information	App	[JamaConnect] Item 19833147 final selected ID: 'MFD268C4B-REQ_RC-1828'
+2026-07-06T14:19:29.8271065Z	Information	App	[JamaConnect] Item 19833147: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.8292308Z	Information	App	[JamaConnect] Item 19833147: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.8312216Z	Information	App	[JamaConnect] Item 19833147: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.8333916Z	Information	App	[JamaConnect] Item 19833147: Scanning all fields for rich content
+2026-07-06T14:19:29.8357481Z	Information	App	[JamaConnect] Item 19833147: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.8386481Z	Information	App	[JamaConnect] Item 19833147: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.8414174Z	Information	App	[JamaConnect] Item 19833148 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1829', GlobalId: 'COL02-REQ_RC-10883352'
+2026-07-06T14:19:29.8445618Z	Information	App	[JamaConnect] Item 19833148 final selected ID: 'MFD268C4B-REQ_RC-1829'
+2026-07-06T14:19:29.8473206Z	Information	App	[JamaConnect] Item 19833148: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.8496134Z	Information	App	[JamaConnect] Item 19833148: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.8521605Z	Information	App	[JamaConnect] Item 19833148: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.8543303Z	Information	App	[JamaConnect] Item 19833148: Scanning all fields for rich content
+2026-07-06T14:19:29.8564311Z	Information	App	[JamaConnect] Item 19833148: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.8585101Z	Information	App	[JamaConnect] Item 19833148: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.8607405Z	Information	App	[JamaConnect] Item 19833149 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1830', GlobalId: 'COL02-REQ_RC-10883353'
+2026-07-06T14:19:29.8627298Z	Information	App	[JamaConnect] Item 19833149 final selected ID: 'MFD268C4B-REQ_RC-1830'
+2026-07-06T14:19:29.8651537Z	Information	App	[JamaConnect] Item 19833149: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.8672481Z	Information	App	[JamaConnect] Item 19833149: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.8691779Z	Information	App	[JamaConnect] Item 19833149: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.8715683Z	Information	App	[JamaConnect] Item 19833149: Scanning all fields for rich content
+2026-07-06T14:19:29.8736284Z	Information	App	[JamaConnect] Item 19833149: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.8758692Z	Information	App	[JamaConnect] Item 19833149: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.8780383Z	Information	App	[JamaConnect] Item 19833150 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1831', GlobalId: 'COL02-REQ_RC-10883354'
+2026-07-06T14:19:29.8801455Z	Information	App	[JamaConnect] Item 19833150 final selected ID: 'MFD268C4B-REQ_RC-1831'
+2026-07-06T14:19:29.8826275Z	Information	App	[JamaConnect] Item 19833150: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.8847412Z	Information	App	[JamaConnect] Item 19833150: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.8866636Z	Information	App	[JamaConnect] Item 19833150: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.8886092Z	Information	App	[JamaConnect] Item 19833150: Scanning all fields for rich content
+2026-07-06T14:19:29.8904658Z	Information	App	[JamaConnect] Item 19833150: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.8923505Z	Information	App	[JamaConnect] Item 19833150: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.8943017Z	Information	App	[JamaConnect] Item 19833151 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1832', GlobalId: 'COL02-REQ_RC-10883355'
+2026-07-06T14:19:29.8963201Z	Information	App	[JamaConnect] Item 19833151 final selected ID: 'MFD268C4B-REQ_RC-1832'
+2026-07-06T14:19:29.8981747Z	Information	App	[JamaConnect] Item 19833151: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.9001287Z	Information	App	[JamaConnect] Item 19833151: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.9018440Z	Information	App	[JamaConnect] Item 19833151: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.9036437Z	Information	App	[JamaConnect] Item 19833151: Scanning all fields for rich content
+2026-07-06T14:19:29.9054282Z	Information	App	[JamaConnect] Item 19833151: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.9072224Z	Information	App	[JamaConnect] Item 19833151: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.9088218Z	Information	App	[JamaConnect] Item 19833152 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1833', GlobalId: 'COL02-REQ_RC-10883356'
+2026-07-06T14:19:29.9104799Z	Information	App	[JamaConnect] Item 19833152 final selected ID: 'MFD268C4B-REQ_RC-1833'
+2026-07-06T14:19:29.9121280Z	Information	App	[JamaConnect] Item 19833152: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.9138371Z	Information	App	[JamaConnect] Item 19833152: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.9156253Z	Information	App	[JamaConnect] Item 19833152: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.9180831Z	Information	App	[JamaConnect] Item 19833152: Scanning all fields for rich content
+2026-07-06T14:19:29.9205160Z	Information	App	[JamaConnect] Item 19833152: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.9222616Z	Information	App	[JamaConnect] Item 19833152: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.9249270Z	Information	App	[JamaConnect] Item 19833153 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1834', GlobalId: 'COL02-REQ_RC-10883357'
+2026-07-06T14:19:29.9273733Z	Information	App	[JamaConnect] Item 19833153 final selected ID: 'MFD268C4B-REQ_RC-1834'
+2026-07-06T14:19:29.9291431Z	Information	App	[JamaConnect] Item 19833153: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.9316503Z	Information	App	[JamaConnect] Item 19833153: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.9343883Z	Information	App	[JamaConnect] Item 19833153: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.9363143Z	Information	App	[JamaConnect] Item 19833153: Scanning all fields for rich content
+2026-07-06T14:19:29.9380387Z	Information	App	[JamaConnect] Item 19833153: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.9396705Z	Information	App	[JamaConnect] Item 19833153: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.9412798Z	Information	App	[JamaConnect] Item 19833154 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1835', GlobalId: 'COL02-REQ_RC-10883358'
+2026-07-06T14:19:29.9430655Z	Information	App	[JamaConnect] Item 19833154 final selected ID: 'MFD268C4B-REQ_RC-1835'
+2026-07-06T14:19:29.9451308Z	Information	App	[JamaConnect] Item 19833154: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.9472954Z	Information	App	[JamaConnect] Item 19833154: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.9493709Z	Information	App	[JamaConnect] Item 19833154: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.9513321Z	Information	App	[JamaConnect] Item 19833154: Scanning all fields for rich content
+2026-07-06T14:19:29.9534733Z	Information	App	[JamaConnect] Item 19833154: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.9554098Z	Information	App	[JamaConnect] Item 19833154: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.9572240Z	Information	App	[JamaConnect] Item 19833155 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1836', GlobalId: 'COL02-REQ_RC-10883359'
+2026-07-06T14:19:29.9591792Z	Information	App	[JamaConnect] Item 19833155 final selected ID: 'MFD268C4B-REQ_RC-1836'
+2026-07-06T14:19:29.9620636Z	Information	App	[JamaConnect] Item 19833155: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.9642536Z	Information	App	[JamaConnect] Item 19833155: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.9664531Z	Information	App	[JamaConnect] Item 19833155: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.9683878Z	Information	App	[JamaConnect] Item 19833155: Scanning all fields for rich content
+2026-07-06T14:19:29.9701419Z	Information	App	[JamaConnect] Item 19833155: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.9722085Z	Information	App	[JamaConnect] Item 19833155: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.9738582Z	Information	App	[JamaConnect] Item 19833156 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1837', GlobalId: 'COL02-REQ_RC-10883360'
+2026-07-06T14:19:29.9757227Z	Information	App	[JamaConnect] Item 19833156 final selected ID: 'MFD268C4B-REQ_RC-1837'
+2026-07-06T14:19:29.9779726Z	Information	App	[JamaConnect] Item 19833156: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.9797207Z	Information	App	[JamaConnect] Item 19833156: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.9814433Z	Information	App	[JamaConnect] Item 19833156: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.9836032Z	Information	App	[JamaConnect] Item 19833156: Scanning all fields for rich content
+2026-07-06T14:19:29.9853986Z	Information	App	[JamaConnect] Item 19833156: Found 2 fields to scan for HTML content
+2026-07-06T14:19:29.9873870Z	Information	App	[JamaConnect] Item 19833156: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:29.9893929Z	Information	App	[JamaConnect] Item 19833157 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1838', GlobalId: 'COL02-REQ_RC-10883361'
+2026-07-06T14:19:29.9912306Z	Information	App	[JamaConnect] Item 19833157 final selected ID: 'MFD268C4B-REQ_RC-1838'
+2026-07-06T14:19:29.9934149Z	Information	App	[JamaConnect] Item 19833157: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:29.9952919Z	Information	App	[JamaConnect] Item 19833157: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:29.9971214Z	Information	App	[JamaConnect] Item 19833157: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:29.9989657Z	Information	App	[JamaConnect] Item 19833157: Scanning all fields for rich content
+2026-07-06T14:19:30.0007009Z	Information	App	[JamaConnect] Item 19833157: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.0023095Z	Information	App	[JamaConnect] Item 19833157: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.0039948Z	Information	App	[JamaConnect] Item 19833158 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1839', GlobalId: 'COL02-REQ_RC-10883362'
+2026-07-06T14:19:30.0056505Z	Information	App	[JamaConnect] Item 19833158 final selected ID: 'MFD268C4B-REQ_RC-1839'
+2026-07-06T14:19:30.0078828Z	Information	App	[JamaConnect] Item 19833158: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.0099108Z	Information	App	[JamaConnect] Item 19833158: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.0116989Z	Information	App	[JamaConnect] Item 19833158: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.0139327Z	Information	App	[JamaConnect] Item 19833158: Scanning all fields for rich content
+2026-07-06T14:19:30.0163753Z	Information	App	[JamaConnect] Item 19833158: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.0181744Z	Information	App	[JamaConnect] Item 19833158: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.0198678Z	Information	App	[JamaConnect] Item 19833160 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1840', GlobalId: 'COL02-REQ_RC-10883363'
+2026-07-06T14:19:30.0214682Z	Information	App	[JamaConnect] Item 19833160 final selected ID: 'MFD268C4B-REQ_RC-1840'
+2026-07-06T14:19:30.0233951Z	Information	App	[JamaConnect] Item 19833160: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.0250821Z	Information	App	[JamaConnect] Item 19833160: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.0274201Z	Information	App	[JamaConnect] Item 19833160: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.0295485Z	Information	App	[JamaConnect] Item 19833160: Scanning all fields for rich content
+2026-07-06T14:19:30.0318482Z	Information	App	[JamaConnect] Item 19833160: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.0339205Z	Information	App	[JamaConnect] Item 19833160: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.0358668Z	Information	App	[JamaConnect] Item 19833161 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1841', GlobalId: 'COL02-REQ_RC-10883364'
+2026-07-06T14:19:30.0376971Z	Information	App	[JamaConnect] Item 19833161 final selected ID: 'MFD268C4B-REQ_RC-1841'
+2026-07-06T14:19:30.0394273Z	Information	App	[JamaConnect] Item 19833161: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.0411871Z	Information	App	[JamaConnect] Item 19833161: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.0428216Z	Information	App	[JamaConnect] Item 19833161: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.0444268Z	Information	App	[JamaConnect] Item 19833161: Scanning all fields for rich content
+2026-07-06T14:19:30.0460751Z	Information	App	[JamaConnect] Item 19833161: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.0477652Z	Information	App	[JamaConnect] Item 19833161: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.0494020Z	Information	App	[JamaConnect] Item 19833163 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1842', GlobalId: 'COL02-REQ_RC-10883366'
+2026-07-06T14:19:30.0509666Z	Information	App	[JamaConnect] Item 19833163 final selected ID: 'MFD268C4B-REQ_RC-1842'
+2026-07-06T14:19:30.0526302Z	Information	App	[JamaConnect] Item 19833163: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.0549961Z	Information	App	[JamaConnect] Item 19833163: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.0575346Z	Information	App	[JamaConnect] Item 19833163: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.0597628Z	Information	App	[JamaConnect] Item 19833163: Scanning all fields for rich content
+2026-07-06T14:19:30.0621147Z	Information	App	[JamaConnect] Item 19833163: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.0643985Z	Information	App	[JamaConnect] Item 19833163: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.0667148Z	Information	App	[JamaConnect] Item 19833164 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1843', GlobalId: 'COL02-REQ_RC-10883367'
+2026-07-06T14:19:30.0693669Z	Information	App	[JamaConnect] Item 19833164 final selected ID: 'MFD268C4B-REQ_RC-1843'
+2026-07-06T14:19:30.0724205Z	Information	App	[JamaConnect] Item 19833164: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.0746870Z	Information	App	[JamaConnect] Item 19833164: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.0769854Z	Information	App	[JamaConnect] Item 19833164: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.0790392Z	Information	App	[JamaConnect] Item 19833164: Scanning all fields for rich content
+2026-07-06T14:19:30.0810580Z	Information	App	[JamaConnect] Item 19833164: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.0831856Z	Information	App	[JamaConnect] Item 19833164: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.0849390Z	Information	App	[JamaConnect] Item 19833165 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1844', GlobalId: 'COL02-REQ_RC-10883368'
+2026-07-06T14:19:30.0867600Z	Information	App	[JamaConnect] Item 19833165 final selected ID: 'MFD268C4B-REQ_RC-1844'
+2026-07-06T14:19:30.0889396Z	Information	App	[JamaConnect] Item 19833165: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.0909721Z	Information	App	[JamaConnect] Item 19833165: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.0928832Z	Information	App	[JamaConnect] Item 19833165: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.0947919Z	Information	App	[JamaConnect] Item 19833165: Scanning all fields for rich content
+2026-07-06T14:19:30.0965496Z	Information	App	[JamaConnect] Item 19833165: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.0986260Z	Information	App	[JamaConnect] Item 19833165: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.1003554Z	Information	App	[JamaConnect] Item 19833166 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1845', GlobalId: 'COL02-REQ_RC-10883369'
+2026-07-06T14:19:30.1019775Z	Information	App	[JamaConnect] Item 19833166 final selected ID: 'MFD268C4B-REQ_RC-1845'
+2026-07-06T14:19:30.1039663Z	Information	App	[JamaConnect] Item 19833166: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.1059432Z	Information	App	[JamaConnect] Item 19833166: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.1075809Z	Information	App	[JamaConnect] Item 19833166: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.1096183Z	Information	App	[JamaConnect] Item 19833166: Scanning all fields for rich content
+2026-07-06T14:19:30.1116742Z	Information	App	[JamaConnect] Item 19833166: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.1133225Z	Information	App	[JamaConnect] Item 19833166: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.1153876Z	Information	App	[JamaConnect] Item 19833167 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1846', GlobalId: 'COL02-REQ_RC-10883370'
+2026-07-06T14:19:30.1171317Z	Information	App	[JamaConnect] Item 19833167 final selected ID: 'MFD268C4B-REQ_RC-1846'
+2026-07-06T14:19:30.1189897Z	Information	App	[JamaConnect] Item 19833167: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.1207664Z	Information	App	[JamaConnect] Item 19833167: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.1224214Z	Information	App	[JamaConnect] Item 19833167: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.1242650Z	Information	App	[JamaConnect] Item 19833167: Scanning all fields for rich content
+2026-07-06T14:19:30.1260916Z	Information	App	[JamaConnect] Item 19833167: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.1278842Z	Information	App	[JamaConnect] Item 19833167: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.1304079Z	Information	App	[JamaConnect] Item 19833168 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1847', GlobalId: 'COL02-REQ_RC-10883371'
+2026-07-06T14:19:30.1321431Z	Information	App	[JamaConnect] Item 19833168 final selected ID: 'MFD268C4B-REQ_RC-1847'
+2026-07-06T14:19:30.1341515Z	Information	App	[JamaConnect] Item 19833168: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.1362916Z	Information	App	[JamaConnect] Item 19833168: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.1386475Z	Information	App	[JamaConnect] Item 19833168: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.1404301Z	Information	App	[JamaConnect] Item 19833168: Scanning all fields for rich content
+2026-07-06T14:19:30.1421777Z	Information	App	[JamaConnect] Item 19833168: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.1439886Z	Information	App	[JamaConnect] Item 19833168: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.1456735Z	Information	App	[JamaConnect] Item 19833169 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1848', GlobalId: 'COL02-REQ_RC-10883372'
+2026-07-06T14:19:30.1474432Z	Information	App	[JamaConnect] Item 19833169 final selected ID: 'MFD268C4B-REQ_RC-1848'
+2026-07-06T14:19:30.1492622Z	Information	App	[JamaConnect] Item 19833169: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.1512769Z	Information	App	[JamaConnect] Item 19833169: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.1531378Z	Information	App	[JamaConnect] Item 19833169: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.1554515Z	Information	App	[JamaConnect] Item 19833169: Scanning all fields for rich content
+2026-07-06T14:19:30.1576032Z	Information	App	[JamaConnect] Item 19833169: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.1597494Z	Information	App	[JamaConnect] Item 19833169: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.1614644Z	Information	App	[JamaConnect] Item 19833170 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1849', GlobalId: 'COL02-REQ_RC-10883373'
+2026-07-06T14:19:30.1631114Z	Information	App	[JamaConnect] Item 19833170 final selected ID: 'MFD268C4B-REQ_RC-1849'
+2026-07-06T14:19:30.1649880Z	Information	App	[JamaConnect] Item 19833170: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.1666943Z	Information	App	[JamaConnect] Item 19833170: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.1684130Z	Information	App	[JamaConnect] Item 19833170: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.1702942Z	Information	App	[JamaConnect] Item 19833170: Scanning all fields for rich content
+2026-07-06T14:19:30.1720547Z	Information	App	[JamaConnect] Item 19833170: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.1736630Z	Information	App	[JamaConnect] Item 19833170: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.1755177Z	Information	App	[JamaConnect] Item 19833171 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1850', GlobalId: 'COL02-REQ_RC-10883374'
+2026-07-06T14:19:30.1774742Z	Information	App	[JamaConnect] Item 19833171 final selected ID: 'MFD268C4B-REQ_RC-1850'
+2026-07-06T14:19:30.1795258Z	Information	App	[JamaConnect] Item 19833171: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.1815626Z	Information	App	[JamaConnect] Item 19833171: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.1836774Z	Information	App	[JamaConnect] Item 19833171: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.1856464Z	Information	App	[JamaConnect] Item 19833171: Scanning all fields for rich content
+2026-07-06T14:19:30.1876675Z	Information	App	[JamaConnect] Item 19833171: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.1894290Z	Information	App	[JamaConnect] Item 19833171: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.1912567Z	Information	App	[JamaConnect] Item 19833172 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1851', GlobalId: 'COL02-REQ_RC-10883375'
+2026-07-06T14:19:30.1929877Z	Information	App	[JamaConnect] Item 19833172 final selected ID: 'MFD268C4B-REQ_RC-1851'
+2026-07-06T14:19:30.1947592Z	Information	App	[JamaConnect] Item 19833172: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.1965325Z	Information	App	[JamaConnect] Item 19833172: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.1983847Z	Information	App	[JamaConnect] Item 19833172: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.2014252Z	Information	App	[JamaConnect] Item 19833172: Scanning all fields for rich content
+2026-07-06T14:19:30.2035393Z	Information	App	[JamaConnect] Item 19833172: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.2056096Z	Information	App	[JamaConnect] Item 19833172: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.2075259Z	Information	App	[JamaConnect] Item 19833173 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1852', GlobalId: 'COL02-REQ_RC-10883376'
+2026-07-06T14:19:30.2093605Z	Information	App	[JamaConnect] Item 19833173 final selected ID: 'MFD268C4B-REQ_RC-1852'
+2026-07-06T14:19:30.2113848Z	Information	App	[JamaConnect] Item 19833173: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.2130870Z	Information	App	[JamaConnect] Item 19833173: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.2152099Z	Information	App	[JamaConnect] Item 19833173: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.2169069Z	Information	App	[JamaConnect] Item 19833173: Scanning all fields for rich content
+2026-07-06T14:19:30.2187551Z	Information	App	[JamaConnect] Item 19833173: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.2204460Z	Information	App	[JamaConnect] Item 19833173: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.2221727Z	Information	App	[JamaConnect] Item 19833174 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1853', GlobalId: 'COL02-REQ_RC-10883377'
+2026-07-06T14:19:30.2242073Z	Information	App	[JamaConnect] Item 19833174 final selected ID: 'MFD268C4B-REQ_RC-1853'
+2026-07-06T14:19:30.2260620Z	Information	App	[JamaConnect] Item 19833174: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.2278471Z	Information	App	[JamaConnect] Item 19833174: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.2304205Z	Information	App	[JamaConnect] Item 19833174: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.2324725Z	Information	App	[JamaConnect] Item 19833174: Scanning all fields for rich content
+2026-07-06T14:19:30.2342829Z	Information	App	[JamaConnect] Item 19833174: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.2362430Z	Information	App	[JamaConnect] Item 19833174: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.2380705Z	Information	App	[JamaConnect] Item 19833175 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1854', GlobalId: 'COL02-REQ_RC-10883378'
+2026-07-06T14:19:30.2397662Z	Information	App	[JamaConnect] Item 19833175 final selected ID: 'MFD268C4B-REQ_RC-1854'
+2026-07-06T14:19:30.2418105Z	Information	App	[JamaConnect] Item 19833175: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.2437589Z	Information	App	[JamaConnect] Item 19833175: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.2453162Z	Information	App	[JamaConnect] Item 19833175: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.2471505Z	Information	App	[JamaConnect] Item 19833175: Scanning all fields for rich content
+2026-07-06T14:19:30.2493685Z	Information	App	[JamaConnect] Item 19833175: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.2515425Z	Information	App	[JamaConnect] Item 19833175: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.2534494Z	Information	App	[JamaConnect] Item 19833176 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1855', GlobalId: 'COL02-REQ_RC-10883379'
+2026-07-06T14:19:30.2552409Z	Information	App	[JamaConnect] Item 19833176 final selected ID: 'MFD268C4B-REQ_RC-1855'
+2026-07-06T14:19:30.2568949Z	Information	App	[JamaConnect] Item 19833176: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.2587287Z	Information	App	[JamaConnect] Item 19833176: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.2603717Z	Information	App	[JamaConnect] Item 19833176: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.2621476Z	Information	App	[JamaConnect] Item 19833176: Scanning all fields for rich content
+2026-07-06T14:19:30.2644385Z	Information	App	[JamaConnect] Item 19833176: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.2667920Z	Information	App	[JamaConnect] Item 19833176: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.2686503Z	Information	App	[JamaConnect] Item 19833177 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1856', GlobalId: 'COL02-REQ_RC-10883380'
+2026-07-06T14:19:30.2705733Z	Information	App	[JamaConnect] Item 19833177 final selected ID: 'MFD268C4B-REQ_RC-1856'
+2026-07-06T14:19:30.2732013Z	Information	App	[JamaConnect] Item 19833177: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.2750113Z	Information	App	[JamaConnect] Item 19833177: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.2767303Z	Information	App	[JamaConnect] Item 19833177: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.2786093Z	Information	App	[JamaConnect] Item 19833177: Scanning all fields for rich content
+2026-07-06T14:19:30.2811951Z	Information	App	[JamaConnect] Item 19833177: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.2829719Z	Information	App	[JamaConnect] Item 19833177: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.2850329Z	Information	App	[JamaConnect] Item 19833178 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1857', GlobalId: 'COL02-REQ_RC-10883381'
+2026-07-06T14:19:30.2867099Z	Information	App	[JamaConnect] Item 19833178 final selected ID: 'MFD268C4B-REQ_RC-1857'
+2026-07-06T14:19:30.2888572Z	Information	App	[JamaConnect] Item 19833178: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.2906983Z	Information	App	[JamaConnect] Item 19833178: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.2931881Z	Information	App	[JamaConnect] Item 19833178: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.2960510Z	Information	App	[JamaConnect] Item 19833178: Scanning all fields for rich content
+2026-07-06T14:19:30.2982440Z	Information	App	[JamaConnect] Item 19833178: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.2999935Z	Information	App	[JamaConnect] Item 19833178: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.3016226Z	Information	App	[JamaConnect] Item 19833179 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1858', GlobalId: 'COL02-REQ_RC-10883382'
+2026-07-06T14:19:30.3030703Z	Information	App	[JamaConnect] Item 19833179 final selected ID: 'MFD268C4B-REQ_RC-1858'
+2026-07-06T14:19:30.3047811Z	Information	App	[JamaConnect] Item 19833179: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.3064417Z	Information	App	[JamaConnect] Item 19833179: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.3088108Z	Information	App	[JamaConnect] Item 19833179: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.3113467Z	Information	App	[JamaConnect] Item 19833179: Scanning all fields for rich content
+2026-07-06T14:19:30.3133750Z	Information	App	[JamaConnect] Item 19833179: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.3152447Z	Information	App	[JamaConnect] Item 19833179: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.3169085Z	Information	App	[JamaConnect] Item 19833181 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1859', GlobalId: 'COL02-REQ_RC-10883383'
+2026-07-06T14:19:30.3189812Z	Information	App	[JamaConnect] Item 19833181 final selected ID: 'MFD268C4B-REQ_RC-1859'
+2026-07-06T14:19:30.3208934Z	Information	App	[JamaConnect] Item 19833181: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.3226235Z	Information	App	[JamaConnect] Item 19833181: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.3245093Z	Information	App	[JamaConnect] Item 19833181: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.3265020Z	Information	App	[JamaConnect] Item 19833181: Scanning all fields for rich content
+2026-07-06T14:19:30.3283948Z	Information	App	[JamaConnect] Item 19833181: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.3302355Z	Information	App	[JamaConnect] Item 19833181: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.3323220Z	Information	App	[JamaConnect] Item 19833182 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1860', GlobalId: 'COL02-REQ_RC-10883384'
+2026-07-06T14:19:30.3343711Z	Information	App	[JamaConnect] Item 19833182 final selected ID: 'MFD268C4B-REQ_RC-1860'
+2026-07-06T14:19:30.3362036Z	Information	App	[JamaConnect] Item 19833182: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.3380946Z	Information	App	[JamaConnect] Item 19833182: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.3398483Z	Information	App	[JamaConnect] Item 19833182: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.3418299Z	Information	App	[JamaConnect] Item 19833182: Scanning all fields for rich content
+2026-07-06T14:19:30.3435824Z	Information	App	[JamaConnect] Item 19833182: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.3451853Z	Information	App	[JamaConnect] Item 19833182: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.3468437Z	Information	App	[JamaConnect] Item 19833183 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1861', GlobalId: 'COL02-REQ_RC-10883385'
+2026-07-06T14:19:30.3487591Z	Information	App	[JamaConnect] Item 19833183 final selected ID: 'MFD268C4B-REQ_RC-1861'
+2026-07-06T14:19:30.3505644Z	Information	App	[JamaConnect] Item 19833183: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.3522865Z	Information	App	[JamaConnect] Item 19833183: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.3539903Z	Information	App	[JamaConnect] Item 19833183: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.3561215Z	Information	App	[JamaConnect] Item 19833183: Scanning all fields for rich content
+2026-07-06T14:19:30.3579928Z	Information	App	[JamaConnect] Item 19833183: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.3596648Z	Information	App	[JamaConnect] Item 19833183: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.3617283Z	Information	App	[JamaConnect] Item 19833184 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1862', GlobalId: 'COL02-REQ_RC-10883386'
+2026-07-06T14:19:30.3640225Z	Information	App	[JamaConnect] Item 19833184 final selected ID: 'MFD268C4B-REQ_RC-1862'
+2026-07-06T14:19:30.3659330Z	Information	App	[JamaConnect] Item 19833184: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.3676311Z	Information	App	[JamaConnect] Item 19833184: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.3693380Z	Information	App	[JamaConnect] Item 19833184: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.3712421Z	Information	App	[JamaConnect] Item 19833184: Scanning all fields for rich content
+2026-07-06T14:19:30.3731666Z	Information	App	[JamaConnect] Item 19833184: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.3751604Z	Information	App	[JamaConnect] Item 19833184: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.3767501Z	Information	App	[JamaConnect] Item 19833185 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1863', GlobalId: 'COL02-REQ_RC-10883387'
+2026-07-06T14:19:30.3785109Z	Information	App	[JamaConnect] Item 19833185 final selected ID: 'MFD268C4B-REQ_RC-1863'
+2026-07-06T14:19:30.3801711Z	Information	App	[JamaConnect] Item 19833185: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.3818392Z	Information	App	[JamaConnect] Item 19833185: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.3833586Z	Information	App	[JamaConnect] Item 19833185: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.3849170Z	Information	App	[JamaConnect] Item 19833185: Scanning all fields for rich content
+2026-07-06T14:19:30.3868032Z	Information	App	[JamaConnect] Item 19833185: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.3886496Z	Information	App	[JamaConnect] Item 19833185: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.3907455Z	Information	App	[JamaConnect] Item 19833186 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1864', GlobalId: 'COL02-REQ_RC-10883388'
+2026-07-06T14:19:30.3927156Z	Information	App	[JamaConnect] Item 19833186 final selected ID: 'MFD268C4B-REQ_RC-1864'
+2026-07-06T14:19:30.3943983Z	Information	App	[JamaConnect] Item 19833186: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.3959940Z	Information	App	[JamaConnect] Item 19833186: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.3977149Z	Information	App	[JamaConnect] Item 19833186: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.4000035Z	Information	App	[JamaConnect] Item 19833186: Scanning all fields for rich content
+2026-07-06T14:19:30.4016607Z	Information	App	[JamaConnect] Item 19833186: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.4035629Z	Information	App	[JamaConnect] Item 19833186: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.4057977Z	Information	App	[JamaConnect] Item 19833187 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1865', GlobalId: 'COL02-REQ_RC-10883389'
+2026-07-06T14:19:30.4078767Z	Information	App	[JamaConnect] Item 19833187 final selected ID: 'MFD268C4B-REQ_RC-1865'
+2026-07-06T14:19:30.4095439Z	Information	App	[JamaConnect] Item 19833187: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.4111593Z	Information	App	[JamaConnect] Item 19833187: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.4128599Z	Information	App	[JamaConnect] Item 19833187: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.4147210Z	Information	App	[JamaConnect] Item 19833187: Scanning all fields for rich content
+2026-07-06T14:19:30.4163695Z	Information	App	[JamaConnect] Item 19833187: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.4180665Z	Information	App	[JamaConnect] Item 19833187: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.4201941Z	Information	App	[JamaConnect] Item 19833188 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1866', GlobalId: 'COL02-REQ_RC-10883390'
+2026-07-06T14:19:30.4223496Z	Information	App	[JamaConnect] Item 19833188 final selected ID: 'MFD268C4B-REQ_RC-1866'
+2026-07-06T14:19:30.4243583Z	Information	App	[JamaConnect] Item 19833188: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.4261482Z	Information	App	[JamaConnect] Item 19833188: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.4280042Z	Information	App	[JamaConnect] Item 19833188: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.4297707Z	Information	App	[JamaConnect] Item 19833188: Scanning all fields for rich content
+2026-07-06T14:19:30.4315202Z	Information	App	[JamaConnect] Item 19833188: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.4334780Z	Information	App	[JamaConnect] Item 19833188: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.4352394Z	Information	App	[JamaConnect] Item 19833189 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1867', GlobalId: 'COL02-REQ_RC-10883391'
+2026-07-06T14:19:30.4368644Z	Information	App	[JamaConnect] Item 19833189 final selected ID: 'MFD268C4B-REQ_RC-1867'
+2026-07-06T14:19:30.4384635Z	Information	App	[JamaConnect] Item 19833189: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.4400637Z	Information	App	[JamaConnect] Item 19833189: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.4424481Z	Information	App	[JamaConnect] Item 19833189: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.4443851Z	Information	App	[JamaConnect] Item 19833189: Scanning all fields for rich content
+2026-07-06T14:19:30.4464527Z	Information	App	[JamaConnect] Item 19833189: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.4488738Z	Information	App	[JamaConnect] Item 19833189: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.4508246Z	Information	App	[JamaConnect] Item 19833190 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1868', GlobalId: 'COL02-REQ_RC-10883392'
+2026-07-06T14:19:30.4530352Z	Information	App	[JamaConnect] Item 19833190 final selected ID: 'MFD268C4B-REQ_RC-1868'
+2026-07-06T14:19:30.4557565Z	Information	App	[JamaConnect] Item 19833190: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.4579285Z	Information	App	[JamaConnect] Item 19833190: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.4598577Z	Information	App	[JamaConnect] Item 19833190: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.4616474Z	Information	App	[JamaConnect] Item 19833190: Scanning all fields for rich content
+2026-07-06T14:19:30.4634938Z	Information	App	[JamaConnect] Item 19833190: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.4651236Z	Information	App	[JamaConnect] Item 19833190: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.4667268Z	Information	App	[JamaConnect] Item 19833191 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1869', GlobalId: 'COL02-REQ_RC-10883393'
+2026-07-06T14:19:30.4682651Z	Information	App	[JamaConnect] Item 19833191 final selected ID: 'MFD268C4B-REQ_RC-1869'
+2026-07-06T14:19:30.4699339Z	Information	App	[JamaConnect] Item 19833191: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.4715102Z	Information	App	[JamaConnect] Item 19833191: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.4729901Z	Information	App	[JamaConnect] Item 19833191: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.4745835Z	Information	App	[JamaConnect] Item 19833191: Scanning all fields for rich content
+2026-07-06T14:19:30.4760647Z	Information	App	[JamaConnect] Item 19833191: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.4776936Z	Information	App	[JamaConnect] Item 19833191: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.4795721Z	Information	App	[JamaConnect] Item 19833192 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1870', GlobalId: 'COL02-REQ_RC-10883394'
+2026-07-06T14:19:30.4816011Z	Information	App	[JamaConnect] Item 19833192 final selected ID: 'MFD268C4B-REQ_RC-1870'
+2026-07-06T14:19:30.4835294Z	Information	App	[JamaConnect] Item 19833192: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.4853653Z	Information	App	[JamaConnect] Item 19833192: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.4871597Z	Information	App	[JamaConnect] Item 19833192: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.4888458Z	Information	App	[JamaConnect] Item 19833192: Scanning all fields for rich content
+2026-07-06T14:19:30.4905564Z	Information	App	[JamaConnect] Item 19833192: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.4922559Z	Information	App	[JamaConnect] Item 19833192: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.4943613Z	Information	App	[JamaConnect] Item 19833193 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1871', GlobalId: 'COL02-REQ_RC-10883395'
+2026-07-06T14:19:30.4961837Z	Information	App	[JamaConnect] Item 19833193 final selected ID: 'MFD268C4B-REQ_RC-1871'
+2026-07-06T14:19:30.4981040Z	Information	App	[JamaConnect] Item 19833193: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.4999240Z	Information	App	[JamaConnect] Item 19833193: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.5024875Z	Information	App	[JamaConnect] Item 19833193: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.5047677Z	Information	App	[JamaConnect] Item 19833193: Scanning all fields for rich content
+2026-07-06T14:19:30.5065857Z	Information	App	[JamaConnect] Item 19833193: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.5082216Z	Information	App	[JamaConnect] Item 19833193: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.5097906Z	Information	App	[JamaConnect] Item 19833194 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1872', GlobalId: 'COL02-REQ_RC-10883396'
+2026-07-06T14:19:30.5114994Z	Information	App	[JamaConnect] Item 19833194 final selected ID: 'MFD268C4B-REQ_RC-1872'
+2026-07-06T14:19:30.5134919Z	Information	App	[JamaConnect] Item 19833194: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.5156258Z	Information	App	[JamaConnect] Item 19833194: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.5172785Z	Information	App	[JamaConnect] Item 19833194: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.5192639Z	Information	App	[JamaConnect] Item 19833194: Scanning all fields for rich content
+2026-07-06T14:19:30.5209252Z	Information	App	[JamaConnect] Item 19833194: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.5235672Z	Information	App	[JamaConnect] Item 19833194: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.5259846Z	Information	App	[JamaConnect] Item 19833195 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1873', GlobalId: 'COL02-REQ_RC-10883397'
+2026-07-06T14:19:30.5288405Z	Information	App	[JamaConnect] Item 19833195 final selected ID: 'MFD268C4B-REQ_RC-1873'
+2026-07-06T14:19:30.5316323Z	Information	App	[JamaConnect] Item 19833195: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.5339314Z	Information	App	[JamaConnect] Item 19833195: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.5358780Z	Information	App	[JamaConnect] Item 19833195: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.5376560Z	Information	App	[JamaConnect] Item 19833195: Scanning all fields for rich content
+2026-07-06T14:19:30.5393836Z	Information	App	[JamaConnect] Item 19833195: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.5411196Z	Information	App	[JamaConnect] Item 19833195: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.5431658Z	Information	App	[JamaConnect] Item 19833197 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1874', GlobalId: 'COL02-REQ_RC-10883399'
+2026-07-06T14:19:30.5452433Z	Information	App	[JamaConnect] Item 19833197 final selected ID: 'MFD268C4B-REQ_RC-1874'
+2026-07-06T14:19:30.5471964Z	Information	App	[JamaConnect] Item 19833197: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.5491463Z	Information	App	[JamaConnect] Item 19833197: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.5511099Z	Information	App	[JamaConnect] Item 19833197: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.5528767Z	Information	App	[JamaConnect] Item 19833197: Scanning all fields for rich content
+2026-07-06T14:19:30.5545509Z	Information	App	[JamaConnect] Item 19833197: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.5562661Z	Information	App	[JamaConnect] Item 19833197: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.5582710Z	Information	App	[JamaConnect] Item 19833198 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1875', GlobalId: 'COL02-REQ_RC-10883400'
+2026-07-06T14:19:30.5604712Z	Information	App	[JamaConnect] Item 19833198 final selected ID: 'MFD268C4B-REQ_RC-1875'
+2026-07-06T14:19:30.5627509Z	Information	App	[JamaConnect] Item 19833198: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.5645377Z	Information	App	[JamaConnect] Item 19833198: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.5662894Z	Information	App	[JamaConnect] Item 19833198: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.5686719Z	Information	App	[JamaConnect] Item 19833198: Scanning all fields for rich content
+2026-07-06T14:19:30.5714591Z	Information	App	[JamaConnect] Item 19833198: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.5735320Z	Information	App	[JamaConnect] Item 19833198: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.5754458Z	Information	App	[JamaConnect] Item 19833199 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1876', GlobalId: 'COL02-REQ_RC-10883401'
+2026-07-06T14:19:30.5772493Z	Information	App	[JamaConnect] Item 19833199 final selected ID: 'MFD268C4B-REQ_RC-1876'
+2026-07-06T14:19:30.5793185Z	Information	App	[JamaConnect] Item 19833199: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.5809984Z	Information	App	[JamaConnect] Item 19833199: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.5833876Z	Information	App	[JamaConnect] Item 19833199: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.5856234Z	Information	App	[JamaConnect] Item 19833199: Scanning all fields for rich content
+2026-07-06T14:19:30.5881829Z	Information	App	[JamaConnect] Item 19833199: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.5899258Z	Information	App	[JamaConnect] Item 19833199: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.5922655Z	Information	App	[JamaConnect] Item 19833202 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1877', GlobalId: 'COL02-REQ_RC-10883403'
+2026-07-06T14:19:30.5940656Z	Information	App	[JamaConnect] Item 19833202 final selected ID: 'MFD268C4B-REQ_RC-1877'
+2026-07-06T14:19:30.5960361Z	Information	App	[JamaConnect] Item 19833202: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.5978840Z	Information	App	[JamaConnect] Item 19833202: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.5995779Z	Information	App	[JamaConnect] Item 19833202: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.6012651Z	Information	App	[JamaConnect] Item 19833202: Scanning all fields for rich content
+2026-07-06T14:19:30.6029050Z	Information	App	[JamaConnect] Item 19833202: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.6044617Z	Information	App	[JamaConnect] Item 19833202: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.6068534Z	Information	App	[JamaConnect] Item 19833203 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1878', GlobalId: 'COL02-REQ_RC-10883404'
+2026-07-06T14:19:30.6092840Z	Information	App	[JamaConnect] Item 19833203 final selected ID: 'MFD268C4B-REQ_RC-1878'
+2026-07-06T14:19:30.6120575Z	Information	App	[JamaConnect] Item 19833203: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.6139365Z	Information	App	[JamaConnect] Item 19833203: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.6157844Z	Information	App	[JamaConnect] Item 19833203: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.6176231Z	Information	App	[JamaConnect] Item 19833203: Scanning all fields for rich content
+2026-07-06T14:19:30.6193204Z	Information	App	[JamaConnect] Item 19833203: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.6211039Z	Information	App	[JamaConnect] Item 19833203: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.6231618Z	Information	App	[JamaConnect] Item 19833204 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1879', GlobalId: 'COL02-REQ_RC-10883405'
+2026-07-06T14:19:30.6249371Z	Information	App	[JamaConnect] Item 19833204 final selected ID: 'MFD268C4B-REQ_RC-1879'
+2026-07-06T14:19:30.6272931Z	Information	App	[JamaConnect] Item 19833204: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.6291932Z	Information	App	[JamaConnect] Item 19833204: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.6313679Z	Information	App	[JamaConnect] Item 19833204: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.6333863Z	Information	App	[JamaConnect] Item 19833204: Scanning all fields for rich content
+2026-07-06T14:19:30.6351223Z	Information	App	[JamaConnect] Item 19833204: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.6369065Z	Information	App	[JamaConnect] Item 19833204: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.6389945Z	Information	App	[JamaConnect] Item 19833205 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1880', GlobalId: 'COL02-REQ_RC-10883406'
+2026-07-06T14:19:30.6418011Z	Information	App	[JamaConnect] Item 19833205 final selected ID: 'MFD268C4B-REQ_RC-1880'
+2026-07-06T14:19:30.6441191Z	Information	App	[JamaConnect] Item 19833205: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.6466581Z	Information	App	[JamaConnect] Item 19833205: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.6488342Z	Information	App	[JamaConnect] Item 19833205: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.6511132Z	Information	App	[JamaConnect] Item 19833205: Scanning all fields for rich content
+2026-07-06T14:19:30.6535810Z	Information	App	[JamaConnect] Item 19833205: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.6556818Z	Information	App	[JamaConnect] Item 19833205: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.6575024Z	Information	App	[JamaConnect] Item 19833206 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1881', GlobalId: 'COL02-REQ_RC-10883407'
+2026-07-06T14:19:30.6602002Z	Information	App	[JamaConnect] Item 19833206 final selected ID: 'MFD268C4B-REQ_RC-1881'
+2026-07-06T14:19:30.6627062Z	Information	App	[JamaConnect] Item 19833206: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.6656111Z	Information	App	[JamaConnect] Item 19833206: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.6679293Z	Information	App	[JamaConnect] Item 19833206: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.6701706Z	Information	App	[JamaConnect] Item 19833206: Scanning all fields for rich content
+2026-07-06T14:19:30.6732737Z	Information	App	[JamaConnect] Item 19833206: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.6764008Z	Information	App	[JamaConnect] Item 19833206: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.6788938Z	Information	App	[JamaConnect] Item 19833207 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1882', GlobalId: 'COL02-REQ_RC-10883408'
+2026-07-06T14:19:30.6815125Z	Information	App	[JamaConnect] Item 19833207 final selected ID: 'MFD268C4B-REQ_RC-1882'
+2026-07-06T14:19:30.6840914Z	Information	App	[JamaConnect] Item 19833207: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.6865396Z	Information	App	[JamaConnect] Item 19833207: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.6890674Z	Information	App	[JamaConnect] Item 19833207: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.6916744Z	Information	App	[JamaConnect] Item 19833207: Scanning all fields for rich content
+2026-07-06T14:19:30.6937438Z	Information	App	[JamaConnect] Item 19833207: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.6957407Z	Information	App	[JamaConnect] Item 19833207: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.6975955Z	Information	App	[JamaConnect] Item 19833208 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1883', GlobalId: 'COL02-REQ_RC-10883409'
+2026-07-06T14:19:30.6998861Z	Information	App	[JamaConnect] Item 19833208 final selected ID: 'MFD268C4B-REQ_RC-1883'
+2026-07-06T14:19:30.7020172Z	Information	App	[JamaConnect] Item 19833208: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.7041851Z	Information	App	[JamaConnect] Item 19833208: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.7069360Z	Information	App	[JamaConnect] Item 19833208: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.7097696Z	Information	App	[JamaConnect] Item 19833208: Scanning all fields for rich content
+2026-07-06T14:19:30.7123563Z	Information	App	[JamaConnect] Item 19833208: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.7146982Z	Information	App	[JamaConnect] Item 19833208: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.7171508Z	Information	App	[JamaConnect] Item 19833329 ID fields - Item: '', DocumentKey: 'MFD268C4B-REQ_RC-1884', GlobalId: 'COL02-REQ_RC-10883457'
+2026-07-06T14:19:30.7193215Z	Information	App	[JamaConnect] Item 19833329 final selected ID: 'MFD268C4B-REQ_RC-1884'
+2026-07-06T14:19:30.7214560Z	Information	App	[JamaConnect] Item 19833329: GetRichContentForItemAsync called - jsonLookup.Count=116
+2026-07-06T14:19:30.7237963Z	Information	App	[JamaConnect] Item 19833329: 🎯 Using ENHANCED field scanning (JSON data available) - OCR processing enabled
+2026-07-06T14:19:30.7256957Z	Information	App	[JamaConnect] Item 19833329: 🔍 ENHANCED FIELD SCANNING STARTED - OCR processing will be attempted on HTML fields with images
+2026-07-06T14:19:30.7281883Z	Information	App	[JamaConnect] Item 19833329: Scanning all fields for rich content
+2026-07-06T14:19:30.7304198Z	Information	App	[JamaConnect] Item 19833329: Found 2 fields to scan for HTML content
+2026-07-06T14:19:30.7323803Z	Information	App	[JamaConnect] Item 19833329: Rich content parsing complete - 0 HTML fields, 0 tables, 1 paragraphs
+2026-07-06T14:19:30.7341379Z	Information	App	[JamaConnect] Successfully converted 94 Jama items to requirements
+2026-07-06T14:19:31.4893565Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Retrieved 94 requirements from Jama project 686 with enhanced field data
+2026-07-06T14:19:31.7626645Z	Information	App	[JamaConnect] Projects API response: OK
+2026-07-06T14:19:31.7650380Z	Information	App	[JamaConnect] Raw JSON response (first 1000 chars): {"meta":{"status":"OK","timestamp":"2026-07-06T14:19:31.745+0000","pageInfo":{"startIndex":0,"resultCount":19,"totalResults":19}},"links":{"data.createdBy":{"type":"users","href":"https://jama02.rockwellcollins.com/contour/rest/v1/users/{data.createdBy}"},"data.modifiedBy":{"type":"users","href":"https://jama02.rockwellcollins.com/contour/rest/v1/users/{data.modifiedBy}"},"data.parent":{"type":"projects","href":"https://jama02.rockwellcollins.com/contour/rest/v1/projects/{data.parent}"}},"data":[{"id":617,"projectKey":"AFD5220E_BP4_TE","isFolder":false,"createdDate":"2024-01-09T19:29:58.000+0000","modifiedDate":"2024-01-09T19:29:58.000+0000","createdBy":1187030,"modifiedBy":1187030,"fields":{"name":"AFD-5220E_BP4_TE","description":"Use this project when creating new projects on the Jama 02 Server.","projectKey":"AFD5220E_BP4_TE","text1":""},"type":"projects"},{"id":615,"projectKey":"AFD_65X0","isFolder":false,"createdDate":"2023-10-23T14:06:46.000+0000","modifiedDate":"2023-10-23T14:06
+2026-07-06T14:19:31.7705940Z	Information	App	[JamaConnect] Project 0: Id=617, Name='AFD-5220E_BP4_TE', Key='AFD5220E_BP4_TE', Desc='Use this project when creating new projects on the Jama 02 Server.'
+2026-07-06T14:19:31.7722712Z	Information	App	[JamaConnect] Project 1: Id=615, Name='AFD-65X0 BP1', Key='AFD_65X0', Desc='Use this project when creating new projects on the Jama 02 Server.'
+2026-07-06T14:19:31.7739319Z	Information	App	[JamaConnect] Project 2: Id=624, Name='ATE Test Strategy', Key='ATE_TS', Desc='Use this project when creating new projects on the Jama 02 Server.'
+2026-07-06T14:19:31.9238643Z	Information	App	[JamaConnect] Project 686, itemType 193 total count: 116
+2026-07-06T14:19:31.9271340Z	Information	App	[JamaConnect] Fetching item types for project 686: https://jama02.rockwellcollins.com/contour/rest/v1/projects/686/itemtypes
+2026-07-06T14:19:32.1573438Z	Information	App	[JamaConnect] Item types response: {"meta":{"status":"OK","timestamp":"2026-07-06T14:19:32.099+0000","pageInfo":{"startIndex":0,"resultCount":10,"totalResults":10}},"links":{"data.fields.pickList":{"type":"picklists","href":"https://jama02.rockwellcollins.com/contour/rest/v1/picklists/{data.fields.pickList}"}},"data":[{"id":53,"typeKey":"CMP","display":"Component","displayPlural":"Components","description":"Component type","image":"https://jama02.rockwellcollins.com/contour/img/tree/component.png","category":"COMPONENT","widgets":[{"name":"HISTORY","synchronize":false},{"name":"SYNCHRONIZED_ITEMS","synchronize":false},{"name":"RELATIONSHIPS","synchronize":true},{"name":"TAGS","synchronize":false},{"name":"ACTIVITIES","synchronize":false},{"name":"URLS","synchronize":true},{"name":"ATTACHMENTS","synchronize":true}],"fields":[{"id":468,"name":"documentKey","label":"ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":469,"name":"name","label":"Name","fieldType":"STRING","readOnly":false,"required":true,"triggerSuspect":true,"synchronize":true,"reqAdvisorEnabled":false},{"id":470,"name":"description","label":"Description","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":522,"name":"changerequest$53","label":"Change Request","fieldType":"STRING","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2730,"name":"jurisdiction_classification$53","label":"Jurisdiction Classification","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"textType":"RICHTEXT","defaultTemplateId":38,"reqAdvisorEnabled":false},{"id":1602,"name":"export_controlled$53","label":"Export Controlled","fieldType":"LOOKUP","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":true,"pickList":582,"reqAdvisorEnabled":false},{"id":1568,"name":"SYS_DOORS_ID$53","label":"DOORS ID","fieldType":"STRING","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2752,"name":"release","label":"Release","fieldType":"RELEASE","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"infotip":"","reqAdvisorEnabled":false}],"type":"itemtypes","system":true},{"id":54,"typeKey":"SET","display":"Set","displayPlural":"Sets","description":"Set type","image":"https://jama02.rockwellcollins.com/contour/img/tree/set.png","category":"SET","widgets":[{"name":"TAGS","synchronize":false},{"name":"HISTORY","synchronize":false},{"name":"SYNCHRONIZED_ITEMS","synchronize":false},{"name":"ACTIVITIES","synchronize":false}],"fields":[{"id":471,"name":"documentKey","label":"ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":472,"name":"setKey","label":"Set Key","fieldType":"STRING","readOnly":false,"required":true,"triggerSuspect":false,"synchronize":false,"textType":"KEY","reqAdvisorEnabled":false},{"id":473,"name":"name","label":"Name","fieldType":"STRING","readOnly":false,"required":true,"triggerSuspect":true,"synchronize":true,"reqAdvisorEnabled":false},{"id":474,"name":"description","label":"Description","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":523,"name":"changerequest$54","label":"Change Request","fieldType":"STRING","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2731,"name":"jurisdiction_classification$54","label":"Jurisdiction Classification","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"textType":"RICHTEXT","defaultTemplateId":38,"reqAdvisorEnabled":false},{"id":1604,"name":"export_controlled$54","label":"Export Controlled","fieldType":"LOOKUP","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":true,"pickList":582,"reqAdvisorEnabled":false},{"id":1571,"name":"SYS_DOORS_ID$54","label":"DOORS ID","fieldType":"STRING","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2783,"name":"release","label":"Release","fieldType":"RELEASE","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"infotip":"","reqAdvisorEnabled":false}],"type":"itemtypes","system":true},{"id":55,"typeKey":"FLD","display":"Folder","displayPlural":"Folders","description":"Folder type","image":"https://jama02.rockwellcollins.com/contour/img/tree/section.png","category":"SECTION","widgets":[{"name":"SYNCHRONIZED_ITEMS","synchronize":false},{"name":"ACTIVITIES","synchronize":false},{"name":"HISTORY","synchronize":false},{"name":"TAGS","synchronize":false}],"fields":[{"id":475,"name":"documentKey","label":"ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":476,"name":"name","label":"Name","fieldType":"STRING","readOnly":false,"required":true,"triggerSuspect":true,"synchronize":true,"reqAdvisorEnabled":false},{"id":477,"name":"description","label":"Description","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":520,"name":"changerequest$55","label":"Change Request","fieldType":"STRING","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":1603,"name":"export_controlled$55","label":"Export Controlled","fieldType":"LOOKUP","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":true,"pickList":582,"reqAdvisorEnabled":false},{"id":1569,"name":"SYS_DOORS_ID$55","label":"DOORS ID","fieldType":"STRING","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false}],"type":"itemtypes","system":true},{"id":56,"typeKey":"TXT","display":"Text","displayPlural":"Texts","description":"Text type","image":"https://jama02.rockwellcollins.com/contour/img/tree/text.png","category":"TEXT","widgets":[{"name":"RELATIONSHIPS","synchronize":true},{"name":"URLS","synchronize":true},{"name":"TAGS","synchronize":false},{"name":"HISTORY","synchronize":false},{"name":"ACTIVITIES","synchronize":false},{"name":"SYNCHRONIZED_ITEMS","synchronize":false},{"name":"ATTACHMENTS","synchronize":true}],"fields":[{"id":478,"name":"documentKey","label":"ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":1172,"name":"globalId","label":"Global ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":479,"name":"name","label":"Name","fieldType":"STRING","readOnly":false,"required":true,"triggerSuspect":true,"synchronize":true,"reqAdvisorEnabled":false},{"id":480,"name":"description","label":"Description","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":521,"name":"changerequest$56","label":"Change Request","fieldType":"STRING","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":888,"name":"lookup3","label":"Status","fieldType":"LOOKUP","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"pickList":159,"reqAdvisorEnabled":false},{"id":1836,"name":"relationship$56","label":"DOORS Relationship","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":1793,"name":"commentary$56","label":"Commentary","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":1609,"name":"export_controlled$56","label":"Export Controlled","fieldType":"LOOKUP","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":true,"pickList":582,"reqAdvisorEnabled":false},{"id":1570,"name":"SYS_DOORS_ID$56","label":"DOORS ID","fieldType":"STRING","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2600,"name":"upstream_cross_instance_relationships$56","label":"Upstream Cross Instance Relationships","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2613,"name":"downstream_cross_instance_relationships$56","label":"Downstream Cross Instance Relationships","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2740,"name":"release","label":"Release","fieldType":"RELEASE","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"infotip":"","reqAdvisorEnabled":false}],"type":"itemtypes","system":false},{"id":193,"typeKey":"REQ_RC","display":"Requirement","displayPlural":"Requirements","description":"_Enterprise Item Type","image":"https://jama02.rockwellcollins.com/contour/img/tree/website.png","widgets":[{"name":"ACTIVITIES","synchronize":false},{"name":"RELATIONSHIPS","synchronize":false},{"name":"ATTACHMENTS","synchronize":false},{"name":"HISTORY","synchronize":false},{"name":"SYNCHRONIZED_ITEMS","synchronize":false},{"name":"TAGS","synchronize":false}],"fields":[{"id":2388,"name":"documentKey","label":"Item ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":true,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2389,"name":"globalId","label":"Global ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":true,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2394,"name":"status","label":"Status","fieldType":"LOOKUP","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"pickList":1667,"reqAdvisorEnabled":false},{"id":2395,"name":"lookup1","label":"Requirement Type","fieldType":"LOOKUP","readOnly":false,"required":true,"triggerSuspect":false,"synchronize":false,"pickList":1668,"reqAdvisorEnabled":false},{"id":2390,"name":"name","label":"Name","fieldType":"STRING","readOnly":false,"required":true,"triggerSuspect":true,"synchronize":true,"reqAdvisorEnabled":false},{"id":2391,"name":"description","label":"Requirement Description","fieldType":"TEXT","readOnly":false,"required":true,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2396,"name":"text1","label":"Change Driver","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2465,"name":"verification_methods$193","label":"Verification Method/s","fieldType":"MULTI_LOOKUP","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":true,"pickList":1669,"reqAdvisorEnabled":false},{"id":2398,"name":"text2","label":"Allocation/s","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"TEXTAREA","reqAdvisorEnabled":false},{"id":2399,"name":"lookup3","label":"Derived Requirement","fieldType":"LOOKUP","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"pickList":1670,"reqAdvisorEnabled":false},{"id":2400,"name":"text3","label":"Rationale","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2401,"name":"lookup4","label":"Safety Requirement","fieldType":"LOOKUP","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"pickList":1671,"reqAdvisorEnabled":false},{"id":2402,"name":"text4","label":"Safety Rationale","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2403,"name":"lookup5","label":"Security Requirement","fieldType":"LOOKUP","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"pickList":1672,"reqAdvisorEnabled":false},{"id":2404,"name":"text5","label":"Security Rationale","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2405,"name":"lookup6","label":"Export Controlled","fieldType":"LOOKUP","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":true,"pickList":1673,"reqAdvisorEnabled":false},{"id":2406,"name":"text6","label":"Customer ID","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":true,"textType":"TEXTAREA","reqAdvisorEnabled":false},{"id":2407,"name":"lookup7","label":"Statement of Compliance","fieldType":"LOOKUP","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":true,"pickList":1674,"reqAdvisorEnabled":false},{"id":2408,"name":"text7","label":"Compliance Rationale","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2461,"name":"fdal$193","label":"FDAL","fieldType":"LOOKUP","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"pickList":1684,"reqAdvisorEnabled":false},{"id":2462,"name":"validation_methods$193","label":"Validation Method/s","fieldType":"MULTI_LOOKUP","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":true,"pickList":1685,"reqAdvisorEnabled":false},{"id":2463,"name":"validation_evidence$193","label":"Validation Evidence","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2464,"name":"validation_conclusion$193","label":"Validation Conclusion","fieldType":"LOOKUP","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":true,"pickList":1686,"reqAdvisorEnabled":false},{"id":2466,"name":"project_defined$193","label":"Project Defined","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2409,"name":"doors_relationship$193","label":"DOORS Relationship","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2410,"name":"SYS_DOORS_ID$193","label":"DOORS ID","fieldType":"STRING","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2732,"name":"robust_requirement$193","label":"Robust Requirement","fieldType":"LOOKUP","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"pickList":1968,"reqAdvisorEnabled":false},{"id":2733,"name":"robust_rationale$193","label":"Robust Rationale","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2734,"name":"key_characteristics$193","label":"Key Characteristics","fieldType":"LOOKUP","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"pickList":1969,"reqAdvisorEnabled":false},{"id":2571,"name":"upstream_cross_instance_relationships$193","label":"Upstream Cross Instance Relationships","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2642,"name":"downstream_cross_instance_relationships$193","label":"Downstream Cross Instance Relationships","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2781,"name":"release","label":"Release","fieldType":"RELEASE","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"infotip":"","reqAdvisorEnabled":false}],"type":"itemtypes","system":false},{"id":194,"typeKey":"VerCse","display":"Verification Case","displayPlural":"Verification Cases","description":"_Enterprise Item Type","image":"https://jama02.rockwellcollins.com/contour/img/tree/test_case.png","widgets":[{"name":"HISTORY","synchronize":false},{"name":"RELATIONSHIPS","synchronize":false},{"name":"TAGS","synchronize":false},{"name":"SYNCHRONIZED_ITEMS","synchronize":false},{"name":"ACTIVITIES","synchronize":false}],"fields":[{"id":2411,"name":"documentKey","label":"Item ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":true,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2412,"name":"globalId","label":"Global ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":true,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2417,"name":"status","label":"Status","fieldType":"LOOKUP","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"pickList":1667,"reqAdvisorEnabled":false},{"id":2413,"name":"name","label":"Name","fieldType":"STRING","readOnly":false,"required":true,"triggerSuspect":true,"synchronize":true,"reqAdvisorEnabled":false},{"id":2414,"name":"description","label":"Verification Case Purpose and Contents","fieldType":"TEXT","readOnly":false,"required":true,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2418,"name":"text1","label":"Change Driver","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2419,"name":"lookup1","label":"Verification Method","fieldType":"LOOKUP","readOnly":false,"required":true,"triggerSuspect":true,"synchronize":true,"pickList":1669,"reqAdvisorEnabled":false},{"id":2420,"name":"text2","label":"Verification Method Rationale","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2421,"name":"lookup2","label":"Export Controlled","fieldType":"LOOKUP","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":true,"pickList":1673,"reqAdvisorEnabled":false},{"id":2467,"name":"project_defined$194","label":"Project Defined","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2422,"name":"doors_relationship$194","label":"DOORS Relationship","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2423,"name":"SYS_DOORS_ID$194","label":"DOORS ID","fieldType":"STRING","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2604,"name":"upstream_cross_instance_relationships$194","label":"Upstream Cross Instance Relationships","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2609,"name":"downstream_cross_instance_relationships$194","label":"Downstream Cross Instance Relationships","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2800,"name":"release","label":"Release","fieldType":"RELEASE","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"infotip":"","reqAdvisorEnabled":false}],"type":"itemtypes","system":false},{"id":195,"typeKey":"VerProc","display":"Verification Procedure","displayPlural":"Verification Procedures","description":"_Enterprise Item Types","image":"https://jama02.rockwellcollins.com/contour/img/tree/clipboard_plain.png","widgets":[{"name":"TAGS","synchronize":false},{"name":"SYNCHRONIZED_ITEMS","synchronize":false},{"name":"ACTIVITIES","synchronize":false},{"name":"RELATIONSHIPS","synchronize":false},{"name":"HISTORY","synchronize":false}],"fields":[{"id":2424,"name":"documentKey","label":"Item ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":true,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2425,"name":"globalId","label":"Global ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":true,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2430,"name":"status","label":"Status","fieldType":"LOOKUP","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"pickList":1667,"reqAdvisorEnabled":false},{"id":2426,"name":"name","label":"Name","fieldType":"STRING","readOnly":false,"required":true,"triggerSuspect":true,"synchronize":true,"reqAdvisorEnabled":false},{"id":2427,"name":"description","label":"Verification Procedure Setup and Steps","fieldType":"TEXT","readOnly":false,"required":true,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2431,"name":"text1","label":"Change Driver","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2432,"name":"lookup1","label":"Export Controlled","fieldType":"LOOKUP","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":true,"pickList":1673,"reqAdvisorEnabled":false},{"id":2433,"name":"doors_relationship$195","label":"DOORS Relationship","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2434,"name":"SYS_DOORS_ID$195","label":"DOORS ID","fieldType":"STRING","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2470,"name":"project_defined$195","label":"Project Defined","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2605,"name":"upstream_cross_instance_relationships$195","label":"Upstream Cross Instance Relationships","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2608,"name":"downstream_cross_instance_relationships$195","label":"Downstream Cross Instance Relationships","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2801,"name":"release","label":"Release","fieldType":"RELEASE","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"infotip":"","reqAdvisorEnabled":false}],"type":"itemtypes","system":false},{"id":196,"typeKey":"Design","display":"Design","displayPlural":"Designs","description":"_Enterprise Item Type","image":"https://jama02.rockwellcollins.com/contour/img/tree/info.png","widgets":[{"name":"URLS","synchronize":false},{"name":"ACTIVITIES","synchronize":false},{"name":"RELATIONSHIPS","synchronize":false},{"name":"SYNCHRONIZED_ITEMS","synchronize":false},{"name":"ATTACHMENTS","synchronize":false},{"name":"TAGS","synchronize":false},{"name":"HISTORY","synchronize":false}],"fields":[{"id":2435,"name":"documentKey","label":"Item ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":true,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2436,"name":"globalId","label":"Global ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":true,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2441,"name":"status","label":"Status","fieldType":"LOOKUP","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"pickList":1667,"reqAdvisorEnabled":false},{"id":2437,"name":"name","label":"Name","fieldType":"STRING","readOnly":false,"required":true,"triggerSuspect":true,"synchronize":true,"reqAdvisorEnabled":false},{"id":2438,"name":"description","label":"Design Description","fieldType":"TEXT","readOnly":false,"required":true,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2442,"name":"text1","label":"Change Driver","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2802,"name":"fdal$196","label":"FDAL","fieldType":"LOOKUP","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"pickList":1684,"infotip":"","reqAdvisorEnabled":false},{"id":2443,"name":"lookup1","label":"Export Controlled","fieldType":"LOOKUP","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":true,"pickList":1673,"reqAdvisorEnabled":false},{"id":2468,"name":"project_defined$196","label":"Project Defined","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2444,"name":"doors_relationship$196","label":"DOORS Relationship","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2445,"name":"SYS_DOORS_ID$196","label":"DOORS ID","fieldType":"STRING","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2528,"name":"upstream_cross_instance_relationships$196","label":"Upstream Cross Instance Relationships","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2687,"name":"downstream_cross_instance_relationships$196","label":"Downstream Cross Instance Relationships","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2756,"name":"release","label":"Release","fieldType":"RELEASE","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"infotip":"","reqAdvisorEnabled":false}],"type":"itemtypes","system":false},{"id":197,"typeKey":"Artifact","display":"Artifact","displayPlural":"Artifacts","description":"_Enterprise Item Type","image":"https://jama02.rockwellcollins.com/contour/img/tree/server.png","widgets":[{"name":"HISTORY","synchronize":false},{"name":"SYNCHRONIZED_ITEMS","synchronize":false},{"name":"TAGS","synchronize":false},{"name":"RELATIONSHIPS","synchronize":false},{"name":"ACTIVITIES","synchronize":false}],"fields":[{"id":2446,"name":"documentKey","label":"Item ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":true,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2447,"name":"globalId","label":"Global ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":true,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2452,"name":"status","label":"Status","fieldType":"LOOKUP","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"pickList":1667,"reqAdvisorEnabled":false},{"id":2448,"name":"name","label":"Name","fieldType":"STRING","readOnly":false,"required":true,"triggerSuspect":true,"synchronize":true,"reqAdvisorEnabled":false},{"id":2449,"name":"description","label":"Description","fieldType":"TEXT","readOnly":false,"required":true,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2453,"name":"text1","label":"Change Driver","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2454,"name":"text2","label":"CM Path","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2455,"name":"text3","label":"CM Revision","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"TEXTAREA","reqAdvisorEnabled":false},{"id":2456,"name":"text4","label":"Reference Location in Artifact","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"TEXTAREA","reqAdvisorEnabled":false},{"id":2457,"name":"lookup1","label":"Export Controlled","fieldType":"LOOKUP","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":true,"pickList":1673,"reqAdvisorEnabled":false},{"id":2469,"name":"project_defined$197","label":"Project Defined","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2459,"name":"doors_relationship$197","label":"DOORS Relationship","fieldType":"TEXT","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2460,"name":"SYS_DOORS_ID$197","label":"DOORS ID","fieldType":"STRING","readOnly":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2507,"name":"upstream_cross_instance_relationships$197","label":"Upstream Cross Instance Relationships","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2506,"name":"downstream_cross_instance_relationships$197","label":"Downstream Cross Instance Relationships","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2746,"name":"release","label":"Release","fieldType":"RELEASE","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"infotip":"","reqAdvisorEnabled":false}],"type":"itemtypes","system":false},{"id":198,"typeKey":"Stkhldr_Desr","display":"Stakeholder Desire","displayPlural":"Stakeholder Desire","description":"Enterprise Stakeholder Desire Item Type","image":"https://jama02.rockwellcollins.com/contour/img/tree/website.png","widgets":[{"name":"HISTORY","synchronize":false},{"name":"TAGS","synchronize":false},{"name":"SYNCHRONIZED_ITEMS","synchronize":false},{"name":"RELATIONSHIPS","synchronize":false},{"name":"ACTIVITIES","synchronize":false}],"fields":[{"id":2471,"name":"documentKey","label":"Project ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":true,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2472,"name":"globalId","label":"Global ID","fieldType":"STRING","readOnly":true,"readOnlyAllowApiOverwrite":false,"required":true,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2477,"name":"status","label":"Status","fieldType":"LOOKUP","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"pickList":1667,"reqAdvisorEnabled":false},{"id":2473,"name":"name","label":"Stakeholder Desire Summary","fieldType":"STRING","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":true,"triggerSuspect":true,"synchronize":true,"reqAdvisorEnabled":false},{"id":2474,"name":"description","label":"\tStakeholder Desire Description","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2478,"name":"priority","label":"Priority","fieldType":"LOOKUP","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"pickList":1709,"reqAdvisorEnabled":false},{"id":2479,"name":"text1","label":"Source","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2480,"name":"scope$198","label":"Scope","fieldType":"LOOKUP","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"pickList":1708,"reqAdvisorEnabled":false},{"id":2481,"name":"text2","label":"Change Driver","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2482,"name":"export_controlled$198","label":"Export Controlled","fieldType":"LOOKUP","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":true,"pickList":1673,"reqAdvisorEnabled":false},{"id":2483,"name":"text3","label":"Project Defined","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2484,"name":"text4","label":"DOORS Relationship","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2485,"name":"SYS_DOORS_ID$198","label":"DOORS ID","fieldType":"STRING","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"reqAdvisorEnabled":false},{"id":2585,"name":"upstream_cross_instance_relationships$198","label":"Upstream Cross Instance Relationships","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2628,"name":"downstream_cross_instance_relationships$198","label":"Downstream Cross Instance Relationships","fieldType":"TEXT","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":true,"synchronize":true,"textType":"RICHTEXT","reqAdvisorEnabled":false},{"id":2792,"name":"release","label":"Release","fieldType":"RELEASE","readOnly":false,"readOnlyAllowApiOverwrite":false,"required":false,"triggerSuspect":false,"synchronize":false,"infotip":"","reqAdvisorEnabled":false}],"type":"itemtypes","system":false}]}
+2026-07-06T14:19:32.1594752Z	Information	App	[JamaConnect] Found item type: ID=53, Display='Component', Key='CMP'
+2026-07-06T14:19:32.1613617Z	Information	App	[JamaConnect] Found item type: ID=54, Display='Set', Key='SET'
+2026-07-06T14:19:32.1632936Z	Information	App	[JamaConnect] Found item type: ID=55, Display='Folder', Key='FLD'
+2026-07-06T14:19:32.1648015Z	Information	App	[JamaConnect] Found item type: ID=56, Display='Text', Key='TXT'
+2026-07-06T14:19:32.1663502Z	Information	App	[JamaConnect] Found item type: ID=193, Display='Requirement', Key='REQ_RC'
+2026-07-06T14:19:32.1679632Z	Information	App	[JamaConnect] Found item type: ID=194, Display='Verification Case', Key='VerCse'
+2026-07-06T14:19:32.1696855Z	Information	App	[JamaConnect] Found item type: ID=195, Display='Verification Procedure', Key='VerProc'
+2026-07-06T14:19:32.1712364Z	Information	App	[JamaConnect] Found item type: ID=196, Display='Design', Key='Design'
+2026-07-06T14:19:32.1727707Z	Information	App	[JamaConnect] Found item type: ID=197, Display='Artifact', Key='Artifact'
+2026-07-06T14:19:32.1742753Z	Information	App	[JamaConnect] Found item type: ID=198, Display='Stakeholder Desire', Key='Stkhldr_Desr'
+2026-07-06T14:19:32.1764012Z	Information	App	[JamaConnect] Selected test case item type: ID=194, Display='Verification Case', Pattern='Verification Case'
+2026-07-06T14:19:32.3268468Z	Information	App	[JamaConnect] Project 686, itemType 194 total count: 116
+2026-07-06T14:19:32.3510001Z	Information	App	[Save] 🔍 PERSISTENCE DEBUG: Serializing 0 total GeneratedTestCases
+2026-07-06T14:19:32.3533035Z	Information	App	[Save] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-07-06T14:19:32.3551362Z	Information	App	[Save] Workspace identity: Project='MFD268C4B Top Level', AnythingLLMName='MFD268C4B Top Level', AnythingLLMSlug='<none>', JamaProjectId=686, JamaProjectName='QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution'
+2026-07-06T14:19:32.3991323Z	Information	WorkspaceService	[Save] Appended where-saved log: C:\Users\e10653214\AppData\Local\TestCaseEditorApp\where-saved.log
+2026-07-06T14:19:32.4043980Z	Warning	WorkspaceService	[Save] Wrote fallback copies to: C:\Users\e10653214\AppData\Local\Temp\TestCaseEditorApp
+2026-07-06T14:19:32.4071591Z	Information	TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator	✅ Jama sync on open complete for project 686. Requirements refreshed: 94
+2026-07-06T14:19:32.4160143Z	Information	App	[Save] 🔍 PERSISTENCE DEBUG: Serializing 0 total GeneratedTestCases
+2026-07-06T14:19:32.4179236Z	Information	App	[Save] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-07-06T14:19:32.4198101Z	Information	App	[Save] Workspace identity: Project='MFD268C4B Top Level', AnythingLLMName='MFD268C4B Top Level', AnythingLLMSlug='<none>', JamaProjectId=686, JamaProjectName='QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution'
+2026-07-06T14:19:32.4449754Z	Information	WorkspaceService	[Save] Appended where-saved log: C:\Users\e10653214\AppData\Local\TestCaseEditorApp\where-saved.log
+2026-07-06T14:19:32.4517765Z	Warning	WorkspaceService	[Save] Wrote fallback copies to: C:\Users\e10653214\AppData\Local\Temp\TestCaseEditorApp
+2026-07-06T14:19:32.4601882Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-07-06T14:19:32.4762709Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-07-06T14:19:32.5392008Z	Information	TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator	Found AnythingLLM workspace for project 'MFD268C4B Top Level': 'MFD268C4B Top Level' (slug: 'mfd268c4b-top-level')
+2026-07-06T14:19:32.5420996Z	Information	TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator	📡 Broadcasting ProjectOpened event to other domains: MFD268C4B Top Level
+2026-07-06T14:19:32.5463581Z	Information	TestCaseEditorApp.MVVM.ViewModels.SideMenuViewModel	[SideMenuVM] Project opened, IsProjectLoaded=true, HasRequirements set to True (94 requirements)
+2026-07-06T14:19:32.5496745Z	Information	TestCaseEditorApp.MVVM.Domains.Title.ViewModels.TitleViewModel	[TitleVM] Workshop opened: MFD268C4B Top Level
+2026-07-06T14:19:32.5521191Z	Information	TestCaseEditorApp.MVVM.ViewModels.SideMenuViewModel	[SideMenuVM] Project opened, IsProjectLoaded=true, HasRequirements set to True (94 requirements)
+2026-07-06T14:19:32.5544987Z	Information	TestCaseEditorApp.MVVM.Domains.Title.ViewModels.TitleViewModel	[TitleVM] Workshop opened: MFD268C4B Top Level
+2026-07-06T14:19:32.5571855Z	Information	App	[RecentFiles] AddRecentFile called with: C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-07-06T14:19:32.5595121Z	Information	App	[RecentFiles] Current count before: 8
+2026-07-06T14:19:32.5622489Z	Information	App	[RecentFiles] Current count after: 8
+2026-07-06T14:19:32.5641516Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-07-06T14:19:32.5656993Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator	🔔🔔🔔 BROADCAST RECEIVED: ProjectOpened - TestCaseGenerationMediator
+2026-07-06T14:19:32.5671699Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B TL Project.tcex.json
+2026-07-06T14:19:32.5686104Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator	🔔 Received broadcast notification: ProjectOpened
+2026-07-06T14:19:32.5700687Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level Project.tcex.json
+2026-07-06T14:19:32.5714862Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator	🚀 HandleBroadcast: OpenProjectEvents.ProjectOpened - WorkspaceName: MFD268C4B Top Level
+2026-07-06T14:19:32.5732081Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\Top Level C4B Project.tcex.json
+2026-07-06T14:19:32.5747476Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator	📊 OpenProject Workspace Info: Version=2, Requirements.Count=94
+2026-07-06T14:19:32.5765854Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD-268C4B.tcex.json
+2026-07-06T14:19:32.5785147Z	Information	App	[RequirementAnalysisService] Workspace context set to: MFD268C4B Top Level
+2026-07-06T14:19:32.5806122Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Desktop\testing import\CMP-6000.tcex.json
+2026-07-06T14:19:32.5827552Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\Decagon.tcex.json
+2026-07-06T14:19:32.5846130Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Desktop\testing import\RTU-42XX.tcex.json
+2026-07-06T14:19:32.5862226Z	Information	App	[RAG Sync] Checking if RAG documents need sync for workspace: MFD268C4B Top Level
+2026-07-06T14:19:32.5879954Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	🔔 NewProjectMediator received ProjectOpened event: MFD268C4B Top Level (C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json)
+2026-07-06T14:19:32.5908988Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	🔄 Refreshing workspace context cache for opened project
+2026-07-06T14:19:32.5940284Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	✅ NewProjectMediator workspace tracking updated for: MFD268C4B Top Level
+2026-07-06T14:19:32.5993802Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	Received broadcast notification: ProjectOpened
+2026-07-06T14:19:32.6029834Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-07-06T14:19:32.6044841Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	🔔 RequirementsMediator: Handling OpenProjectEvents.ProjectOpened - WorkspaceName: MFD268C4B Top Level
+2026-07-06T14:19:32.6065874Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	🚀 RequirementsMediator: About to call LoadFromProjectAsync for workspace with 94 requirements
+2026-07-06T14:19:32.6302450Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	📥 RequirementsMediator.LoadFromProjectAsync called - workspace.Requirements.Count: 94
+2026-07-06T14:19:32.6429489Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-07-06T14:19:32.6789205Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Commands initialized in InitializeCommands method
+2026-07-06T14:19:32.6818080Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Refreshing project state
+2026-07-06T14:19:32.6840382Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Project state - ID: -1, Name: Unknown
+2026-07-06T14:19:32.6861836Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Constructor completed
+2026-07-06T14:19:32.6889417Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] ViewModel constructor completed.
+2026-07-06T14:19:32.6908301Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Commands initialized: TestConnectionCommand is initialized
+2026-07-06T14:19:32.6928545Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Initializing empty state with placeholder
+2026-07-06T14:19:32.6959024Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Filter updated - showing 0 attachments
+2026-07-06T14:19:32.6986077Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Initialized empty state with placeholder
+2026-07-06T14:19:32.7003935Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] *************** DEBUG: CONSTRUCTOR COMPLETED ***************
+2026-07-06T14:19:32.7044809Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Subscribing to Requirements domain events
+2026-07-06T14:19:32.7070626Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Subscribed to RequirementSelected events
+2026-07-06T14:19:32.7091707Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Subscribed to NavigateToAttachmentSearch events
+2026-07-06T14:19:32.7119582Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Initialized to Details view mode
+2026-07-06T14:19:32.7141044Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Event subscriptions completed
+2026-07-06T14:19:32.7183312Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] Subscribed to RequirementSelected, RequirementAnalyzed, RequirementUpdated, and WorkflowStateChanged events from Requirements mediator
+2026-07-06T14:19:32.7223734Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-06T14:19:32.7250961Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-06T14:19:32.7355178Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Constructor completed - Instance ID: 53130157
+2026-07-06T14:19:32.7400066Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel	[HeaderVM] === CONSTRUCTOR: Mediator cast to RequirementsMediator SUCCEEDED, subscribing to events
+2026-07-06T14:19:32.7418431Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel	[HeaderVM] === CONSTRUCTOR: All subscriptions complete
+2026-07-06T14:19:32.7867927Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	📊 RequirementsMediator: Reloading requirements data (count changed or different data)
+2026-07-06T14:19:32.7931288Z	Information	App	[RAG DIAGNOSTICS] Found workspaces: 'FOMAX8', 'CMP-6250', 'CMP-6000', 'new CMP', 'new cmp 6250', 'Common Requirements Workspace', 'Common Requirements Project', 'Decagon', 'RTU-42XX', 'decagon 3', 'Decagon 5', 'Decagon 6', 'Decagon Prime', 'test2', 'great', 'Decagon Latest', 'May 6th - test 1', 'May 6th - test 2', 'test one', 'testing the way', 'test a new', 'what is up', 'new testing', 'CDU-7000', 'testing yet again', 'new workspace 11:35', 'Testing RAG', 'New Testing RAG', 'Rag Testing 1', 'Testing RAG version 3', 'Testing RAG version 4', 'Testing Rag version6', 'Testing Rag version7', 'testing RAG version 8', 'testing RAG again', 'embedding test', 'ding', 'new logging', 'logging test', 'logging at its finest', 'latest logging adventure', 'log with embed', '7b1095a', 'blah', 'this is the one', 'Matrix', 'Home Again', 'New Edition', 'embed is the way', 'Hope', 'Analysis 1', 'MFDC4B CCA', 'MFD268C4B Top Level', 'C4B TL'
+2026-07-06T14:19:32.7987579Z	Information	App	[RAG DIAGNOSTICS] Searching for workspace matching project: 'MFD268C4B Top Level'...
+2026-07-06T14:19:32.8060692Z	Information	App	[RAG] Using existing workspace: MFD268C4B Top Level
+2026-07-06T14:19:32.8107253Z	Information	App	[AnythingLLM] Configuring optimal settings for workspace 'mfd268c4b-top-level' using official documentation guidelines
+2026-07-06T14:19:32.8342439Z	Information	App	[AnythingLLM] Using chat model 'phi4-mini:3.8b-q4_K_M' for workspace 'mfd268c4b-top-level'
+2026-07-06T14:19:32.8497329Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	[RequirementsMediator] CurrentRequirement setter - Requirement: MFD268C4B-REQ_RC-1791, HasAnalysis: false, IsAnalyzed: False
+2026-07-06T14:19:32.8516299Z	Information	App	[AnythingLLM] ✅ Successfully configured workspace settings for 'mfd268c4b-top-level' using POST: http://localhost:3001/api/v1/workspace/mfd268c4b-top-level/update
+2026-07-06T14:19:32.8540868Z	Information	App	[AnythingLLM] 🔍 DEBUG: API Response: {"workspace":{"id":73,"name":"MFD268C4B Top Level","slug":"mfd268c4b-top-level","vectorTag":null,"createdAt":"2026-06-24T12:46:44.057Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-06-24T12
+2026-07-06T14:19:32.8585596Z	Information	App	[RAG] Successfully updated workspace settings for: MFD268C4B Top Level
+2026-07-06T14:19:32.8604650Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Processing RequirementSelected event - Requirement: [Deterministic] The test solution shall verify that the MFD monitor the foll...
+2026-07-06T14:19:32.8700393Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Content populated - Tables: 0
+2026-07-06T14:19:32.8751261Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Content populated - Tables: 0, Paragraphs: 0, Chips: 2
+2026-07-06T14:19:32.8774921Z	Information	App	[RAG Sync] Most recent file: 2026-05-07 09:17:09, Last sync: 2026-06-24 07:51:25, Update needed: False
+2026-07-06T14:19:32.8791394Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] OnRequirementSelected called with requirement: COL02-REQ_RC-10883314
+2026-07-06T14:19:32.8815549Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] CurrentRequirement setter called. Old=null, New=MFD268C4B-REQ_RC-1791
+2026-07-06T14:19:32.8849911Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] CurrentRequirement updated, HasAnalysis: False
+2026-07-06T14:19:32.8873824Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel	[HeaderVM] === OnRequirementSelected called === GlobalId: COL02-REQ_RC-10883314, Item: MFD268C4B-REQ_RC-1791, SelectedBy: Mediator
+2026-07-06T14:19:32.8900094Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel	[HeaderVM] === Jama import, set RequirementDescription to Name: [Deterministic] The test solution shall verify that the MFD monitor the foll...
+2026-07-06T14:19:32.8919993Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Processing RequirementSelected event - Requirement: [Deterministic] The test solution shall verify that the MFD monitor the foll...
+2026-07-06T14:19:32.8998100Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Content populated - Tables: 0
+2026-07-06T14:19:32.9019066Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Content populated - Tables: 0, Paragraphs: 0, Chips: 2
+2026-07-06T14:19:32.9040277Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] OnRequirementSelected called with requirement: COL02-REQ_RC-10883314
+2026-07-06T14:19:32.9058964Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] CurrentRequirement setter called. Old=MFD268C4B-REQ_RC-1791, New=MFD268C4B-REQ_RC-1791
+2026-07-06T14:19:32.9076990Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] CurrentRequirement updated, HasAnalysis: False
+2026-07-06T14:19:32.9094872Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel	[HeaderVM] === OnRequirementSelected called === GlobalId: COL02-REQ_RC-10883314, Item: MFD268C4B-REQ_RC-1791, SelectedBy: 
+2026-07-06T14:19:32.9113525Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel	[HeaderVM] === Jama import, set RequirementDescription to Name: [Deterministic] The test solution shall verify that the MFD monitor the foll...
+2026-07-06T14:19:32.9137382Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	🔔 RequirementsMediator publishing RequirementsCollectionChanged: Load, Count: 94
+2026-07-06T14:19:32.9166707Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Processing RequirementSelected event - Requirement: [Deterministic] The test solution shall verify that the MFD monitor the foll...
+2026-07-06T14:19:32.9228928Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Content populated - Tables: 0
+2026-07-06T14:19:32.9247863Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Content populated - Tables: 0, Paragraphs: 0, Chips: 2
+2026-07-06T14:19:32.9266169Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] OnRequirementSelected called with requirement: COL02-REQ_RC-10883314
+2026-07-06T14:19:32.9283365Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] CurrentRequirement setter called. Old=MFD268C4B-REQ_RC-1791, New=MFD268C4B-REQ_RC-1791
+2026-07-06T14:19:32.9301299Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] CurrentRequirement updated, HasAnalysis: False
+2026-07-06T14:19:32.9318986Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel	[HeaderVM] === OnRequirementSelected called === GlobalId: COL02-REQ_RC-10883314, Item: MFD268C4B-REQ_RC-1791, SelectedBy: 
+2026-07-06T14:19:32.9336851Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel	[HeaderVM] === Jama import, set RequirementDescription to Name: [Deterministic] The test solution shall verify that the MFD monitor the foll...
+2026-07-06T14:19:32.9368194Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	Loaded 94 requirements from project
+2026-07-06T14:19:33.0644817Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Refreshing project state
+2026-07-06T14:19:33.0678363Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsSearchAttachmentsViewModel	[RequirementsSearchAttachments] Project state - ID: 686, Name: MFD268C4B Top Level
+2026-07-06T14:19:33.0884736Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing=False, isCurrentReqBeingAnalyzed=False, result=False, CurrentReq=COL02-REQ_RC-10883314, AnalyzingReq=null
+2026-07-06T14:19:33.0915448Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing=False, isCurrentReqBeingAnalyzed=False, result=False, CurrentReq=COL02-REQ_RC-10883314, AnalyzingReq=null
+2026-07-06T14:19:33.0937253Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing=False, isCurrentReqBeingAnalyzed=False, result=False, CurrentReq=COL02-REQ_RC-10883314, AnalyzingReq=null
+2026-07-06T14:19:33.0974256Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementAnalysisViewModel	[RequirementAnalysisVM] IsAnalyzing getter: mediatorAnalyzing=False, isCurrentReqBeingAnalyzed=False, result=False, CurrentReq=COL02-REQ_RC-10883314, AnalyzingReq=null
+2026-07-06T14:25:30.6616463Z	Information	Microsoft.Hosting.Lifetime	Application is shutting down...
+2026-07-06T14:25:30.6681745Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Disposing instance - ID: 53130157
+2026-07-06T14:25:30.6707197Z	Information	TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel	[UnifiedRequirementsMainVM] Disposal completed
+2026-07-06T14:25:30.6728815Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-06T14:25:30.6746339Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-06T14:25:30.6770138Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-06T14:25:30.6805683Z	Information	TestCaseEditorApp.Services.RequirementAnalysisCache	[AnalysisCache] Disposed cache with 0 hits, 0 misses, 0ms saved
