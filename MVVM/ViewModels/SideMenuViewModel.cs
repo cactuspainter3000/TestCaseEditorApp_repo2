@@ -468,10 +468,6 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
                 var requirements = _requirementsMediator.Requirements?.ToList() ?? new List<Requirement>();
 
-                var requirementsWithAITests = requirements
-                    .Where(r => !string.IsNullOrWhiteSpace(r.CurrentResponse?.Output))
-                    .ToList();
-
                 var requirementsWithSavedTests = requirements
                     .Where(r => r.GeneratedTestCases?.Any() == true)
                     .ToList();
@@ -484,21 +480,14 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     firstRequirement = requirementsWithSavedTests.First();
                     testCaseSource = $"saved test case from requirement '{firstRequirement.Item}' ({firstRequirement.GeneratedTestCases?.Count} saved test cases)";
                 }
-                else if (requirementsWithAITests.Any())
-                {
-                    firstRequirement = requirementsWithAITests.First();
-                    testCaseSource = $"AI-generated test from requirement '{firstRequirement.Item}'";
-                }
 
                 // Check if we have any test cases to export
                 if (firstRequirement == null)
                 {
                     MessageBox.Show(
                         "No test cases found to export.\n\n" +
-                        "Please ensure you have either:\n" +
-                        "• Generated test cases from requirements using AI, OR\n" +
-                        "• Created and saved test cases manually\n\n" +
-                        "You can generate test cases using the Test Case Generator or create them manually in the Test Case Creation section.",
+                        "Only explicit saved/generated test cases are exportable.\n\n" +
+                        "Please create or generate test cases in the Test Case Creation section, then save them before export.",
                         "No Test Cases Found", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }

@@ -99,6 +99,9 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
                 {
                     UpdateCommandStates();
                     OnPropertyChanged(nameof(RequirementInfo));
+                        OnPropertyChanged(nameof(RequirementLinkSummary));
+                        OnPropertyChanged(nameof(RequirementQualitySummary));
+                        OnPropertyChanged(nameof(RequirementTraceSummary));
                 }
             }
         }
@@ -109,6 +112,20 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
         public string RequirementInfo => CurrentRequirement != null 
             ? $"{CurrentRequirement.Item}: {CurrentRequirement.Name}"
             : "No requirement selected";
+
+            public string RequirementLinkSummary => CurrentRequirement == null
+                ? "No linked requirement"
+                : CurrentRequirement.HasGeneratedTestCase
+                    ? $"Requirement already has {CurrentRequirement.GeneratedTestCases.Count} linked generated test case(s)"
+                    : "No generated test case links yet";
+
+            public string RequirementQualitySummary => CurrentRequirement?.Analysis != null
+                ? $"Requirement quality: {CurrentRequirement.Analysis.OriginalQualityScore}/10"
+                : "Requirement quality not analyzed yet";
+
+            public string RequirementTraceSummary => CurrentRequirement == null
+                ? "Traceability unavailable"
+                : $"Upstream: {CurrentRequirement.NumberOfUpstreamRelationships}  Downstream: {CurrentRequirement.NumberOfDownstreamRelationships}  Links: {CurrentRequirement.NumberOfLinks}";
 
         // Use base class StatusMessage property instead of redefining it
         // public string StatusMessage is inherited from BaseDomainViewModel

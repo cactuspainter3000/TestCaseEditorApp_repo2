@@ -138,10 +138,7 @@ namespace TestCaseEditorApp.MVVM.Models
         [ObservableProperty]
         private string tags = string.Empty;
 
-        // Updated to check both old and new test case models for backward compatibility
-        public bool HasGeneratedTestCase => 
-            (GeneratedTestCases?.Any() == true) || 
-            !string.IsNullOrWhiteSpace(CurrentResponse?.Output);
+        public bool HasGeneratedTestCase => GeneratedTestCases?.Any() == true;
 
         private List<string> _tagList = new();
         public List<string> TagList

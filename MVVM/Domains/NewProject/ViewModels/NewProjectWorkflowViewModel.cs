@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Win32;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
@@ -105,13 +104,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         private bool isTestingConnection = false;
         
         [ObservableProperty]
-        private bool hasJamaRequirements = false;
-        
-        // Import mode toggle - true = Jama (default), false = Document
-        [ObservableProperty]
-        private bool isJamaImportMode = true;
-        
-        [ObservableProperty]
         private ObservableCollection<JamaProjectItem> availableProjects = new();
         
         [ObservableProperty]
@@ -119,15 +111,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         
         [ObservableProperty]
         private bool isLoadingProjects = false;
-        
-        [ObservableProperty]
-        private bool isLoadingRequirements = false;
-        
-        [ObservableProperty]
-        private int requirementsCount = 0;
-        
-        [ObservableProperty]
-        private bool showProjectSelection = false;
         
         // Computed properties for smart button UX
         public string CreateProjectButtonText
@@ -140,18 +123,9 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                     return "⚠️ Create AnythingLLM Workspace First";
                 if (!IsWorkspaceCreated)
                     return "⚠️ Workspace Not Validated";
-                    
-                // Check requirements source based on import mode
-                if (IsJamaImportMode)
-                {
-                    if (SelectedProject == null)
-                        return "⚠️ Select Jama Project";
-                }
-                else
-                {
-                    if (!HasSelectedDocument)
-                        return "⚠️ Select Requirements Document";
-                }
+
+                if (SelectedProject == null)
+                    return "⚠️ Select Jama Project";
                 
                 if (!HasProjectName)
                     return "⚠️ Enter Project Name";
@@ -171,18 +145,9 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                     return "First create an AnythingLLM workspace above";
                 if (!IsWorkspaceCreated)
                     return "Click 'Create Workspace' to validate your workspace setup";
-                    
-                // Check requirements source based on import mode
-                if (IsJamaImportMode)
-                {
-                    if (SelectedProject == null)
-                        return "Select a Jama project to import requirements from";
-                }
-                else
-                {
-                    if (!HasSelectedDocument)
-                        return "Select a Word document containing your requirements";
-                }
+
+                if (SelectedProject == null)
+                    return "Select a Jama project to import requirements from";
                 
                 if (!HasProjectName)
                     return "Enter a name for your new project";
@@ -190,24 +155,20 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                     return "Choose where to save your project file";
                 if (IsProjectCreated)
                     return "Project has been successfully created!";
-                return $"All prerequisites met - ready to create project with {(IsJamaImportMode ? "Jama" : "document")} requirements!";
+                return "All prerequisites met - ready to create project with Jama requirements";
             }
         }
 
         // Commands
-        public ICommand SelectDocumentCommand { get; }
         public ICommand ChooseProjectSaveLocationCommand { get; }
         public ICommand CreateProjectCommand { get; }
         public ICommand ValidateWorkspaceCommand { get; }
         public new ICommand CancelCommand { get; }
         public IAsyncRelayCommand TestJamaConnectionCommand { get; }
-        public IAsyncRelayCommand ImportFromJamaCommand { get; }
         public IAsyncRelayCommand LoadJamaProjectsCommand { get; }
-        public IAsyncRelayCommand LoadRequirementsCommand { get; }
         public IAsyncRelayCommand<object> ImportSelectedRequirementsCommand { get; }
 
         // Events
-        public event EventHandler<NewProjectCompletedEventArgs>? ProjectCreated;
         public event EventHandler? ProjectCancelled;
         
         public NewProjectWorkflowViewModel(
@@ -219,31 +180,20 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             // Store properly typed mediator
             _mediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
             _anythingLLMService = anythingLLMService ?? throw new ArgumentNullException(nameof(anythingLLMService));
-            SelectDocumentCommand = new RelayCommand(SelectDocument);
             ChooseProjectSaveLocationCommand = new RelayCommand(ChooseProjectSaveLocation);
             CreateProjectCommand = new RelayCommand(CreateProject);
             ValidateWorkspaceCommand = new AsyncRelayCommand(ValidateWorkspaceAsync, CanValidateWorkspace);
             CancelCommand = new RelayCommand(() => Cancel());
             TestJamaConnectionCommand = new AsyncRelayCommand(TestJamaConnectionAsync);
-            ImportFromJamaCommand = new AsyncRelayCommand(ImportFromJamaAsync);
             LoadJamaProjectsCommand = new AsyncRelayCommand(LoadJamaProjectsAsync);
-            LoadRequirementsCommand = new AsyncRelayCommand(LoadRequirementsAsync, () => SelectedProject != null);
             ImportSelectedRequirementsCommand = new AsyncRelayCommand<object>(ImportSelectedRequirementsAsync, (param) => {
                 return param != null || SelectedProject != null;
             });
-            
-            // Initialize import mode to Jama by default
-            IsJamaImportMode = true;
             
             // Property change handlers for command state
             PropertyChanged += (s, e) =>
             {
                 if (e.PropertyName == nameof(SelectedProject))
-                {
-                    LoadRequirementsCommand.NotifyCanExecuteChanged();
-                    ImportSelectedRequirementsCommand.NotifyCanExecuteChanged();
-                }
-                if (e.PropertyName == nameof(RequirementsCount))
                 {
                     ImportSelectedRequirementsCommand.NotifyCanExecuteChanged();
                 }
@@ -258,48 +208,45 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             // Auto-load Jama projects if in Jama mode and configured
             _ = Task.Run(async () =>
             {
-                if (IsJamaImportMode)
+                try
                 {
-                    try
+                    // Check if Jama is configured before attempting to load
+                    var (isConfigured, message) = await _mediator.TestJamaConnectionAsync();
+                    if (isConfigured)
                     {
-                        // Check if Jama is configured before attempting to load
-                        var (isConfigured, message) = await _mediator.TestJamaConnectionAsync();
-                        if (isConfigured)
+                        TestCaseEditorApp.Services.Logging.Log.Info("[NewProject] Auto-loading Jama projects on startup");
+                        
+                        // Switch back to UI thread for the actual loading which updates UI collections
+                        await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
                         {
-                            TestCaseEditorApp.Services.Logging.Log.Info("[NewProject] Auto-loading Jama projects on startup");
-                            
-                            // Switch back to UI thread for the actual loading which updates UI collections
-                            await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
-                            {
-                                await LoadJamaProjectsAsync();
-                            });
-                        }
-                        else
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Info($"[NewProject] Jama not configured for auto-load: {message}");
-                        }
+                            await LoadJamaProjectsAsync();
+                        });
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[NewProject] Failed to auto-load Jama projects: {ex.Message}");
-                        // Don't throw - just log and continue
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[NewProject] Jama not configured for auto-load: {message}");
                     }
                 }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[NewProject] Failed to auto-load Jama projects: {ex.Message}");
+                    // Don't throw - just log and continue
+                }
             });
-            
+
             // Set title for BaseDomainViewModel
             Title = "New Project Workflow";
         }
 
         // ===== ABSTRACT METHOD IMPLEMENTATIONS =====
-        
+
         protected override async Task SaveAsync()
         {
             try
             {
                 IsBusy = true;
                 StatusMessage = "Saving project...";
-                
+
                 // Save current project state (if applicable)
                 await Task.CompletedTask; // No specific save operation for workflow
                 
@@ -448,38 +395,14 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             UpdateCanProceed();
             
             // Notify command states
-            LoadRequirementsCommand.NotifyCanExecuteChanged();
             ImportSelectedRequirementsCommand.NotifyCanExecuteChanged();
-        }
-
-        partial void OnIsJamaImportModeChanged(bool value)
-        {
-            // Update CanProceed when import mode changes (affects requirements source validation)
-            UpdateCanProceed();
-            
-            // Load projects when switching to Jama mode
-            if (value && !IsLoadingProjects)
-            {
-                _ = System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
-                {
-                    try
-                    {
-                        await LoadJamaProjectsAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Error(ex, "Failed to load projects when switching to Jama mode");
-                    }
-                });
-            }
         }
 
         private void UpdateCanProceed()
         {
             var oldCanProceed = CanProceed;
-            
-            // Check if we have requirements source: either a document file (in document mode) or selected Jama project (in Jama mode)
-            bool hasRequirementsSource = IsJamaImportMode ? (SelectedProject != null) : HasSelectedDocument;
+                // Jama import is now the only supported intake path.
+                bool hasRequirementsSource = SelectedProject != null;
             
             // All required fields must be filled - allow even if project is open (user will get warning dialog)
             var newCanProceed = HasWorkspaceName && hasRequirementsSource && HasProjectSavePath && HasProjectName && IsWorkspaceCreated;
@@ -487,7 +410,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             // Debug logging to help troubleshoot
             TestCaseEditorApp.Services.Logging.Log.Debug($"[UpdateCanProceed] " +
                 $"HasWorkspaceName={HasWorkspaceName}, " +
-                $"IsJamaImportMode={IsJamaImportMode}, " +
                 $"SelectedProject={(SelectedProject != null ? SelectedProject.Name : "null")}, " +
                 $"HasSelectedDocument={HasSelectedDocument}, " +
                 $"HasRequirementsSource={hasRequirementsSource}, " +
@@ -518,31 +440,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[UpdateCanProceed] CanProceed changed from {oldCanProceed} to {CanProceed}");
                 // Removed redundant "Ready to create project!" toast - button state is sufficient feedback
-            }
-        }
-
-        private void SelectDocument()
-        {
-            var dlg = new OpenFileDialog
-            {
-                Title = "Select Requirements Document",
-                Filter = "Word Documents (*.docx)|*.docx|All Files (*.*)|*.*",
-                RestoreDirectory = true
-            };
-
-            if (dlg.ShowDialog() == true)
-            {
-                SelectedDocumentPath = dlg.FileName;
-                
-                // Auto-suggest project name from document name
-                if (string.IsNullOrWhiteSpace(ProjectName))
-                {
-                    ProjectName = Path.GetFileNameWithoutExtension(dlg.FileName);
-                }
-                
-                // Update button text
-                OnPropertyChanged(nameof(CreateProjectButtonText));
-                OnPropertyChanged(nameof(CreateProjectButtonTooltip));
             }
         }
 
@@ -587,8 +484,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             {
                 string documentPathToUse = SelectedDocumentPath;
                 
-                // Check if we're in Jama import mode with a selected project
-                if (IsJamaImportMode && SelectedProject != null)
+                if (SelectedProject != null)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Info($"[PROJECT] Creating project with Jama import from project: {SelectedProject.Name} (ID: {SelectedProject.Id})");
                     
@@ -629,24 +525,12 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                     ProjectName = ProjectName,
                     WorkspaceName = WorkspaceName,
                     ProjectPath = ProjectSavePath,
-                    IsJamaImport = IsJamaImportMode,
-                    JamaProjectId = IsJamaImportMode && SelectedProject != null ? SelectedProject.Id : null,
-                    JamaProjectName = IsJamaImportMode && SelectedProject != null ? SelectedProject.Name : null
+                    IsJamaImport = true,
+                    JamaProjectId = SelectedProject?.Id,
+                    JamaProjectName = SelectedProject?.Name
                 };
                 _mediator.PublishEvent(projectCreatedEvent);
-                _logger.LogInformation($"Published ProjectCreatedWithWorkspace event for {ProjectName} (Jama: {IsJamaImportMode})");
-                
-                // Also publish specific Jama event for backward compatibility if it was a Jama project
-                if (IsJamaImportMode && SelectedProject != null && creationSuccessful)
-                {
-                    _mediator.PublishEvent(new NewProjectEvents.JamaProjectCreated
-                    {
-                        JamaProjectId = SelectedProject.Id,
-                        JamaProjectName = SelectedProject.Name,
-                        ProjectName = ProjectName
-                    });
-                    _logger.LogInformation($"Published JamaProjectCreated event for project {SelectedProject.Id}");
-                }
+                _logger.LogInformation($"Published ProjectCreatedWithWorkspace event for {ProjectName} (Jama: true)");
                 
                 // Fire completion event to clear cached workflow instance
                 var completedArgs = new NewProjectCompletedEventArgs
@@ -669,18 +553,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn("[PROJECT] Project creation completed but requirements import unsuccessful");
                 }
-                
-                // Fire the event for any remaining legacy listeners
-                var args = new NewProjectCompletedEventArgs
-                {
-                    WorkspaceName = WorkspaceName,
-                    WorkspaceDescription = WorkspaceDescription,
-                    DocumentPath = SelectedDocumentPath,
-                    AutoExportEnabled = AutoExportEnabled,
-                    ProjectSavePath = ProjectSavePath,
-                    ProjectName = ProjectName
-                };
-                ProjectCreated?.Invoke(this, args);
             }
             catch (Exception ex)
             {
@@ -951,30 +823,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             }
         }
         
-        private async Task ImportFromJamaAsync()
-        {
-            try
-            {
-                TestCaseEditorApp.Services.Logging.Log.Info($"[ImportFromJama] Current ShowProjectSelection: {ShowProjectSelection}");
-                
-                // Toggle project selection section
-                ShowProjectSelection = !ShowProjectSelection;
-                
-                TestCaseEditorApp.Services.Logging.Log.Info($"[ImportFromJama] After toggle ShowProjectSelection: {ShowProjectSelection}");
-                
-                // Always load projects when showing (not just when empty)
-                if (ShowProjectSelection)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[ImportFromJama] Loading projects... Current count: {AvailableProjects.Count}");
-                    await LoadJamaProjectsAsync();
-                }
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "Failed to toggle Jama import");
-            }
-        }
-        
         private async Task LoadJamaProjectsAsync()
         {
             // Guard against concurrent loading
@@ -1031,37 +879,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             }
         }
 
-        [RelayCommand]
-        private void SwitchImportMode()
-        {
-            IsJamaImportMode = !IsJamaImportMode;
-            TestCaseEditorApp.Services.Logging.Log.Info($"Switched import mode to: {(IsJamaImportMode ? "Jama" : "Document")}");
-        }
-        
-        private async Task LoadRequirementsAsync()
-        {
-            if (SelectedProject == null) return;
-            
-            try
-            {
-                IsLoadingRequirements = true;
-                
-                var requirements = await _mediator.GetJamaRequirementsAsync(SelectedProject.Id);
-                RequirementsCount = requirements.Count;
-                
-                TestCaseEditorApp.Services.Logging.Log.Info($"Found {requirements.Count} requirements in Jama project {SelectedProject.Name}");
-            }
-            catch (Exception ex)
-            {
-                RequirementsCount = 0;
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"Failed to load requirements from Jama project {SelectedProject?.Name}");
-            }
-            finally
-            {
-                IsLoadingRequirements = false;
-            }
-        }
-        
         private async Task ImportSelectedRequirementsAsync(object? parameter)
         {
             // If a parameter was passed (from CommandParameter), use it to set SelectedProject
@@ -1082,10 +899,6 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
                 // Set as selected document (now it's a JSON file)
                 SelectedDocumentPath = tempPath;
                 HasSelectedDocument = true;
-                HasJamaRequirements = true;
-                
-                // Hide project selection since we're done
-                ShowProjectSelection = false;
                 
                 // Publish requirements imported event via mediator
                 _mediator.PublishEvent(new NewProjectEvents.RequirementsImported

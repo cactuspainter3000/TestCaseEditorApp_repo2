@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Specialized;
+using System.Windows;
 using System.Windows.Input;
 using TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
@@ -35,6 +36,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private readonly IPersistenceService _persistence;
         private readonly ITextEditingDialogService _textEditingDialogService;
         private UserSettingsViewModel? _userSettingsVm;
+        private bool _batchSelectionInitialized;
+
+        private const string BatchSelectionPersistencePrefix = "requirements.batch-selection";
 
         #region Navigation & State Properties
 
@@ -71,6 +75,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         [ObservableProperty]
         private string jamaProbeStatus = "Jama probe idle.";
+
+        [ObservableProperty]
+        private bool isBatchQueueRunning;
+
+        [ObservableProperty]
+        private string batchQueueStatus = "Select requirements to batch analyze.";
 
         // Analysis timer (from Jama path)
         private System.Timers.Timer? _analysisTimer;
@@ -234,6 +244,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         // Analysis & Test Generation Commands (from Jama path)
         public ICommand QuickAnalyzeCommand { get; private set; } = null!;
+        public IAsyncRelayCommand AnalyzeSelectedBatchCommand { get; private set; } = null!;
         public ICommand GenerateTestsCommand { get; private set; } = null!;
         public ICommand ViewInTestGenCommand { get; private set; } = null!;
 
@@ -242,6 +253,32 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public ICommand NextRequirementCommand { get; private set; } = null!;
 
         public ObservableCollection<Requirement> Requirements => _mediator.Requirements;
+
+        public ObservableCollection<BatchRequirementSelectionItem> BatchRequirementSelections { get; } = new();
+
+        public int SelectedBatchCount => BatchRequirementSelections.Count(r => r.IsSelected);
+
+        public bool HasBatchSelections => BatchRequirementSelections.Count > 0;
+
+        public string RequirementTestLinkStatus =>
+            CurrentRequirement == null
+                ? "No requirement selected"
+                : CurrentRequirement.HasGeneratedTestCase
+                    ? $"{CurrentRequirement.GeneratedTestCases.Count} linked generated test case(s)"
+                    : "No generated test case linked";
+
+        public string RequirementReviewStatus =>
+            CurrentRequirement?.Analysis != null ? "Reviewed by LLM analysis" : "Not yet reviewed";
+
+        public string RequirementQualityStatus =>
+            CurrentRequirement?.Analysis != null
+                ? $"Quality score: {CurrentRequirement.Analysis.OriginalQualityScore}/10"
+                : "Quality score unavailable";
+
+        public string RequirementTraceStatus =>
+            CurrentRequirement == null
+                ? "Traceability unavailable"
+                : $"Upstream: {CurrentRequirement.NumberOfUpstreamRelationships}  Downstream: {CurrentRequirement.NumberOfDownstreamRelationships}  Links: {CurrentRequirement.NumberOfLinks}";
 
         public Requirement? SelectedRequirement
         {
@@ -391,6 +428,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
             // Analysis & Test Generation
             QuickAnalyzeCommand = new RelayCommand(ExecuteQuickAnalyze, () => HasCurrentRequirement);
+            AnalyzeSelectedBatchCommand = new AsyncRelayCommand(ExecuteAnalyzeSelectedBatchAsync, CanExecuteAnalyzeSelectedBatch);
             GenerateTestsCommand = new RelayCommand(ExecuteGenerateTests, () => CanGenerateTests);
             ViewInTestGenCommand = new RelayCommand(ExecuteViewInTestGen, () => HasCurrentRequirement);
 
@@ -417,7 +455,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             // CRITICAL: Get the current requirement if one is already selected (handles timing issue)
             // The RequirementSelected event may have been published before this ViewModel was created
-            var currentRequirement = ((RequirementsMediator)_mediator).CurrentRequirement;
+            var currentRequirement = _mediator.CurrentRequirement;
             if (currentRequirement != null)
             {
                 _logger.LogInformation("[UnifiedRequirementsMainVM] Found existing current requirement: {RequirementName}", currentRequirement.Name);
@@ -429,6 +467,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
 
             _mediator.Requirements.CollectionChanged += OnRequirementsCollectionUpdated;
+            SynchronizeBatchSelections();
             
             _logger.LogInformation("[UnifiedRequirementsMainVM] Event subscriptions completed");
         }
@@ -437,7 +476,111 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             OnPropertyChanged(nameof(Requirements));
             OnPropertyChanged(nameof(RequirementPositionDisplay));
+            SynchronizeBatchSelections();
             NotifyCommandsCanExecuteChanged();
+        }
+
+        private void SynchronizeBatchSelections()
+        {
+            foreach (var existingItem in BatchRequirementSelections)
+            {
+                existingItem.PropertyChanged -= OnBatchSelectionItemPropertyChanged;
+            }
+
+            var selectedIds = BatchRequirementSelections
+                .Where(s => s.IsSelected)
+                .Select(s => s.Requirement.GlobalId)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (!_batchSelectionInitialized && selectedIds.Count == 0)
+            {
+                selectedIds = LoadPersistedBatchSelectionIds();
+                _batchSelectionInitialized = true;
+            }
+
+            BatchRequirementSelections.Clear();
+
+            foreach (var requirement in _mediator.Requirements)
+            {
+                var isSelected = !string.IsNullOrWhiteSpace(requirement.GlobalId) && selectedIds.Contains(requirement.GlobalId);
+                var item = new BatchRequirementSelectionItem(requirement, isSelected);
+                item.PropertyChanged += OnBatchSelectionItemPropertyChanged;
+                BatchRequirementSelections.Add(item);
+            }
+
+            if (!BatchRequirementSelections.Any(s => s.IsSelected))
+            {
+                foreach (var item in BatchRequirementSelections.Take(5))
+                {
+                    item.IsSelected = true;
+                }
+            }
+
+            PersistSelectedBatchRequirementIds();
+
+            OnPropertyChanged(nameof(SelectedBatchCount));
+            OnPropertyChanged(nameof(HasBatchSelections));
+            ((AsyncRelayCommand)AnalyzeSelectedBatchCommand).NotifyCanExecuteChanged();
+        }
+
+        private void OnBatchSelectionItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(BatchRequirementSelectionItem.IsSelected))
+            {
+                return;
+            }
+
+            PersistSelectedBatchRequirementIds();
+            OnPropertyChanged(nameof(SelectedBatchCount));
+            ((AsyncRelayCommand)AnalyzeSelectedBatchCommand).NotifyCanExecuteChanged();
+        }
+
+        private string GetBatchSelectionPersistenceKey()
+        {
+            var projectKey = _mediator.CurrentProjectId > 0
+                ? _mediator.CurrentProjectId.ToString()
+                : string.IsNullOrWhiteSpace(_mediator.CurrentProjectName)
+                    ? "default"
+                    : _mediator.CurrentProjectName;
+
+            return $"{BatchSelectionPersistencePrefix}.{projectKey}";
+        }
+
+        private HashSet<string> LoadPersistedBatchSelectionIds()
+        {
+            try
+            {
+                var key = GetBatchSelectionPersistenceKey();
+                var persisted = _persistence.Load<List<string>>(key) ?? new List<string>();
+
+                return persisted
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "[UnifiedRequirementsMainVM] Failed to load batch selection state");
+                return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            }
+        }
+
+        private void PersistSelectedBatchRequirementIds()
+        {
+            try
+            {
+                var key = GetBatchSelectionPersistenceKey();
+                var selectedIds = BatchRequirementSelections
+                    .Where(s => s.IsSelected && !string.IsNullOrWhiteSpace(s.Requirement.GlobalId))
+                    .Select(s => s.Requirement.GlobalId)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                _persistence.Save(key, selectedIds);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "[UnifiedRequirementsMainVM] Failed to persist batch selection state");
+            }
         }
 
         private void InitializeAnalysisViewModel(IRequirementAnalysisService? analysisService)
@@ -537,6 +680,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Notify commands
             OnPropertyChanged(nameof(SelectedRequirement));
             OnPropertyChanged(nameof(RequirementPositionDisplay));
+            OnPropertyChanged(nameof(RequirementTestLinkStatus));
+            OnPropertyChanged(nameof(RequirementReviewStatus));
+            OnPropertyChanged(nameof(RequirementQualityStatus));
+            OnPropertyChanged(nameof(RequirementTraceStatus));
             NotifyCommandsCanExecuteChanged();
         }
 
@@ -749,6 +896,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     QualityScoreDisplay = $"{analysis.OriginalQualityScore:F1}/10";
                     AnalysisSummary = analysis.FreeformFeedback ?? "Analysis completed with no feedback.";
                     CanGenerateTests = analysis.OriginalQualityScore >= 7; // Consider good quality if score >= 7
+                    OnPropertyChanged(nameof(RequirementReviewStatus));
+                    OnPropertyChanged(nameof(RequirementQualityStatus));
                 }
             }
         }
@@ -1017,6 +1166,87 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
         }
 
+        private bool CanExecuteAnalyzeSelectedBatch()
+        {
+            return !IsBatchQueueRunning && BatchRequirementSelections.Any(r => r.IsSelected);
+        }
+
+        private async Task ExecuteAnalyzeSelectedBatchAsync()
+        {
+            var selected = BatchRequirementSelections
+                .Where(r => r.IsSelected)
+                .Select(r => r.Requirement)
+                .ToList();
+
+            if (!selected.Any())
+            {
+                BatchQueueStatus = "Select at least one requirement for batch analysis.";
+                return;
+            }
+
+            IsBatchQueueRunning = true;
+            BatchQueueStatus = $"Starting analysis for {selected.Count} selected requirement(s)...";
+            ((AsyncRelayCommand)AnalyzeSelectedBatchCommand).NotifyCanExecuteChanged();
+
+            var frontLoaded = selected.Take(5).ToList();
+            var remaining = selected.Skip(frontLoaded.Count).ToList();
+
+            try
+            {
+                if (frontLoaded.Any())
+                {
+                    BatchQueueStatus = $"Analyzing first {frontLoaded.Count} requirement(s)...";
+                    await _mediator.AnalyzeBatchRequirementsAsync(frontLoaded.AsReadOnly());
+                }
+
+                if (remaining.Any())
+                {
+                    BatchQueueStatus = $"Continuing in background with {remaining.Count} remaining requirement(s). You can keep working.";
+
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _mediator.AnalyzeBatchRequirementsAsync(remaining.AsReadOnly());
+                            await Application.Current.Dispatcher.InvokeAsync(() =>
+                            {
+                                BatchQueueStatus = $"Batch analysis complete for {selected.Count} requirement(s).";
+                                IsBatchQueueRunning = false;
+                                ((AsyncRelayCommand)AnalyzeSelectedBatchCommand).NotifyCanExecuteChanged();
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "[UnifiedRequirementsMainVM] Background selected-batch analysis failed");
+                            await Application.Current.Dispatcher.InvokeAsync(() =>
+                            {
+                                BatchQueueStatus = "Background analysis encountered an error. Check logs for details.";
+                                IsBatchQueueRunning = false;
+                                ((AsyncRelayCommand)AnalyzeSelectedBatchCommand).NotifyCanExecuteChanged();
+                            });
+                        }
+                    });
+
+                    return;
+                }
+
+                BatchQueueStatus = $"Batch analysis complete for {selected.Count} requirement(s).";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[UnifiedRequirementsMainVM] Selected-batch analysis failed");
+                BatchQueueStatus = "Batch analysis failed. Check logs for details.";
+            }
+            finally
+            {
+                if (!remaining.Any())
+                {
+                    IsBatchQueueRunning = false;
+                    ((AsyncRelayCommand)AnalyzeSelectedBatchCommand).NotifyCanExecuteChanged();
+                }
+            }
+        }
+
         private void ExecuteGenerateTests()
         {
             if (CurrentRequirement == null || !CanGenerateTests) return;
@@ -1053,6 +1283,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             ((RelayCommand)SelectAllVisibleCommand).NotifyCanExecuteChanged();
             ((RelayCommand)ClearAllVisibleCommand).NotifyCanExecuteChanged();
             ((RelayCommand)QuickAnalyzeCommand).NotifyCanExecuteChanged();
+            ((AsyncRelayCommand)AnalyzeSelectedBatchCommand).NotifyCanExecuteChanged();
             ((RelayCommand)GenerateTestsCommand).NotifyCanExecuteChanged();
             ((RelayCommand)ViewInTestGenCommand).NotifyCanExecuteChanged();
             ((RelayCommand)PreviousRequirementCommand).NotifyCanExecuteChanged();
@@ -1107,6 +1338,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _userSettingsVm.PropertyChanged -= OnUserSettingsProbePropertyChanged;
             }
 
+            foreach (var item in BatchRequirementSelections)
+            {
+                item.PropertyChanged -= OnBatchSelectionItemPropertyChanged;
+            }
+
             _mediator.Requirements.CollectionChanged -= OnRequirementsCollectionUpdated;
             
             this.PropertyChanged -= OnViewModePropertyChanged;
@@ -1117,5 +1353,27 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         }
 
         #endregion
+
+        public sealed class BatchRequirementSelectionItem : ObservableObject
+        {
+            public BatchRequirementSelectionItem(Requirement requirement, bool isSelected)
+            {
+                Requirement = requirement;
+                _isSelected = isSelected;
+            }
+
+            public Requirement Requirement { get; }
+
+            public string DisplayText => string.IsNullOrWhiteSpace(Requirement.Item)
+                ? Requirement.Name
+                : $"{Requirement.Item} - {Requirement.Name}";
+
+            private bool _isSelected;
+            public bool IsSelected
+            {
+                get => _isSelected;
+                set => SetProperty(ref _isSelected, value);
+            }
+        }
     }
 }

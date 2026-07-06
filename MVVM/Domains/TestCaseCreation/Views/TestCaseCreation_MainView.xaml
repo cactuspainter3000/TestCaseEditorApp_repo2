@@ -21,6 +21,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -119,8 +120,22 @@
             </Grid>
         </Border>
 
+        <!-- Requirement Context Card -->
+        <Border Grid.Row="2"
+                Background="#1F2A36"
+                BorderBrush="#4A6A84"
+                BorderThickness="1"
+                Padding="14,10">
+            <StackPanel>
+                <TextBlock Text="Requirement Context" FontWeight="Bold" Foreground="#CDE7FF" Margin="0,0,0,6"/>
+                <TextBlock Text="{Binding RequirementLinkSummary}" Foreground="#D8E6F2" Margin="0,0,0,2" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding RequirementQualitySummary}" Foreground="#D8E6F2" Margin="0,0,0,2" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding RequirementTraceSummary}" Foreground="#B8CDDF" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
         <!-- Main Content Area -->
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="3">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="300"/>
                 <ColumnDefinition Width="5"/>
@@ -348,7 +363,7 @@
         </Grid>
 
         <!-- Error/Busy Overlay -->
-        <Border Grid.Row="0" Grid.RowSpan="4"
+        <Border Grid.Row="0" Grid.RowSpan="5"
                 Background="#80000000"
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">

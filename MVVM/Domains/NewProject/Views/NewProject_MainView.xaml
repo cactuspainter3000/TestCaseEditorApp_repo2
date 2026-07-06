@@ -226,9 +226,8 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <!-- Jama Import Section (Default) -->
-                        <StackPanel Grid.Row="0" 
-                                    Visibility="{Binding IsJamaImportMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <!-- Jama Import Section -->
+                        <StackPanel Grid.Row="0">
                             
                             <TextBlock Text="Import requirements directly from your Jama Connect instance." 
                                    Foreground="#CCCCCC" 
@@ -378,77 +377,7 @@
                             </Grid>
                         </StackPanel>
 
-                        <!-- Document Import Section -->
-                        <StackPanel Grid.Row="0"
-                                    Visibility="{Binding IsJamaImportMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                            
-                            <TextBlock Text="Select a Word document containing your requirements." 
-                                   Foreground="#CCCCCC" 
-                                   TextWrapping="Wrap" 
-                                   Margin="0,0,0,15"
-                                   LineHeight="20"/>
-
-                            <DockPanel>
-                                <Button DockPanel.Dock="Right" 
-                                    Style="{StaticResource ActionButton}"
-                                    Margin="10,0,0,0"
-                                    Command="{Binding SelectDocumentCommand}"
-                                    IsEnabled="{Binding HasSelectedDocument, Converter={StaticResource InvertBoolConverter}}">
-                                    <TextBlock>
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Text" Value="Browse..."/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding HasSelectedDocument}" Value="True">
-                                                        <Setter Property="Text" Value="✅ Selected..."/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </Button>
-
-                                <Border Background="#444444" 
-                                    CornerRadius="4" 
-                                    Padding="12,8"
-                                    BorderBrush="#555555"
-                                    BorderThickness="1">
-                                    <TextBlock Text="{Binding SelectedDocumentPath, FallbackValue='No document selected'}" 
-                                           Foreground="#CCCCCC"
-                                           VerticalAlignment="Center"/>
-                                </Border>
-                            </DockPanel>
-                            
-                            <!-- Import Document Button -->
-                            <Button Content="🚀 Import Requirements from Document"
-                                    Command="{Binding ImportSelectedRequirementsCommand}"
-                                    Style="{StaticResource ActionButton}"
-                                    Background="#28A745"
-                                    HorizontalAlignment="Left"
-                                    Margin="0,15,0,0"
-                                    Visibility="{Binding HasSelectedDocument, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                        </StackPanel>
-                        
-                        <!-- Toggle Button (Subtle, Lower Right) -->
-                        <Grid Grid.Row="2">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-
-                            <!-- Toggle Mode Button -->
-                            <Button Grid.Column="1" 
-                                    Style="{StaticResource ActionButton}"
-                                    Command="{Binding SwitchImportModeCommand}"
-                                    Margin="0,5,0,0" 
-                                    Padding="10,6"
-                                    ToolTip="Switch between Jama Connect and Document import methods">
-                                <TextBlock>
-                                    <Run Text="⇄ " />
-                                    <Run Text="{Binding IsJamaImportMode, Converter={StaticResource BooleanToTextConverter}, ConverterParameter='Document|Jama'}" />
-                                </TextBlock>
-                            </Button>
-                        </Grid>
+                        <!-- Document import path removed: Jama API import is now the canonical intake flow. -->
                     </Grid>
                 </Border>
             </StackPanel>

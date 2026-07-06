@@ -253,6 +253,29 @@
                             </StackPanel>
                         </Border>
 
+                        <Border Background="#202A1F" BorderBrush="#4C6D43" BorderThickness="1"
+                                CornerRadius="4" Padding="15" Margin="0,0,0,20">
+                            <StackPanel>
+                                <TextBlock Text="Requirement to Test Case Link Summary"
+                                           FontWeight="SemiBold"
+                                           FontSize="14"
+                                           Foreground="#B9E3A6"
+                                           Margin="0,0,0,10"/>
+                                <TextBlock Text="{Binding RequirementTestLinkStatus}"
+                                           Foreground="#E8F5E1"
+                                           Margin="0,0,0,4"/>
+                                <TextBlock Text="{Binding RequirementReviewStatus}"
+                                           Foreground="#E8F5E1"
+                                           Margin="0,0,0,4"/>
+                                <TextBlock Text="{Binding RequirementQualityStatus}"
+                                           Foreground="#E8F5E1"
+                                           Margin="0,0,0,4"/>
+                                <TextBlock Text="{Binding RequirementTraceStatus}"
+                                           Foreground="#D8E7D0"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
                         <!-- Supplemental Information Section -->
                         <Border Background="Transparent" BorderBrush="#5A5A5C" BorderThickness="1" 
                                 CornerRadius="4" Padding="15" Margin="0,0,0,20"
@@ -523,6 +546,56 @@
                                  ConverterParameter={x:Static requirements:RequirementViewMode.Analysis}}"
                               VerticalScrollBarVisibility="Auto" Padding="15" Background="Transparent">
                     <StackPanel>
+                        <Border Background="#1F2A36" BorderBrush="#4A6A84" BorderThickness="1"
+                                CornerRadius="4" Padding="15" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Batch Analysis Queue" FontSize="14" FontWeight="SemiBold" Foreground="#CDE7FF"/>
+                                <TextBlock Text="Default selection includes the first 5 requirements. Adjust the checklist, then run analysis."
+                                           Foreground="#C6D3DF"
+                                           Margin="0,6,0,10"
+                                           TextWrapping="Wrap"/>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding BatchQueueStatus}"
+                                               Foreground="#B7C9D9"
+                                               TextWrapping="Wrap"
+                                               Margin="0,0,10,0"/>
+
+                                    <Button Grid.Column="1"
+                                            Content="Analyze selected batch"
+                                            Command="{Binding AnalyzeSelectedBatchCommand}"
+                                            Style="{DynamicResource SmallButtonStyle}"
+                                            MinWidth="170"
+                                            ToolTip="Analyze selected requirements now. Additional selected requirements continue in background."/>
+                                </Grid>
+
+                                <TextBlock Text="{Binding SelectedBatchCount, StringFormat='Selected: {0}'}"
+                                           Foreground="#CDE7FF"
+                                           Margin="0,0,0,8"/>
+
+                                <Border Background="#13202B" BorderBrush="#355067" BorderThickness="1" CornerRadius="3" Padding="8">
+                                    <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
+                                        <ItemsControl ItemsSource="{Binding BatchRequirementSelections}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                              Content="{Binding DisplayText}"
+                                                              Foreground="#D8E6F2"
+                                                              Margin="0,2,0,2"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
                         <!-- Requirement Analysis ViewModel Integration -->
                         <Border Background="Transparent" BorderBrush="#5A5A5C" BorderThickness="1" 
                                 CornerRadius="4" Padding="0" Margin="0"
