@@ -113,6 +113,27 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             _mediator.Subscribe<OpenProjectEvents.WorkspaceLoaded>(OnWorkspaceLoaded);
         }
 
+        /// <summary>
+        /// Applies navigation context when this view model is opened through cross-domain navigation.
+        /// If context contains a valid workshop file path, it opens that workshop immediately.
+        /// </summary>
+        public void ApplyNavigationContext(object? context)
+        {
+            if (context is not string filePath || string.IsNullOrWhiteSpace(filePath))
+            {
+                return;
+            }
+
+            if (!File.Exists(filePath))
+            {
+                _logger.LogWarning("OpenProject navigation context file not found: {FilePath}", filePath);
+                return;
+            }
+
+            _logger.LogInformation("Applying OpenProject navigation context for file: {FilePath}", filePath);
+            _ = OpenRecentProjectAsync(filePath);
+        }
+
         private async Task OpenProjectAsync()
         {
             try

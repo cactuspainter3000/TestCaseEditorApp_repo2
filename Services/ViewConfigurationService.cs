@@ -587,6 +587,9 @@ namespace TestCaseEditorApp.Services
                 // Fail-fast validation (AI Guide requirement)
                 if (mainVM == null) throw new InvalidOperationException("OpenProjectWorkflowViewModel not registered in DI container");
                 if (notificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
+
+                // If navigation provided a workshop path, open it immediately.
+                mainVM.ApplyNavigationContext(context);
                 
                 TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All OpenProject ViewModels resolved successfully");
 
