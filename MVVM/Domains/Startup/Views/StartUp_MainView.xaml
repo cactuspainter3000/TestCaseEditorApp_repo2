@@ -214,15 +214,15 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
-                                    <TextBlock Text="3" FontSize="30" FontWeight="SemiBold" Foreground="#1D2A3B"/>
+                                    <TextBlock Text="{Binding OpenWorkshopsCount}" FontSize="30" FontWeight="SemiBold" Foreground="#1D2A3B"/>
                                     <TextBlock Text="OPEN WORKSHOPS" Style="{StaticResource SectionLabelStyle}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
-                                    <TextBlock Text="186" FontSize="30" FontWeight="SemiBold" Foreground="#1D2A3B"/>
+                                    <TextBlock Text="{Binding RequirementsCount}" FontSize="30" FontWeight="SemiBold" Foreground="#1D2A3B"/>
                                     <TextBlock Text="REQUIREMENTS" Style="{StaticResource SectionLabelStyle}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
-                                    <TextBlock Text="5" FontSize="30" FontWeight="SemiBold" Foreground="#1D2A3B"/>
+                                    <TextBlock Text="{Binding TraceGapsCount}" FontSize="30" FontWeight="SemiBold" Foreground="#1D2A3B"/>
                                     <TextBlock Text="TRACE GAPS" Style="{StaticResource SectionLabelStyle}"/>
                                 </StackPanel>
                             </Grid>
@@ -343,21 +343,21 @@
                     <Border Grid.Column="0" Style="{StaticResource UtilityCardStyle}" Margin="0,0,12,0">
                         <StackPanel>
                             <TextBlock Text="JAMA CONNECTION" Style="{StaticResource SectionLabelStyle}"/>
-                            <TextBlock Text="Connected to Project 686" FontSize="15" Foreground="#4E5A69" Margin="0,4,0,0"/>
+                            <TextBlock Text="{Binding JamaConnectionText}" FontSize="15" Foreground="#4E5A69" Margin="0,4,0,0"/>
                         </StackPanel>
                     </Border>
 
                     <Border Grid.Column="1" Style="{StaticResource UtilityCardStyle}" Margin="0,0,12,0">
                         <StackPanel>
                             <TextBlock Text="PROMPT QUALITY" Style="{StaticResource SectionLabelStyle}"/>
-                            <TextBlock Text="3 templates improved this week" FontSize="15" Foreground="#4E5A69" Margin="0,4,0,0"/>
+                            <TextBlock Text="{Binding PromptQualityText}" FontSize="15" Foreground="#4E5A69" Margin="0,4,0,0"/>
                         </StackPanel>
                     </Border>
 
                     <Border Grid.Column="2" Style="{StaticResource UtilityCardStyle}">
                         <StackPanel>
                             <TextBlock Text="SYSTEM HEALTH" Style="{StaticResource SectionLabelStyle}"/>
-                            <TextBlock Text="All services available" FontSize="15" Foreground="#4E5A69" Margin="0,4,0,0"/>
+                            <TextBlock Text="{Binding SystemHealthText}" FontSize="15" Foreground="#4E5A69" Margin="0,4,0,0"/>
                         </StackPanel>
                     </Border>
                 </Grid>

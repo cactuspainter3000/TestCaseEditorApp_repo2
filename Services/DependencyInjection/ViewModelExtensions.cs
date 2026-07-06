@@ -208,8 +208,18 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 var mediator = provider.GetRequiredService<IStartupMediator>();
                 var navigationMediator = provider.GetRequiredService<INavigationMediator>();
                 var recentFilesService = provider.GetRequiredService<RecentFilesService>();
+                var workspaceContext = provider.GetRequiredService<IWorkspaceContext>();
+                var jamaConnectService = provider.GetRequiredService<IJamaConnectService>();
+                var anythingLlmService = provider.GetRequiredService<AnythingLLMService>();
                 var logger = provider.GetRequiredService<ILogger<StartUp_MainViewModel>>();
-                return new StartUp_MainViewModel(mediator, navigationMediator, recentFilesService, logger);
+                return new StartUp_MainViewModel(
+                    mediator,
+                    navigationMediator,
+                    recentFilesService,
+                    workspaceContext,
+                    jamaConnectService,
+                    anythingLlmService,
+                    logger);
             });
             services.AddTransient<StartUp_HeaderViewModel>();
             services.AddTransient<StartUp_NavigationViewModel>();

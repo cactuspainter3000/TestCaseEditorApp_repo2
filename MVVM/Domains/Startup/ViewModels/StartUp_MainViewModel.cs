@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -8,6 +9,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Domains.Startup.Mediators;
 using Microsoft.Extensions.Logging;
+using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.Services;
@@ -22,12 +24,33 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         private new readonly IStartupMediator _mediator;
         private readonly INavigationMediator _navigationMediator;
         private readonly RecentFilesService _recentFilesService;
+        private readonly IWorkspaceContext _workspaceContext;
+        private readonly IJamaConnectService _jamaConnectService;
+        private readonly AnythingLLMService _anythingLlmService;
         
         [ObservableProperty]
         private string title = "Systems ATE APP";
         
         [ObservableProperty]
         private string description = "Generate comprehensive test cases using AI-powered analysis. Import requirements, analyze context, and automatically create detailed test scenarios to ensure thorough coverage of your application's functionality.";
+
+        [ObservableProperty]
+        private int openWorkshopsCount;
+
+        [ObservableProperty]
+        private int requirementsCount;
+
+        [ObservableProperty]
+        private int traceGapsCount;
+
+        [ObservableProperty]
+        private string jamaConnectionText = "Jama is not configured";
+
+        [ObservableProperty]
+        private string promptQualityText = "No quality signals yet";
+
+        [ObservableProperty]
+        private string systemHealthText = "Checking services...";
 
         public ObservableCollection<StartupRecentWorkshopCard> RecentWorkshops { get; } = new();
 
@@ -39,14 +62,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
             IStartupMediator mediator,
             INavigationMediator navigationMediator,
             RecentFilesService recentFilesService,
+            IWorkspaceContext workspaceContext,
+            IJamaConnectService jamaConnectService,
+            AnythingLLMService anythingLlmService,
             ILogger<StartUp_MainViewModel> logger)
             : base(mediator, logger)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             _recentFilesService = recentFilesService ?? throw new ArgumentNullException(nameof(recentFilesService));
+            _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
+            _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
+            _anythingLlmService = anythingLlmService ?? throw new ArgumentNullException(nameof(anythingLlmService));
 
-            LoadRecentWorkshops();
+            _workspaceContext.WorkspaceChanged += OnWorkspaceChanged;
+
+            RefreshDashboardData();
         }
 
         [RelayCommand]
@@ -124,6 +155,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
                 WorkshopName = workshopName,
                 LastUpdatedText = FormatRelativeTime(fileInfo.LastWriteTime),
                 SourceText = "Workshop File",
+                RequirementCount = 0,
+                TraceGapCount = 0,
                 CoveragePercent = 0,
                 StatusText = "Draft"
             };
@@ -158,6 +191,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
                     if (total > 0)
                     {
                         var analyzed = 0;
+                        var traceGaps = 0;
+
                         foreach (var requirement in requirementsElement.EnumerateArray())
                         {
                             if (requirement.TryGetProperty("IsAnalyzed", out var analyzedElement)
@@ -165,8 +200,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
                             {
                                 analyzed++;
                             }
+
+                            if (IsTraceGap(requirement))
+                            {
+                                traceGaps++;
+                            }
                         }
 
+                        card.RequirementCount = total;
+                        card.TraceGapCount = traceGaps;
                         card.CoveragePercent = (int)Math.Round((double)analyzed / total * 100);
                         card.StatusText = card.CoveragePercent >= 80 ? "In Review" : "Active";
                     }
@@ -178,6 +220,120 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
             }
 
             return card;
+        }
+
+        private void RefreshDashboardData()
+        {
+            LoadRecentWorkshops();
+            RefreshPulseMetrics();
+            RefreshUtilityMetrics();
+        }
+
+        private void RefreshPulseMetrics()
+        {
+            var existingWorkshopFiles = _recentFilesService.GetRecentFiles().Count(File.Exists);
+            OpenWorkshopsCount = existingWorkshopFiles;
+
+            var currentWorkspace = _workspaceContext.CurrentWorkspace;
+            if (currentWorkspace?.Requirements != null && currentWorkspace.Requirements.Count > 0)
+            {
+                RequirementsCount = currentWorkspace.Requirements.Count;
+                TraceGapsCount = currentWorkspace.Requirements.Count(IsTraceGap);
+                return;
+            }
+
+            RequirementsCount = RecentWorkshops.Sum(card => card.RequirementCount);
+            TraceGapsCount = RecentWorkshops.Sum(card => card.TraceGapCount);
+        }
+
+        private void RefreshUtilityMetrics()
+        {
+            var workspace = _workspaceContext.CurrentWorkspace;
+            if (_jamaConnectService.IsConfigured)
+            {
+                if (workspace?.JamaProjectId is int projectId && projectId > 0)
+                {
+                    JamaConnectionText = $"Connected to project {projectId}";
+                }
+                else if (!string.IsNullOrWhiteSpace(workspace?.JamaProjectName))
+                {
+                    JamaConnectionText = $"Connected to {workspace.JamaProjectName}";
+                }
+                else
+                {
+                    JamaConnectionText = "Jama configured and ready";
+                }
+            }
+            else
+            {
+                JamaConnectionText = "Jama is not configured";
+            }
+
+            if (RecentWorkshops.Count > 0)
+            {
+                var strongCoverageCount = RecentWorkshops.Count(card => card.CoveragePercent >= 80);
+                PromptQualityText = strongCoverageCount > 0
+                    ? $"{strongCoverageCount} workshops above 80% coverage"
+                    : "Coverage needs review across recent workshops";
+            }
+            else
+            {
+                PromptQualityText = "No quality signals yet";
+            }
+
+            var missingServices = new List<string>();
+            if (!_jamaConnectService.IsConfigured)
+            {
+                missingServices.Add("Jama");
+            }
+
+            if (!_anythingLlmService.IsConfigured)
+            {
+                missingServices.Add("LLM");
+            }
+
+            SystemHealthText = missingServices.Count == 0
+                ? "Core services available"
+                : $"Missing: {string.Join(", ", missingServices)}";
+        }
+
+        private static bool IsTraceGap(Requirement requirement)
+        {
+            if (requirement == null)
+            {
+                return true;
+            }
+
+            var traceReference = requirement.TraceReference;
+            return string.IsNullOrWhiteSpace(traceReference)
+                && requirement.NumberOfUpstreamRelationships == 0
+                && requirement.NumberOfDownstreamRelationships == 0;
+        }
+
+        private static bool IsTraceGap(JsonElement requirementElement)
+        {
+            var hasTraceReference = requirementElement.TryGetProperty("TraceReference", out var traceReferenceElement)
+                && traceReferenceElement.ValueKind == JsonValueKind.String
+                && !string.IsNullOrWhiteSpace(traceReferenceElement.GetString());
+
+            var upstreamCount = requirementElement.TryGetProperty("NumberOfUpstreamRelationships", out var upstreamElement)
+                && upstreamElement.ValueKind == JsonValueKind.Number
+                && upstreamElement.TryGetInt32(out var upstream)
+                    ? upstream
+                    : 0;
+
+            var downstreamCount = requirementElement.TryGetProperty("NumberOfDownstreamRelationships", out var downstreamElement)
+                && downstreamElement.ValueKind == JsonValueKind.Number
+                && downstreamElement.TryGetInt32(out var downstream)
+                    ? downstream
+                    : 0;
+
+            return !hasTraceReference && upstreamCount == 0 && downstreamCount == 0;
+        }
+
+        private void OnWorkspaceChanged(object? sender, WorkspaceChangedEventArgs e)
+        {
+            RefreshDashboardData();
         }
 
         private static string FormatRelativeTime(DateTime when)
@@ -220,12 +376,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         
         protected override async Task RefreshAsync()
         {
-            await Task.Delay(50);
+            await _workspaceContext.RefreshAsync();
+            RefreshDashboardData();
         }
         
         protected override bool CanSave() => !IsBusy;
         protected override bool CanCancel() => true;
         protected override bool CanRefresh() => !IsBusy;
+
+        public override void Dispose()
+        {
+            _workspaceContext.WorkspaceChanged -= OnWorkspaceChanged;
+            base.Dispose();
+        }
     }
 
     public class StartupRecentWorkshopCard
@@ -235,6 +398,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         public string SourceText { get; set; } = string.Empty;
         public string LastUpdatedText { get; set; } = string.Empty;
         public string StatusText { get; set; } = string.Empty;
+        public int RequirementCount { get; set; }
+        public int TraceGapCount { get; set; }
         public int CoveragePercent { get; set; }
     }
 }
