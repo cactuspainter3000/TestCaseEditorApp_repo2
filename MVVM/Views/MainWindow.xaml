@@ -103,10 +103,6 @@
         <DataTemplate DataType="{x:Type dummyvm:Dummy_NavigationViewModel}">
             <dummyviews:Dummy_NavigationView />
         </DataTemplate>
-        
-        <DataTemplate DataType="{x:Type dummyvm:Dummy_NotificationViewModel}">
-            <dummyviews:Dummy_NotificationView />
-        </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:PlaceholderViewModel}">
             <Border Padding="10" Background="Transparent" CornerRadius="6">
@@ -335,10 +331,6 @@
         
         <DataTemplate DataType="{x:Type titlevm:TitleViewModel}">
             <titleviews:TitleView />
-        </DataTemplate>
-        
-        <DataTemplate DataType="{x:Type dummyvm:DummyNotificationWorkspaceViewModel}">
-            <dummyviews:DummyNotificationWorkspaceView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:RequirementDescriptionEditorViewModel}">

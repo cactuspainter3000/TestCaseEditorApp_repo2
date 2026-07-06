@@ -158,8 +158,7 @@ namespace TestCaseEditorApp
                     logger.LogError(ex, "Failed to start Ollama - LLM features may not work properly");
                 }
                 
-                // Ollama status monitoring starts lazily when LLM sections (like Test Case Generator) are first accessed
-                // NotificationWorkspaceViewModel is a singleton - monitoring begins in its constructor on first use
+                // Ollama status monitoring starts lazily when LLM sections (like Test Case Generator) are first accessed.
                 
                 // Initialize extension system (Phase 7)
                 var extensionManager = _host.Services.GetRequiredService<ExtensionManager>();
@@ -207,13 +206,6 @@ namespace TestCaseEditorApp
                 var startupMediator = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Startup.Mediators.IStartupMediator>();
                 startupMediator.MarkAsRegistered();
                 
-                // Mark Notification mediator as registered for notification domain
-                var notificationMediatorService = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Notification.Mediators.INotificationMediator>();
-                if (notificationMediatorService is TestCaseEditorApp.MVVM.Domains.Notification.Mediators.NotificationMediator notificationMediator)
-                {
-                    notificationMediator.MarkAsRegistered();
-                }
-                
                 // Wire cross-domain commands - enable workspace commands in header
                 if (testCaseGenMediator is MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator tcgMediator)
                 {
@@ -231,7 +223,6 @@ namespace TestCaseEditorApp
                 domainCoordinator.RegisterDomainMediator("NewProject", newProjectMediator);
                 domainCoordinator.RegisterDomainMediator("OpenProject", openProjectMediator);
                 domainCoordinator.RegisterDomainMediator("Requirements", requirementsMediator);
-                domainCoordinator.RegisterDomainMediator("Notification", notificationMediatorService);
                 
                 // Register any extension-provided domain mediators
                 foreach (var domainExtension in extensionManager.DomainExtensions.Values)

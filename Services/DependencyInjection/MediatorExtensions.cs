@@ -7,7 +7,6 @@ using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Startup.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Dummy.Mediators;
-using TestCaseEditorApp.MVVM.Domains.Notification.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Mediators;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Utils;
@@ -29,9 +28,6 @@ namespace TestCaseEditorApp.Services.DependencyInjection
 
             // Startup Mediator - Initial app state (SINGLETON)
             services.AddSingleton<IStartupMediator, StartupMediator>();
-
-            // Notification Mediator - Event notifications (SINGLETON)
-            services.AddSingleton<INotificationMediator, NotificationMediator>();
 
             // Test Case Generation Mediator (SINGLETON - orchestrates analysis and generation)
             services.AddSingleton<ITestCaseGenerationMediator>(provider =>

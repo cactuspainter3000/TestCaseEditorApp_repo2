@@ -456,16 +456,14 @@ namespace TestCaseEditorApp.Services
                 var dummyHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_HeaderViewModel>();
                 var dummyNavigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_NavigationViewModel>();
                 var dummyTitleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_TitleViewModel>();
-                var dummyNotificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels.Dummy_NotificationViewModel>();
                 
                 // Verify all ViewModels were created
                 if (dummyMainVM == null) throw new InvalidOperationException("Dummy_MainViewModel not resolved");
                 if (dummyHeaderVM == null) throw new InvalidOperationException("Dummy_HeaderViewModel not resolved");
                 if (dummyNavigationVM == null) throw new InvalidOperationException("Dummy_NavigationViewModel not resolved");
                 if (dummyTitleVM == null) throw new InvalidOperationException("Dummy_TitleViewModel not resolved");
-                if (dummyNotificationVM == null) throw new InvalidOperationException("Dummy_NotificationViewModel not resolved");
                 
-                TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All 5 Dummy ViewModels created successfully");
+                TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Dummy ViewModels created successfully");
 
                 // Return ViewModels directly (same pattern as StartUp domain) - no manual UserControl creation
                 return new ViewConfiguration(
@@ -474,7 +472,7 @@ namespace TestCaseEditorApp.Services
                     headerViewModel: dummyHeaderVM, // ViewModel, not UserControl
                     contentViewModel: dummyMainVM, // ViewModel, not UserControl
                     navigationViewModel: dummyNavigationVM, // ViewModel, not UserControl
-                    notificationViewModel: dummyNotificationVM, // Domain-specific notification (test/reference implementation)
+                    notificationViewModel: null,
                     context: context
                 );
             }

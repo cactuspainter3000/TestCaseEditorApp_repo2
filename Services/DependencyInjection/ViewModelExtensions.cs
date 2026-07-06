@@ -231,14 +231,12 @@ namespace TestCaseEditorApp.Services.DependencyInjection
             services.AddTransient<StartUp_HeaderViewModel>();
             services.AddTransient<StartUp_NavigationViewModel>();
             services.AddTransient<StartUp_TitleViewModel>();
-            services.AddTransient<StartUp_NotificationViewModel>();
 
             // === DUMMY DOMAIN VIEWMODELS (FOR TESTING) ===
             services.AddTransient<Dummy_MainViewModel>();
             services.AddTransient<Dummy_HeaderViewModel>();
             services.AddTransient<Dummy_NavigationViewModel>();
             services.AddTransient<Dummy_TitleViewModel>();
-            services.AddTransient<Dummy_NotificationViewModel>();
 
             // === TEST CASE GENERATOR MODE VIEWMODELS ===
             services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels.TestCaseGeneratorMode_MainVM>();
