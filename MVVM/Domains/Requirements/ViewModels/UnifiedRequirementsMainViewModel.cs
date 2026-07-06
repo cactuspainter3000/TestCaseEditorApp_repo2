@@ -36,6 +36,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private new readonly IRequirementsMediator _mediator;
         private readonly IPersistenceService _persistence;
         private readonly ITextEditingDialogService _textEditingDialogService;
+        private readonly IWorkspaceDiagnosticsService _workspaceDiagnosticsService;
         private UserSettingsViewModel? _userSettingsVm;
         private bool _batchSelectionInitialized;
 
@@ -257,6 +258,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public ICommand PreviousRequirementCommand { get; private set; } = null!;
         public ICommand NextRequirementCommand { get; private set; } = null!;
 
+        // Diagnostics Commands
+        public IAsyncRelayCommand ExportAnalysisLogsCommand { get; private set; } = null!;
+
         public ObservableCollection<Requirement> Requirements => _mediator.Requirements;
 
         public ObservableCollection<BatchRequirementSelectionItem> BatchRequirementSelections { get; } = new();
@@ -336,6 +340,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             ITextEditingDialogService textEditingDialogService,
             RequirementsSearchAttachmentsViewModel requirementsSearchAttachmentsViewModel,
             INavigationMediator navigationMediator,
+            IWorkspaceDiagnosticsService workspaceDiagnosticsService,
             IRequirementAnalysisService? analysisService = null)
             : base(mediator, logger)
         {
@@ -344,6 +349,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _textEditingDialogService = textEditingDialogService ?? throw new ArgumentNullException(nameof(textEditingDialogService));
             RequirementsSearchAttachmentsViewModel = requirementsSearchAttachmentsViewModel ?? throw new ArgumentNullException(nameof(requirementsSearchAttachmentsViewModel));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
+            _workspaceDiagnosticsService = workspaceDiagnosticsService ?? throw new ArgumentNullException(nameof(workspaceDiagnosticsService));
 
             // Initialize commands
             InitializeCommands();
@@ -377,6 +383,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             SelectTablesCommand = new RelayCommand(() => SelectedViewMode = RequirementViewMode.Tables);
             SelectAnalysisCommand = new RelayCommand(() => SelectedViewMode = RequirementViewMode.Analysis);
             SelectRequirementsScraperCommand = new RelayCommand(() => SelectedViewMode = RequirementViewMode.RequirementsScraper);
+
+            // Diagnostics Command
+            ExportAnalysisLogsCommand = new AsyncRelayCommand(ExportAnalysisLogsAsync);
 
             // Temporary: delegate to UserSettingsViewModel probe command
             RunJamaProbeCommand = new RelayCommand(() =>
@@ -1315,6 +1324,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             _logger.LogInformation("[UnifiedRequirementsMainVM] Navigating to main/startup view");
             _navigationMediator.NavigateToSection("startup");
+        }
+
+        private async Task ExportAnalysisLogsAsync()
+        {
+            _logger.LogInformation("[UnifiedRequirementsMainVM] Exporting analysis logs from Requirements workspace");
+            await _workspaceDiagnosticsService.ExportAnalysisLogsAsync();
         }
 
         private void UpdateAnalysisTimer()

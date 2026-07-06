@@ -107,6 +107,7 @@ namespace TestCaseEditorApp.Tests.Requirements
             var vmLogger = new Mock<ILogger<UnifiedRequirementsMainViewModel>>();
             var textEditingService = new Mock<ITextEditingDialogService>(MockBehavior.Loose);
             var navigationMediatorMock = new Mock<INavigationMediator>();
+            var workspaceDiagnosticsServiceMock = new Mock<IWorkspaceDiagnosticsService>(MockBehavior.Loose);
 
             return new UnifiedRequirementsMainViewModel(
                 mediatorMock.Object,
@@ -115,6 +116,7 @@ namespace TestCaseEditorApp.Tests.Requirements
                 textEditingService.Object,
                 reqSearchVm,
                 navigationMediatorMock.Object,
+                workspaceDiagnosticsServiceMock.Object,
                 null);
         }
 
