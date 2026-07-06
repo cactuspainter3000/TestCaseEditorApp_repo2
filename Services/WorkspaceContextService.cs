@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
+using System.Windows;
 
 namespace TestCaseEditorApp.Services
 {
@@ -97,14 +98,23 @@ namespace TestCaseEditorApp.Services
                 _cachedWorkspaceInfo = null; // Will be reloaded on next access
                 _lastLoadTime = DateTime.UtcNow;
             }
-            
-            WorkspaceChanged?.Invoke(this, new WorkspaceChangedEventArgs
+
+            var args = new WorkspaceChangedEventArgs
             {
                 PreviousWorkspace = previousWorkspace,
                 CurrentWorkspace = newWorkspace,
                 WorkspaceInfo = _cachedWorkspaceInfo,
                 ChangeType = changeType
-            });
+            };
+
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher != null && !dispatcher.CheckAccess())
+            {
+                _ = dispatcher.InvokeAsync(() => WorkspaceChanged?.Invoke(this, args));
+                return;
+            }
+
+            WorkspaceChanged?.Invoke(this, args);
         }
         
         private void EnsureWorkspaceLoaded()
