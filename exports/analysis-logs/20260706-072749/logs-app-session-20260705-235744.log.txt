@@ -1,0 +1,179 @@
+﻿2026-07-05T23:57:44.1483129Z	Information	Microsoft.Hosting.Lifetime	Application started. Press Ctrl+C to shut down.
+2026-07-05T23:57:44.1558398Z	Information	Microsoft.Hosting.Lifetime	Hosting environment: Production
+2026-07-05T23:57:44.1577680Z	Information	Microsoft.Hosting.Lifetime	Content root path: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows
+2026-07-05T23:57:44.1639600Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-05T23:57:44.1773644Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-05T23:57:44.2013438Z	Information	TestCaseEditorApp.App	Ensuring Ollama service is running...
+2026-07-05T23:57:44.2033369Z	Information	TestCaseEditorApp.App	Runtime session log file: C:\Users\e10653214\TestCaseEditorApp\logs\app-session-20260705-235744.log
+2026-07-05T23:57:44.2063327Z	Information	App	[OllamaProcessManager] Environment variables configured: LOAD_TIMEOUT=10m, KEEP_ALIVE=20m
+2026-07-05T23:57:44.6147489Z	Information	App	[OllamaProcessManager] ✅ Ollama is running and healthy
+2026-07-05T23:57:44.6171745Z	Information	TestCaseEditorApp.App	? Ollama service is ready
+2026-07-05T23:57:44.6206948Z	Information	TestCaseEditorApp.App	Initializing extension system...
+2026-07-05T23:57:44.6263261Z	Information	TestCaseEditorApp.App	Extension discovery completed. Loaded: 0, Errors: 0
+2026-07-05T23:57:44.6343018Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-05T23:57:44.6374759Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-05T23:57:44.6401170Z	Information	App	[OllamaEmbedding] Initialized with model: mxbai-embed-large:335m-v1-fp16, dimensions: 1024
+2026-07-05T23:57:44.6432572Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Service initialized with storage path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\DocumentIndexes
+2026-07-05T23:57:44.6472386Z	Information	TestCaseEditorApp.Services.RequirementAnalysisCache	[AnalysisCache] Initialized with maxSize=500, maxAge=08:00:00
+2026-07-05T23:57:44.6555880Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-05T23:57:44.6585785Z	Information	TestCaseEditorApp.Services.Templates.ServiceComplianceWrapper	ServiceComplianceWrapper initialized with Full Template Form Architecture
+2026-07-05T23:57:44.6658641Z	Information	TestCaseEditorApp.Services.DerivationQualityScorer	DerivationQualityScorer initialized with evaluation framework
+2026-07-05T23:57:44.6696385Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-05T23:57:44.6723623Z	Information	TestCaseEditorApp.Services.SystemCapabilityDerivationService	SystemCapabilityDerivationService initialized with Template Form Architecture with taxonomy containing 14 categories
+2026-07-05T23:57:44.6821567Z	Information	App	[JamaConnect] FromConfiguration called
+2026-07-05T23:57:44.6846438Z	Information	App	[JamaConnect] Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-05T23:57:44.6869753Z	Information	App	[JamaConnect] API Token: NOT SET
+2026-07-05T23:57:44.6892618Z	Information	App	[JamaConnect] Client ID: hpytk1ocbt0p01u
+2026-07-05T23:57:44.6913771Z	Information	App	[JamaConnect] Client Secret: SET
+2026-07-05T23:57:44.6940097Z	Information	App	[JamaConnect] Creating service with OAuth
+2026-07-05T23:57:44.6975610Z	Information	App	[JamaConnect] OAuth constructor - Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-05T23:57:44.6990830Z	Information	App	[JamaConnect] OAuth constructor - Client ID: hpytk1ocbt0p01u
+2026-07-05T23:57:44.7007562Z	Information	App	[JamaConnect] OAuth constructor - Client Secret: SET
+2026-07-05T23:57:44.7037876Z	Information	App	[JamaConnect] OCR service configured for image text extraction
+2026-07-05T23:57:44.7158476Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-05T23:57:44.7183603Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-05T23:57:44.7204478Z	Information	App	[TesseractOCR] Initializing with tessdata path: C:\Users\e10653214\AppData\Local\Programs\Tesseract-OCR\tessdata
+2026-07-05T23:57:44.7226298Z	Information	TestCaseEditorApp.Services.Templates.ABTestingFramework	ABTestingFramework initialized. ComplianceWrapper: True, QualityService: True
+2026-07-05T23:57:44.7248323Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-05T23:57:44.7336440Z	Information	TestCaseEditorApp.Services.Templates.TelemetryDashboardService	📊 TelemetryDashboardService initialized. Integration: QualityService+ABTesting+Compliance
+2026-07-05T23:57:44.7423878Z	Information	App	[OllamaStatusMonitor] HTTP timeout configured: 8s
+2026-07-05T23:57:44.7444211Z	Information	App	[OllamaStatusMonitor] Max supported Ollama version: 0.5.13
+2026-07-05T23:57:44.7466695Z	Information	App	[JamaDocumentParser] Initialized with Template Form Architecture: Envelope=True, Quality=True, Compliance=True, ABTest=True, Telemetry=True, OllamaManager=True, OllamaMonitor=True
+2026-07-05T23:57:44.7633112Z	Information	TestCaseEditorApp.MVVM.Domains.Notification.Mediators.NotificationMediator	NotificationMediator initialized
+2026-07-05T23:57:44.7948122Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Navigation (NavigationMediator)
+2026-07-05T23:57:44.8042442Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: TestCaseGeneration (TestCaseGenerationMediator)
+2026-07-05T23:57:44.8131401Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: TestFlow (TestFlowMediator)
+2026-07-05T23:57:44.8219158Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: NewProject (NewProjectMediator)
+2026-07-05T23:57:44.8307888Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: OpenProject (OpenProjectMediator)
+2026-07-05T23:57:44.8399660Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Requirements (RequirementsMediator)
+2026-07-05T23:57:44.8487688Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Notification (NotificationMediator)
+2026-07-05T23:57:44.9592548Z	Information	TestCaseEditorApp.App	Service monitoring started for AnythingLLM
+2026-07-05T23:57:44.9767547Z	Information	TestCaseEditorApp.App	Attempting to auto-start AnythingLLM service...
+2026-07-05T23:57:44.9844415Z	Information	App	[ServiceMonitor] MEDIATOR DEBUG: NotifyStatusChange for AnythingLLM - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-05T23:57:44.9935162Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-05T23:57:44.9961926Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-07-05T23:57:44.9973538Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: SUCCESS
+2026-07-05T23:57:45.0006555Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected=True, Text=LLM: AnythingLLM
+2026-07-05T23:57:45.0218780Z	Information	App	[ServiceMonitor] AnythingLLM status changed - Available: True, Message: AnythingLLM service is available
+2026-07-05T23:57:45.0590484Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-07-05T23:57:45.0598697Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-07-05T23:57:45.0761616Z	Information	App	[AnythingLLM] Availability check result: True
+2026-07-05T23:57:45.0781395Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
+2026-07-05T23:57:45.0823520Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=True, Message=Checking AnythingLLM status...
+2026-07-05T23:57:45.0868765Z	Information	App	[AnythingLLM] Availability check result: True
+2026-07-05T23:57:45.0949986Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-05T23:57:45.0982530Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: True, Starting: True
+2026-07-05T23:57:45.1075064Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: SUCCESS
+2026-07-05T23:57:45.1095507Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-05T23:57:45.1157217Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected=True, Text=LLM: Connecting...
+2026-07-05T23:57:45.1166026Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: SUCCESS
+2026-07-05T23:57:45.1243217Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected=True, Text=LLM: AnythingLLM
+2026-07-05T23:57:45.1325305Z	Information	TestCaseEditorApp.App	AnythingLLM auto-start completed successfully
+2026-07-05T23:57:45.1529745Z	Information	App	[AnythingLLMMediator] Broadcasting last known status via NotifyStatusUpdated: Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-05T23:57:45.1608536Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-05T23:57:45.1635521Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-05T23:57:45.1661364Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: SUCCESS
+2026-07-05T23:57:45.1690105Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected=True, Text=LLM: AnythingLLM
+2026-07-05T23:57:45.1868030Z	Information	TestCaseEditorApp.Services.NavigationService	NavigationService created with initial title: 'Systems ATE APP'
+2026-07-05T23:57:45.1900382Z	Information	TestCaseEditorApp.Services.NavigationService	NavigationService initial TitleChanged event fired with 'Systems ATE APP'
+2026-07-05T23:57:45.2109896Z	Information	App	[RecentFiles] Load() called, path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\recent-files.json
+2026-07-05T23:57:45.2148528Z	Information	App	[RecentFiles] Loaded JSON: [
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B TL Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Top Level C4B Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD-268C4B.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\CMP-6000.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Decagon.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\RTU-42XX.tcex.json"
+]
+2026-07-05T23:57:45.3734409Z	Information	App	[RecentFiles] Deserialized 8 files
+2026-07-05T23:57:45.3935888Z	Information	App	[RecentFiles] After filtering non-existent: 8 files
+2026-07-05T23:57:45.6215883Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-07-05T23:57:45.6250420Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel initialized as simple 5-workspace container
+2026-07-05T23:57:45.6697857Z	Information	App	[TesseractOCR] Tesseract OCR engine initialized successfully
+2026-07-05T23:57:45.6731016Z	Information	App	[JamaConnect] OCR engine availability: Available
+2026-07-05T23:57:45.8665777Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-07-05T23:57:45.8693167Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel initialized as simple 5-workspace container
+2026-07-05T23:57:46.7973278Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-05T23:57:46.8005237Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-05T23:58:39.3518444Z	Information	App	[NewProjectHeaderVM] Constructor called
+2026-07-05T23:58:39.3547154Z	Information	App	[NewProjectHeaderVM] Requesting current AnythingLLM status
+2026-07-05T23:58:39.3572079Z	Information	App	[AnythingLLMMediator] Broadcasting last known status via NotifyStatusUpdated: Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-05T23:58:39.3596035Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-05T23:58:39.3614269Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-05T23:58:39.3634076Z	Information	App	[NewProjectHeaderVM] Received status update: Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-05T23:58:39.3654942Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: SUCCESS
+2026-07-05T23:58:39.3672335Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected=True, Text=LLM: AnythingLLM
+2026-07-05T23:58:39.3718955Z	Information	TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel	NotificationWorkspaceViewModel initialized
+2026-07-05T23:58:39.3734641Z	Information	App	[NotificationWorkspaceVM] MEDIATOR DEBUG: NotificationWorkspaceViewModel created and subscribing to events
+2026-07-05T23:58:39.3754059Z	Information	App	[JamaConnect] TestConnection called - IsConfigured: True
+2026-07-05T23:58:39.3772713Z	Information	App	[JamaConnect] Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-05T23:58:39.3791565Z	Information	App	[JamaConnect] Client ID: hpytk1ocbt0p01u
+2026-07-05T23:58:39.3808809Z	Information	App	[JamaConnect] Getting OAuth token...
+2026-07-05T23:58:39.3820068Z	Information	TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel	Notification workspace reset to defaults
+2026-07-05T23:58:39.3860044Z	Information	App	[OllamaStatusMonitor] Starting Ollama status monitoring (polling every 3 seconds)
+2026-07-05T23:58:39.3873888Z	Information	App	[JamaConnect] Getting OAuth token from: https://jama02.rockwellcollins.com/contour/rest/oauth/token
+2026-07-05T23:58:39.3933482Z	Information	App	[JamaConnect] Sending OAuth request...
+2026-07-05T23:58:39.3958787Z	Information	App	[NotificationWorkspaceVM] Ollama status display updated: Ollama: Unknown
+2026-07-05T23:58:39.3974740Z	Information	App	[NotificationWorkspaceVM] Ollama status monitoring started
+2026-07-05T23:58:39.3990122Z	Information	App	[NotificationWorkspaceVM] MEDIATOR DEBUG: Requesting current LLM status
+2026-07-05T23:58:39.4006581Z	Information	App	[AnythingLLMMediator] Broadcasting last known status via NotifyStatusUpdated: Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-05T23:58:39.4022565Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-05T23:58:39.4045824Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-05T23:58:39.4071018Z	Information	App	[NewProjectHeaderVM] Received status update: Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-05T23:58:39.4112698Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: SUCCESS
+2026-07-05T23:58:39.4164342Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected=True, Text=LLM: AnythingLLM
+2026-07-05T23:58:39.4190612Z	Information	App	[NotificationWorkspaceVM] MEDIATOR DEBUG: OnLlmStatusChanged received - Connected=True, Text=LLM: AnythingLLM
+2026-07-05T23:58:39.4332204Z	Information	App	[OllamaStatusMonitor] Status changed: Unknown -> NotLoaded
+2026-07-05T23:58:39.4446197Z	Information	App	[NotificationWorkspaceVM] Ollama status display updated: Ollama: Running (No Model Loaded)
+2026-07-05T23:58:39.4528025Z	Information	App	[NewProjectHeaderVM] Properties updated: Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-05T23:58:39.4546908Z	Information	App	[NewProjectHeaderVM] Properties updated: Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-05T23:58:39.9145127Z	Information	App	[JamaConnect] OAuth response: OK
+2026-07-05T23:58:39.9168272Z	Information	App	[JamaConnect] OAuth content length: 857
+2026-07-05T23:58:39.9187890Z	Information	App	[JamaConnect] OAuth response content: {"access_token":"eyJraWQiOiJvYXV0aEtleVBhaXIiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJocHl0azFvY2J0MHAwMXUiLCJhdWQiOiJocHl0azFvY2J0MHAwMXUiLCJuYmYiOjE3ODMyOTU5MTksInNjb3BlIjpbInRva2VuX2luZm9ybWF0aW9uIl0sImV4cCI6MTc4MzI5OTUxOSwiaWF0IjoxNzgzMjk1OTE5LCJhcHBsaWNhdGlvbl9kYXRhIjp7IkpBTUFfQ09SRSI6Im5hc2llcnJhIn0sImp0aSI6IjJhNmIyMTcxLWRlODgtNGUyZi04MzE3LTk1YjljMzdlNGNkZCIsImNsaWVudF9pZCI6ImhweXRrMW9jYnQwcDAxdSIsInRlbmFudCI6ImNvbnRvdXJfMDIifQ.vGwaNZztlvc-4SoxveUWu9bx91PDHP4i1a4QPKOqpTkPfk1HxuvCgFxp-4OJvFhPvh4BSn6DbQCnD8G7069kj2VTYhS1OvBhge74rEmVAEYqeNO9yESvVklEOfynbdm16HCTqJCvcs8s70uvxnAjkQ5SmV0xkbp7yZKUJrvt89V5M6qRUM73w82HfUcOt450LOZnbxr-AW8-i67u5gUTkLIRiZBGOokl9nAKsw2vv9JmOk7xFk_D6zyge2u1E58NhV6M7fglP1hhl8y8O9BLIV6VxvVllnoHPb5rfiZDWo5HwGsFAYp2Fu5D4uF9jgbsS0-HU4NtYzH0fZHgJJd0GA","scope":"token_information","token_type":"Bearer","expires_in":3599}
+2026-07-05T23:58:39.9408361Z	Information	App	[JamaConnect] Deserialized token response - AccessToken is null: False
+2026-07-05T23:58:39.9434623Z	Information	App	[JamaConnect] Token obtained: True
+2026-07-05T23:58:39.9460815Z	Information	App	[JamaConnect] Token preview: eyJraWQiOiJvYXV0aEtl...
+2026-07-05T23:58:39.9483723Z	Information	App	[JamaConnect] ✅ OAuth steel trap validation passed!
+2026-07-05T23:58:39.9509931Z	Information	App	[JamaConnect] Token success: True
+2026-07-05T23:58:39.9527625Z	Information	App	[JamaConnect] Testing projects API: https://jama02.rockwellcollins.com/contour/rest/v1/projects
+2026-07-05T23:58:40.2397235Z	Information	App	[JamaConnect] Response status: OK
+2026-07-05T23:58:40.2422077Z	Information	App	[JamaConnect] Response content length: 7160
+2026-07-05T23:58:40.2553170Z	Information	App	[JamaConnect] Successfully connected to Jama Connect. Found 19 projects.
+2026-07-05T23:58:40.2577717Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Jama connection test: True
+2026-07-05T23:58:40.2601026Z	Information	App	[NewProject] Auto-loading Jama projects on startup
+2026-07-05T23:58:40.2648276Z	Information	App	[LoadJamaProjects] Starting to load projects...
+2026-07-05T23:58:40.5431398Z	Information	App	[JamaConnect] Projects API response: OK
+2026-07-05T23:58:40.5453585Z	Information	App	[JamaConnect] Raw JSON response (first 1000 chars): {"meta":{"status":"OK","timestamp":"2026-07-05T23:58:40.531+0000","pageInfo":{"startIndex":0,"resultCount":19,"totalResults":19}},"links":{"data.createdBy":{"type":"users","href":"https://jama02.rockwellcollins.com/contour/rest/v1/users/{data.createdBy}"},"data.modifiedBy":{"type":"users","href":"https://jama02.rockwellcollins.com/contour/rest/v1/users/{data.modifiedBy}"},"data.parent":{"type":"projects","href":"https://jama02.rockwellcollins.com/contour/rest/v1/projects/{data.parent}"}},"data":[{"id":617,"projectKey":"AFD5220E_BP4_TE","isFolder":false,"createdDate":"2024-01-09T19:29:58.000+0000","modifiedDate":"2024-01-09T19:29:58.000+0000","createdBy":1187030,"modifiedBy":1187030,"fields":{"name":"AFD-5220E_BP4_TE","description":"Use this project when creating new projects on the Jama 02 Server.","projectKey":"AFD5220E_BP4_TE","text1":""},"type":"projects"},{"id":615,"projectKey":"AFD_65X0","isFolder":false,"createdDate":"2023-10-23T14:06:46.000+0000","modifiedDate":"2023-10-23T14:06
+2026-07-05T23:58:40.5489450Z	Information	App	[JamaConnect] Project 0: Id=617, Name='AFD-5220E_BP4_TE', Key='AFD5220E_BP4_TE', Desc='Use this project when creating new projects on the Jama 02 Server.'
+2026-07-05T23:58:40.5508348Z	Information	App	[JamaConnect] Project 1: Id=615, Name='AFD-65X0 BP1', Key='AFD_65X0', Desc='Use this project when creating new projects on the Jama 02 Server.'
+2026-07-05T23:58:40.5526554Z	Information	App	[JamaConnect] Project 2: Id=624, Name='ATE Test Strategy', Key='ATE_TS', Desc='Use this project when creating new projects on the Jama 02 Server.'
+2026-07-05T23:58:40.5546667Z	Information	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Retrieved 19 Jama projects
+2026-07-05T23:58:40.5565393Z	Information	App	[LoadJamaProjects] Received 19 projects from mediator
+2026-07-05T23:58:40.5588771Z	Information	App	[LoadJamaProjects] Adding project: AFD-5220E_BP4_TE (ID: 617, Key: AFD5220E_BP4_TE)
+2026-07-05T23:58:40.5617615Z	Information	App	[LoadJamaProjects] Adding project: AFD-65X0 BP1 (ID: 615, Key: AFD_65X0)
+2026-07-05T23:58:40.5640757Z	Information	App	[LoadJamaProjects] Adding project: ATE Test Strategy (ID: 624, Key: ATE_TS)
+2026-07-05T23:58:40.5661398Z	Information	App	[LoadJamaProjects] Adding project: ATE290_CDU7000DE_TestSolution (ID: 674, Key: py8cgyyyHTk4vR)
+2026-07-05T23:58:40.5677578Z	Information	App	[LoadJamaProjects] Adding project: C1XMA2405_CMP-6000_Top Level Rehost (ID: 638, Key: C1XMA2405)
+2026-07-05T23:58:40.5693153Z	Information	App	[LoadJamaProjects] Adding project: C1XMB2437-1N RTU-4220 (ID: 634, Key: RTU4220)
+2026-07-05T23:58:40.5709491Z	Information	App	[LoadJamaProjects] Adding project: Common Requirements Repository (ID: 573, Key: StdTestReq)
+2026-07-05T23:58:40.5724322Z	Information	App	[LoadJamaProjects] Adding project: CTSA Common (ID: 654, Key: JAMACTSA)
+2026-07-05T23:58:40.5740501Z	Information	App	[LoadJamaProjects] Adding project: Decagon_Boundary Scan (ID: 636, Key: DECAGON)
+2026-07-05T23:58:40.5758348Z	Information	App	[LoadJamaProjects] Adding project: GLU-2100 Test Solution Software Update Initiative (ID: 578, Key: QMB2203)
+2026-07-05T23:58:40.5776284Z	Information	App	[LoadJamaProjects] Adding project: QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution (ID: 686, Key: MFD268C4B)
+2026-07-05T23:58:40.5795141Z	Information	App	[LoadJamaProjects] Adding project: QAI-2521_AVC-4110 (ID: 681, Key: QAI2521)
+2026-07-05T23:58:40.5810776Z	Information	App	[LoadJamaProjects] Adding project: QAI2412-0020T MFD Sub Level (ID: 628, Key: MFDSUBLEVEL)
+2026-07-05T23:58:40.5828207Z	Information	App	[LoadJamaProjects] Adding project: QAI2434_DPC-2120_BP1_ATE (ID: 637, Key: QAI2434)
+2026-07-05T23:58:40.5844706Z	Information	App	[LoadJamaProjects] Adding project: QAI2518-3300T_MFD-268C4B_Bscan System Req Def (ID: 675, Key: ALR7HJgsTVhPfe9)
+2026-07-05T23:58:40.5862293Z	Information	App	[LoadJamaProjects] Adding project: QAI2519 CDU-7000 (ID: 679, Key: QAI2519_CDU7000)
+2026-07-05T23:58:40.5879950Z	Information	App	[LoadJamaProjects] Adding project: QAV2303 (ID: 610, Key: QAV2303)
+2026-07-05T23:58:40.5894421Z	Information	App	[LoadJamaProjects] Adding project: Rhombus - Iowa SL Boundary Scan (ID: 605, Key: Rhom_IA_BScan)
+2026-07-05T23:58:40.5909931Z	Information	App	[LoadJamaProjects] Adding project: Rhombus - Melbourne SL Boundary Scan (ID: 604, Key: Rhom_Mlb_BScan)
+2026-07-05T23:58:40.5925976Z	Information	App	[LoadJamaProjects] Final AvailableProjects count: 19
+2026-07-05T23:58:40.5943567Z	Information	App	Loaded 19 Jama projects
+2026-07-05T23:58:47.6862063Z	Information	Microsoft.Hosting.Lifetime	Application is shutting down...
+2026-07-05T23:58:47.7219977Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-05T23:58:47.7237518Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-05T23:58:47.7255184Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-05T23:58:47.7298880Z	Information	TestCaseEditorApp.Services.RequirementAnalysisCache	[AnalysisCache] Disposed cache with 0 hits, 0 misses, 0ms saved

@@ -1,0 +1,405 @@
+﻿2026-07-06T00:48:17.6578882Z	Information	Microsoft.Hosting.Lifetime	Application started. Press Ctrl+C to shut down.
+2026-07-06T00:48:17.6688546Z	Information	Microsoft.Hosting.Lifetime	Hosting environment: Production
+2026-07-06T00:48:17.6718957Z	Information	Microsoft.Hosting.Lifetime	Content root path: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows
+2026-07-06T00:48:17.6825628Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-06T00:48:17.7039893Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-06T00:48:17.7373665Z	Information	TestCaseEditorApp.App	Ensuring Ollama service is running...
+2026-07-06T00:48:17.7399273Z	Information	TestCaseEditorApp.App	Runtime session log file: C:\Users\e10653214\TestCaseEditorApp\logs\app-session-20260706-004817.log
+2026-07-06T00:48:17.7429251Z	Information	App	[OllamaProcessManager] Environment variables configured: LOAD_TIMEOUT=10m, KEEP_ALIVE=20m
+2026-07-06T00:48:17.9293342Z	Information	App	[OllamaProcessManager] ✅ Ollama is running and healthy
+2026-07-06T00:48:17.9317216Z	Information	TestCaseEditorApp.App	? Ollama service is ready
+2026-07-06T00:48:17.9357344Z	Information	TestCaseEditorApp.App	Initializing extension system...
+2026-07-06T00:48:17.9410386Z	Information	TestCaseEditorApp.App	Extension discovery completed. Loaded: 0, Errors: 0
+2026-07-06T00:48:17.9476861Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-06T00:48:17.9508799Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-06T00:48:17.9551757Z	Information	App	[OllamaEmbedding] Initialized with model: mxbai-embed-large:335m-v1-fp16, dimensions: 1024
+2026-07-06T00:48:17.9592788Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Service initialized with storage path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\DocumentIndexes
+2026-07-06T00:48:17.9645953Z	Information	TestCaseEditorApp.Services.RequirementAnalysisCache	[AnalysisCache] Initialized with maxSize=500, maxAge=08:00:00
+2026-07-06T00:48:17.9730915Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-06T00:48:17.9783067Z	Information	TestCaseEditorApp.Services.Templates.ServiceComplianceWrapper	ServiceComplianceWrapper initialized with Full Template Form Architecture
+2026-07-06T00:48:17.9913652Z	Information	TestCaseEditorApp.Services.DerivationQualityScorer	DerivationQualityScorer initialized with evaluation framework
+2026-07-06T00:48:17.9952325Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-06T00:48:17.9999738Z	Information	TestCaseEditorApp.Services.SystemCapabilityDerivationService	SystemCapabilityDerivationService initialized with Template Form Architecture with taxonomy containing 14 categories
+2026-07-06T00:48:18.0126219Z	Information	App	[JamaConnect] FromConfiguration called
+2026-07-06T00:48:18.0154890Z	Information	App	[JamaConnect] Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-06T00:48:18.0183525Z	Information	App	[JamaConnect] API Token: NOT SET
+2026-07-06T00:48:18.0208433Z	Information	App	[JamaConnect] Client ID: hpytk1ocbt0p01u
+2026-07-06T00:48:18.0234764Z	Information	App	[JamaConnect] Client Secret: SET
+2026-07-06T00:48:18.0261738Z	Information	App	[JamaConnect] Creating service with OAuth
+2026-07-06T00:48:18.0292727Z	Information	App	[JamaConnect] OAuth constructor - Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-06T00:48:18.0316245Z	Information	App	[JamaConnect] OAuth constructor - Client ID: hpytk1ocbt0p01u
+2026-07-06T00:48:18.0343092Z	Information	App	[JamaConnect] OAuth constructor - Client Secret: SET
+2026-07-06T00:48:18.0375078Z	Information	App	[JamaConnect] OCR service configured for image text extraction
+2026-07-06T00:48:18.0434368Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-06T00:48:18.0526248Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-06T00:48:18.0565195Z	Information	TestCaseEditorApp.Services.Templates.ABTestingFramework	ABTestingFramework initialized. ComplianceWrapper: True, QualityService: True
+2026-07-06T00:48:18.0592911Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-06T00:48:18.0613229Z	Information	App	[TesseractOCR] Initializing with tessdata path: C:\Users\e10653214\AppData\Local\Programs\Tesseract-OCR\tessdata
+2026-07-06T00:48:18.0647628Z	Information	TestCaseEditorApp.Services.Templates.TelemetryDashboardService	📊 TelemetryDashboardService initialized. Integration: QualityService+ABTesting+Compliance
+2026-07-06T00:48:18.0849197Z	Information	App	[OllamaStatusMonitor] HTTP timeout configured: 8s
+2026-07-06T00:48:18.0879642Z	Information	App	[OllamaStatusMonitor] Max supported Ollama version: 0.5.13
+2026-07-06T00:48:18.0915876Z	Information	App	[JamaDocumentParser] Initialized with Template Form Architecture: Envelope=True, Quality=True, Compliance=True, ABTest=True, Telemetry=True, OllamaManager=True, OllamaMonitor=True
+2026-07-06T00:48:18.1059061Z	Information	TestCaseEditorApp.MVVM.Domains.Notification.Mediators.NotificationMediator	NotificationMediator initialized
+2026-07-06T00:48:18.1381776Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Navigation (NavigationMediator)
+2026-07-06T00:48:18.1458155Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: TestCaseGeneration (TestCaseGenerationMediator)
+2026-07-06T00:48:18.1571065Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: TestFlow (TestFlowMediator)
+2026-07-06T00:48:18.1690795Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: NewProject (NewProjectMediator)
+2026-07-06T00:48:18.1793010Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: OpenProject (OpenProjectMediator)
+2026-07-06T00:48:18.1867132Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Requirements (RequirementsMediator)
+2026-07-06T00:48:18.1983437Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Notification (NotificationMediator)
+2026-07-06T00:48:18.3279796Z	Information	TestCaseEditorApp.App	Service monitoring started for AnythingLLM
+2026-07-06T00:48:18.3660525Z	Information	TestCaseEditorApp.App	Attempting to auto-start AnythingLLM service...
+2026-07-06T00:48:18.3934439Z	Information	App	[ServiceMonitor] MEDIATOR DEBUG: NotifyStatusChange for AnythingLLM - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-06T00:48:18.4005381Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-07-06T00:48:18.4109822Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-06T00:48:18.4189191Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: SUCCESS
+2026-07-06T00:48:18.4231340Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected=True, Text=LLM: AnythingLLM
+2026-07-06T00:48:18.4614699Z	Information	App	[ServiceMonitor] AnythingLLM status changed - Available: True, Message: AnythingLLM service is available
+2026-07-06T00:48:18.4759633Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-07-06T00:48:18.4791011Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-07-06T00:48:18.4967149Z	Information	App	[AnythingLLM] Availability check result: True
+2026-07-06T00:48:18.4980077Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
+2026-07-06T00:48:18.5022263Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=True, Message=Checking AnythingLLM status...
+2026-07-06T00:48:18.5065431Z	Information	App	[AnythingLLM] Availability check result: True
+2026-07-06T00:48:18.5091353Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-06T00:48:18.5110870Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: True, Starting: True
+2026-07-06T00:48:18.5130964Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: SUCCESS
+2026-07-06T00:48:18.5209820Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected=True, Text=LLM: Connecting...
+2026-07-06T00:48:18.5242269Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-06T00:48:18.5263008Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: SUCCESS
+2026-07-06T00:48:18.5285596Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected=True, Text=LLM: AnythingLLM
+2026-07-06T00:48:18.5306445Z	Information	TestCaseEditorApp.App	AnythingLLM auto-start completed successfully
+2026-07-06T00:48:18.5339061Z	Information	App	[AnythingLLMMediator] Broadcasting last known status via NotifyStatusUpdated: Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-06T00:48:18.5364422Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-06T00:48:18.5412459Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-06T00:48:18.5431696Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: SUCCESS
+2026-07-06T00:48:18.5448109Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected=True, Text=LLM: AnythingLLM
+2026-07-06T00:48:18.5534785Z	Information	TestCaseEditorApp.Services.NavigationService	NavigationService created with initial title: 'Systems ATE APP'
+2026-07-06T00:48:18.5562894Z	Information	TestCaseEditorApp.Services.NavigationService	NavigationService initial TitleChanged event fired with 'Systems ATE APP'
+2026-07-06T00:48:18.5734874Z	Information	App	[RecentFiles] Load() called, path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\recent-files.json
+2026-07-06T00:48:18.5911298Z	Information	App	[RecentFiles] Loaded JSON: [
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B TL Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Top Level C4B Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD-268C4B.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\CMP-6000.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Decagon.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\RTU-42XX.tcex.json"
+]
+2026-07-06T00:48:18.8377222Z	Information	App	[RecentFiles] Deserialized 8 files
+2026-07-06T00:48:18.8399475Z	Information	App	[RecentFiles] After filtering non-existent: 8 files
+2026-07-06T00:48:18.8969972Z	Information	App	[TesseractOCR] Tesseract OCR engine initialized successfully
+2026-07-06T00:48:18.9018570Z	Information	App	[JamaConnect] OCR engine availability: Available
+2026-07-06T00:48:18.9092440Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-07-06T00:48:18.9123158Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel initialized as simple 5-workspace container
+2026-07-06T00:48:19.1150885Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-07-06T00:48:19.1171315Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel initialized as simple 5-workspace container
+2026-07-06T00:48:19.9630233Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-06T00:48:19.9666316Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-06T00:48:25.2146719Z	Information	TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel	NotificationWorkspaceViewModel initialized
+2026-07-06T00:48:25.2166939Z	Information	App	[NotificationWorkspaceVM] MEDIATOR DEBUG: NotificationWorkspaceViewModel created and subscribing to events
+2026-07-06T00:48:25.2198994Z	Information	TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel	Notification workspace reset to defaults
+2026-07-06T00:48:25.2240083Z	Information	App	[OllamaStatusMonitor] Starting Ollama status monitoring (polling every 3 seconds)
+2026-07-06T00:48:25.2318068Z	Information	App	[NotificationWorkspaceVM] Ollama status display updated: Ollama: Unknown
+2026-07-06T00:48:25.2341303Z	Information	App	[NotificationWorkspaceVM] Ollama status monitoring started
+2026-07-06T00:48:25.2362228Z	Information	App	[NotificationWorkspaceVM] MEDIATOR DEBUG: Requesting current LLM status
+2026-07-06T00:48:25.2390502Z	Information	App	[AnythingLLMMediator] Broadcasting last known status via NotifyStatusUpdated: Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-06T00:48:25.2413169Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-06T00:48:25.2432218Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-06T00:48:25.2448217Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: SUCCESS
+2026-07-06T00:48:25.2472897Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected=True, Text=LLM: AnythingLLM
+2026-07-06T00:48:25.2508394Z	Information	App	[NotificationWorkspaceVM] MEDIATOR DEBUG: OnLlmStatusChanged received - Connected=True, Text=LLM: AnythingLLM
+2026-07-06T00:48:25.2537862Z	Information	App	[OllamaStatusMonitor] Status changed: Unknown -> NotLoaded
+2026-07-06T00:48:25.2553150Z	Information	TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel	Applying OpenProject navigation context for file: C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-07-06T00:48:25.2609548Z	Information	TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel	Opening recent project: C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-07-06T00:48:25.2621545Z	Information	App	[NotificationWorkspaceVM] Ollama status display updated: Ollama: Running (No Model Loaded)
+2026-07-06T00:48:25.2651319Z	Information	TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel	*** OnIsProjectSelectedChanged: value=True
+2026-07-06T00:48:25.2845604Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-07-06T00:48:25.3787451Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaProject field: '686' (null: False)
+2026-07-06T00:48:25.3813407Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaTestPlan field: 'QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution' (null: False)
+2026-07-06T00:48:25.3834009Z	Information	App	[Load] 🔍 JAMA DEBUG: ImportSource: 'Jama'
+2026-07-06T00:48:25.3863532Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Total GeneratedTestCases loaded: 0
+2026-07-06T00:48:25.3880363Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Requirements with GeneratedTestCases: 0/94
+2026-07-06T00:48:25.3959817Z	Information	App	[JamaConnect] Getting OAuth token from: https://jama02.rockwellcollins.com/contour/rest/oauth/token
+2026-07-06T00:48:25.4005296Z	Information	App	[JamaConnect] Sending OAuth request...
+2026-07-06T00:48:25.7018183Z	Error	App	Failed to get Jama requirements: No such host is known. (jama02.rockwellcollins.com:443)
+System.Net.Http.HttpRequestException: No such host is known. (jama02.rockwellcollins.com:443)
+ ---> System.Net.Sockets.SocketException (11001): No such host is known.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.HttpConnectionWaiter`1.WaitForConnectionWithTelemetryAsync(HttpRequestMessage request, HttpConnectionPool pool, Boolean async, CancellationToken requestCancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TestCaseEditorApp.Services.JamaConnectService.GetOAuthTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 269
+   at TestCaseEditorApp.Services.JamaConnectService.EnsureAccessTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 228
+   at TestCaseEditorApp.Services.JamaConnectService.GetRequirementsAsync(Int32 projectId, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 952
+2026-07-06T00:48:25.7419207Z	Error	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Failed to get requirements from Jama project 686	EX:System.Net.Http.HttpRequestException: No such host is known. (jama02.rockwellcollins.com:443)
+ ---> System.Net.Sockets.SocketException (11001): No such host is known.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.HttpConnectionWaiter`1.WaitForConnectionWithTelemetryAsync(HttpRequestMessage request, HttpConnectionPool pool, Boolean async, CancellationToken requestCancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TestCaseEditorApp.Services.JamaConnectService.GetOAuthTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 269
+   at TestCaseEditorApp.Services.JamaConnectService.EnsureAccessTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 228
+   at TestCaseEditorApp.Services.JamaConnectService.GetRequirementsAsync(Int32 projectId, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 952
+   at TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator.GetJamaRequirementsAsync(Int32 projectId) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\NewProject\Mediators\NewProjectMediator.cs:line 1685
+2026-07-06T00:48:25.7840216Z	Error	TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator	❌ Failed to refresh requirements from Jama project 686: No such host is known. (jama02.rockwellcollins.com:443)	EX:System.Net.Http.HttpRequestException: No such host is known. (jama02.rockwellcollins.com:443)
+ ---> System.Net.Sockets.SocketException (11001): No such host is known.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.HttpConnectionWaiter`1.WaitForConnectionWithTelemetryAsync(HttpRequestMessage request, HttpConnectionPool pool, Boolean async, CancellationToken requestCancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TestCaseEditorApp.Services.JamaConnectService.GetOAuthTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 269
+   at TestCaseEditorApp.Services.JamaConnectService.EnsureAccessTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 228
+   at TestCaseEditorApp.Services.JamaConnectService.GetRequirementsAsync(Int32 projectId, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 952
+   at TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator.GetJamaRequirementsAsync(Int32 projectId) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\NewProject\Mediators\NewProjectMediator.cs:line 1685
+   at TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator.OpenProjectFileAsync(String filePath) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\OpenProject\Mediators\OpenProjectMediator.cs:line 164
+2026-07-06T00:48:25.7903512Z	Warning	TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel	Failed to open project: C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-07-06T00:48:34.4764688Z	Information	TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel	Opening recent project: C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-07-06T00:48:34.4895948Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-07-06T00:48:34.5238363Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaProject field: '686' (null: False)
+2026-07-06T00:48:34.5262431Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaTestPlan field: 'QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution' (null: False)
+2026-07-06T00:48:34.5285681Z	Information	App	[Load] 🔍 JAMA DEBUG: ImportSource: 'Jama'
+2026-07-06T00:48:34.5309143Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Total GeneratedTestCases loaded: 0
+2026-07-06T00:48:34.5337269Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Requirements with GeneratedTestCases: 0/94
+2026-07-06T00:48:34.5362590Z	Information	App	[JamaConnect] Getting OAuth token from: https://jama02.rockwellcollins.com/contour/rest/oauth/token
+2026-07-06T00:48:34.5385699Z	Information	App	[JamaConnect] Sending OAuth request...
+2026-07-06T00:48:34.6285268Z	Error	App	Failed to get Jama requirements: No such host is known. (jama02.rockwellcollins.com:443)
+System.Net.Http.HttpRequestException: No such host is known. (jama02.rockwellcollins.com:443)
+ ---> System.Net.Sockets.SocketException (11001): No such host is known.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.HttpConnectionWaiter`1.WaitForConnectionWithTelemetryAsync(HttpRequestMessage request, HttpConnectionPool pool, Boolean async, CancellationToken requestCancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TestCaseEditorApp.Services.JamaConnectService.GetOAuthTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 269
+   at TestCaseEditorApp.Services.JamaConnectService.EnsureAccessTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 228
+   at TestCaseEditorApp.Services.JamaConnectService.GetRequirementsAsync(Int32 projectId, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 952
+2026-07-06T00:48:34.6621971Z	Error	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Failed to get requirements from Jama project 686	EX:System.Net.Http.HttpRequestException: No such host is known. (jama02.rockwellcollins.com:443)
+ ---> System.Net.Sockets.SocketException (11001): No such host is known.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.HttpConnectionWaiter`1.WaitForConnectionWithTelemetryAsync(HttpRequestMessage request, HttpConnectionPool pool, Boolean async, CancellationToken requestCancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TestCaseEditorApp.Services.JamaConnectService.GetOAuthTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 269
+   at TestCaseEditorApp.Services.JamaConnectService.EnsureAccessTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 228
+   at TestCaseEditorApp.Services.JamaConnectService.GetRequirementsAsync(Int32 projectId, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 952
+   at TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator.GetJamaRequirementsAsync(Int32 projectId) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\NewProject\Mediators\NewProjectMediator.cs:line 1685
+2026-07-06T00:48:34.6983546Z	Error	TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator	❌ Failed to refresh requirements from Jama project 686: No such host is known. (jama02.rockwellcollins.com:443)	EX:System.Net.Http.HttpRequestException: No such host is known. (jama02.rockwellcollins.com:443)
+ ---> System.Net.Sockets.SocketException (11001): No such host is known.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.HttpConnectionWaiter`1.WaitForConnectionWithTelemetryAsync(HttpRequestMessage request, HttpConnectionPool pool, Boolean async, CancellationToken requestCancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TestCaseEditorApp.Services.JamaConnectService.GetOAuthTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 269
+   at TestCaseEditorApp.Services.JamaConnectService.EnsureAccessTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 228
+   at TestCaseEditorApp.Services.JamaConnectService.GetRequirementsAsync(Int32 projectId, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 952
+   at TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator.GetJamaRequirementsAsync(Int32 projectId) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\NewProject\Mediators\NewProjectMediator.cs:line 1685
+   at TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator.OpenProjectFileAsync(String filePath) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\OpenProject\Mediators\OpenProjectMediator.cs:line 164
+2026-07-06T00:48:34.7025762Z	Warning	TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel	Failed to open project: C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-07-06T00:48:47.4495297Z	Information	TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel	Opening recent project: C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-07-06T00:48:47.4573333Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-07-06T00:48:47.4637383Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaProject field: '686' (null: False)
+2026-07-06T00:48:47.4658314Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaTestPlan field: 'QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution' (null: False)
+2026-07-06T00:48:47.4680232Z	Information	App	[Load] 🔍 JAMA DEBUG: ImportSource: 'Jama'
+2026-07-06T00:48:47.4701128Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Total GeneratedTestCases loaded: 0
+2026-07-06T00:48:47.4720150Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Requirements with GeneratedTestCases: 0/94
+2026-07-06T00:48:47.4738856Z	Information	App	[JamaConnect] Getting OAuth token from: https://jama02.rockwellcollins.com/contour/rest/oauth/token
+2026-07-06T00:48:47.4757686Z	Information	App	[JamaConnect] Sending OAuth request...
+2026-07-06T00:48:47.5552353Z	Error	App	Failed to get Jama requirements: No such host is known. (jama02.rockwellcollins.com:443)
+System.Net.Http.HttpRequestException: No such host is known. (jama02.rockwellcollins.com:443)
+ ---> System.Net.Sockets.SocketException (11001): No such host is known.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.HttpConnectionWaiter`1.WaitForConnectionWithTelemetryAsync(HttpRequestMessage request, HttpConnectionPool pool, Boolean async, CancellationToken requestCancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TestCaseEditorApp.Services.JamaConnectService.GetOAuthTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 269
+   at TestCaseEditorApp.Services.JamaConnectService.EnsureAccessTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 228
+   at TestCaseEditorApp.Services.JamaConnectService.GetRequirementsAsync(Int32 projectId, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 952
+2026-07-06T00:48:47.5842127Z	Error	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Failed to get requirements from Jama project 686	EX:System.Net.Http.HttpRequestException: No such host is known. (jama02.rockwellcollins.com:443)
+ ---> System.Net.Sockets.SocketException (11001): No such host is known.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.HttpConnectionWaiter`1.WaitForConnectionWithTelemetryAsync(HttpRequestMessage request, HttpConnectionPool pool, Boolean async, CancellationToken requestCancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TestCaseEditorApp.Services.JamaConnectService.GetOAuthTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 269
+   at TestCaseEditorApp.Services.JamaConnectService.EnsureAccessTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 228
+   at TestCaseEditorApp.Services.JamaConnectService.GetRequirementsAsync(Int32 projectId, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 952
+   at TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator.GetJamaRequirementsAsync(Int32 projectId) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\NewProject\Mediators\NewProjectMediator.cs:line 1685
+2026-07-06T00:48:47.6285530Z	Error	TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator	❌ Failed to refresh requirements from Jama project 686: No such host is known. (jama02.rockwellcollins.com:443)	EX:System.Net.Http.HttpRequestException: No such host is known. (jama02.rockwellcollins.com:443)
+ ---> System.Net.Sockets.SocketException (11001): No such host is known.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.HttpConnectionWaiter`1.WaitForConnectionWithTelemetryAsync(HttpRequestMessage request, HttpConnectionPool pool, Boolean async, CancellationToken requestCancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TestCaseEditorApp.Services.JamaConnectService.GetOAuthTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 269
+   at TestCaseEditorApp.Services.JamaConnectService.EnsureAccessTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 228
+   at TestCaseEditorApp.Services.JamaConnectService.GetRequirementsAsync(Int32 projectId, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 952
+   at TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator.GetJamaRequirementsAsync(Int32 projectId) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\NewProject\Mediators\NewProjectMediator.cs:line 1685
+   at TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator.OpenProjectFileAsync(String filePath) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\OpenProject\Mediators\OpenProjectMediator.cs:line 164
+2026-07-06T00:48:47.6311752Z	Warning	TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel	Failed to open project: C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-07-06T00:48:58.0241364Z	Information	TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel	Opening recent project: C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-07-06T00:48:58.0314907Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-07-06T00:48:58.0362163Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaProject field: '686' (null: False)
+2026-07-06T00:48:58.0381907Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaTestPlan field: 'QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution' (null: False)
+2026-07-06T00:48:58.0401707Z	Information	App	[Load] 🔍 JAMA DEBUG: ImportSource: 'Jama'
+2026-07-06T00:48:58.0427536Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Total GeneratedTestCases loaded: 0
+2026-07-06T00:48:58.0448826Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Requirements with GeneratedTestCases: 0/94
+2026-07-06T00:48:58.0465141Z	Information	App	[JamaConnect] Getting OAuth token from: https://jama02.rockwellcollins.com/contour/rest/oauth/token
+2026-07-06T00:48:58.0484411Z	Information	App	[JamaConnect] Sending OAuth request...
+2026-07-06T00:48:58.1147187Z	Error	App	Failed to get Jama requirements: No such host is known. (jama02.rockwellcollins.com:443)
+System.Net.Http.HttpRequestException: No such host is known. (jama02.rockwellcollins.com:443)
+ ---> System.Net.Sockets.SocketException (11001): No such host is known.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.HttpConnectionWaiter`1.WaitForConnectionWithTelemetryAsync(HttpRequestMessage request, HttpConnectionPool pool, Boolean async, CancellationToken requestCancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TestCaseEditorApp.Services.JamaConnectService.GetOAuthTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 269
+   at TestCaseEditorApp.Services.JamaConnectService.EnsureAccessTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 228
+   at TestCaseEditorApp.Services.JamaConnectService.GetRequirementsAsync(Int32 projectId, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 952
+2026-07-06T00:48:58.1424825Z	Error	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	[NewProject] Failed to get requirements from Jama project 686	EX:System.Net.Http.HttpRequestException: No such host is known. (jama02.rockwellcollins.com:443)
+ ---> System.Net.Sockets.SocketException (11001): No such host is known.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.HttpConnectionWaiter`1.WaitForConnectionWithTelemetryAsync(HttpRequestMessage request, HttpConnectionPool pool, Boolean async, CancellationToken requestCancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TestCaseEditorApp.Services.JamaConnectService.GetOAuthTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 269
+   at TestCaseEditorApp.Services.JamaConnectService.EnsureAccessTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 228
+   at TestCaseEditorApp.Services.JamaConnectService.GetRequirementsAsync(Int32 projectId, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 952
+   at TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator.GetJamaRequirementsAsync(Int32 projectId) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\NewProject\Mediators\NewProjectMediator.cs:line 1685
+2026-07-06T00:48:58.1695441Z	Error	TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator	❌ Failed to refresh requirements from Jama project 686: No such host is known. (jama02.rockwellcollins.com:443)	EX:System.Net.Http.HttpRequestException: No such host is known. (jama02.rockwellcollins.com:443)
+ ---> System.Net.Sockets.SocketException (11001): No such host is known.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.HttpConnectionWaiter`1.WaitForConnectionWithTelemetryAsync(HttpRequestMessage request, HttpConnectionPool pool, Boolean async, CancellationToken requestCancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TestCaseEditorApp.Services.JamaConnectService.GetOAuthTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 269
+   at TestCaseEditorApp.Services.JamaConnectService.EnsureAccessTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 228
+   at TestCaseEditorApp.Services.JamaConnectService.GetRequirementsAsync(Int32 projectId, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 952
+   at TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator.GetJamaRequirementsAsync(Int32 projectId) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\NewProject\Mediators\NewProjectMediator.cs:line 1685
+   at TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator.OpenProjectFileAsync(String filePath) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\OpenProject\Mediators\OpenProjectMediator.cs:line 164
+2026-07-06T00:48:58.1728065Z	Warning	TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel	Failed to open project: C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-07-06T00:49:06.2875039Z	Information	Microsoft.Hosting.Lifetime	Application is shutting down...
+2026-07-06T00:49:06.3335542Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-06T00:49:06.3357273Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-06T00:49:06.3382040Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-06T00:49:06.3431183Z	Information	TestCaseEditorApp.Services.RequirementAnalysisCache	[AnalysisCache] Disposed cache with 0 hits, 0 misses, 0ms saved
