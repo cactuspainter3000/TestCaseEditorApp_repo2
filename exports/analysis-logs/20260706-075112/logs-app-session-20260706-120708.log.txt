@@ -1,0 +1,188 @@
+﻿2026-07-06T12:07:08.1905098Z	Information	Microsoft.Hosting.Lifetime	Application started. Press Ctrl+C to shut down.
+2026-07-06T12:07:08.1979562Z	Information	Microsoft.Hosting.Lifetime	Hosting environment: Production
+2026-07-06T12:07:08.2004054Z	Information	Microsoft.Hosting.Lifetime	Content root path: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows
+2026-07-06T12:07:08.2073269Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-06T12:07:08.2244617Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-06T12:07:08.2525477Z	Information	TestCaseEditorApp.App	Ensuring Ollama service is running...
+2026-07-06T12:07:08.2542447Z	Information	TestCaseEditorApp.App	Runtime session log file: C:\Users\e10653214\TestCaseEditorApp\logs\app-session-20260706-120708.log
+2026-07-06T12:07:08.2582406Z	Information	App	[OllamaProcessManager] Environment variables configured: LOAD_TIMEOUT=10m, KEEP_ALIVE=20m
+2026-07-06T12:07:08.8132857Z	Information	App	[OllamaProcessManager] ✅ Ollama is running and healthy
+2026-07-06T12:07:08.8159633Z	Information	TestCaseEditorApp.App	? Ollama service is ready
+2026-07-06T12:07:08.8200069Z	Information	TestCaseEditorApp.App	Initializing extension system...
+2026-07-06T12:07:08.8252273Z	Information	TestCaseEditorApp.App	Extension discovery completed. Loaded: 0, Errors: 0
+2026-07-06T12:07:08.8295474Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-06T12:07:08.8328481Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-06T12:07:08.8356617Z	Information	App	[OllamaEmbedding] Initialized with model: mxbai-embed-large:335m-v1-fp16, dimensions: 1024
+2026-07-06T12:07:08.8383675Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Service initialized with storage path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\DocumentIndexes
+2026-07-06T12:07:08.8417497Z	Information	TestCaseEditorApp.Services.RequirementAnalysisCache	[AnalysisCache] Initialized with maxSize=500, maxAge=08:00:00
+2026-07-06T12:07:08.8463656Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-06T12:07:08.8486204Z	Information	TestCaseEditorApp.Services.Templates.ServiceComplianceWrapper	ServiceComplianceWrapper initialized with Full Template Form Architecture
+2026-07-06T12:07:08.8545871Z	Information	TestCaseEditorApp.Services.DerivationQualityScorer	DerivationQualityScorer initialized with evaluation framework
+2026-07-06T12:07:08.8567379Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-06T12:07:08.8587291Z	Information	TestCaseEditorApp.Services.SystemCapabilityDerivationService	SystemCapabilityDerivationService initialized with Template Form Architecture with taxonomy containing 14 categories
+2026-07-06T12:07:08.8667519Z	Information	App	[JamaConnect] FromConfiguration called
+2026-07-06T12:07:08.8684911Z	Information	App	[JamaConnect] Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-06T12:07:08.8700787Z	Information	App	[JamaConnect] API Token: NOT SET
+2026-07-06T12:07:08.8717915Z	Information	App	[JamaConnect] Client ID: hpytk1ocbt0p01u
+2026-07-06T12:07:08.8737206Z	Information	App	[JamaConnect] Client Secret: SET
+2026-07-06T12:07:08.8754964Z	Information	App	[JamaConnect] Creating service with OAuth
+2026-07-06T12:07:08.8783168Z	Information	App	[JamaConnect] OAuth constructor - Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-06T12:07:08.8803368Z	Information	App	[JamaConnect] OAuth constructor - Client ID: hpytk1ocbt0p01u
+2026-07-06T12:07:08.8821604Z	Information	App	[JamaConnect] OAuth constructor - Client Secret: SET
+2026-07-06T12:07:08.8847849Z	Information	App	[JamaConnect] OCR service configured for image text extraction
+2026-07-06T12:07:08.8898028Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-06T12:07:08.8924436Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-06T12:07:08.8956768Z	Information	TestCaseEditorApp.Services.Templates.ABTestingFramework	ABTestingFramework initialized. ComplianceWrapper: True, QualityService: True
+2026-07-06T12:07:08.8986950Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-06T12:07:08.9022802Z	Information	TestCaseEditorApp.Services.Templates.TelemetryDashboardService	📊 TelemetryDashboardService initialized. Integration: QualityService+ABTesting+Compliance
+2026-07-06T12:07:08.9050800Z	Information	App	[OllamaStatusMonitor] HTTP timeout configured: 8s
+2026-07-06T12:07:08.9070144Z	Information	App	[OllamaStatusMonitor] Max supported Ollama version: 0.5.13
+2026-07-06T12:07:08.9093484Z	Information	App	[JamaDocumentParser] Initialized with Template Form Architecture: Envelope=True, Quality=True, Compliance=True, ABTest=True, Telemetry=True, OllamaManager=True, OllamaMonitor=True
+2026-07-06T12:07:08.9127881Z	Information	TestCaseEditorApp.MVVM.Domains.Notification.Mediators.NotificationMediator	NotificationMediator initialized
+2026-07-06T12:07:08.9157465Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Navigation (NavigationMediator)
+2026-07-06T12:07:08.9171345Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: TestCaseGeneration (TestCaseGenerationMediator)
+2026-07-06T12:07:08.9184210Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: TestFlow (TestFlowMediator)
+2026-07-06T12:07:08.9198023Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: NewProject (NewProjectMediator)
+2026-07-06T12:07:08.9218029Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: OpenProject (OpenProjectMediator)
+2026-07-06T12:07:08.9232948Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Requirements (RequirementsMediator)
+2026-07-06T12:07:08.9248949Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Notification (NotificationMediator)
+2026-07-06T12:07:08.9339297Z	Information	TestCaseEditorApp.App	Service monitoring started for AnythingLLM
+2026-07-06T12:07:08.9393447Z	Information	TestCaseEditorApp.App	Attempting to auto-start AnythingLLM service...
+2026-07-06T12:07:08.9477375Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-07-06T12:07:08.9690911Z	Information	App	[ServiceMonitor] MEDIATOR DEBUG: NotifyStatusChange for AnythingLLM - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-06T12:07:08.9721851Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-06T12:07:08.9776387Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-06T12:07:08.9795290Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: SUCCESS
+2026-07-06T12:07:08.9813149Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected=True, Text=LLM: AnythingLLM
+2026-07-06T12:07:08.9838031Z	Information	App	[AnythingLLMMediator] Broadcasting last known status via NotifyStatusUpdated: Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-06T12:07:08.9854374Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-06T12:07:08.9873052Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-06T12:07:09.0190283Z	Information	App	[ServiceMonitor] AnythingLLM status changed - Available: True, Message: AnythingLLM service is available
+2026-07-06T12:07:09.0208343Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: SUCCESS
+2026-07-06T12:07:09.0234781Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected=True, Text=LLM: AnythingLLM
+2026-07-06T12:07:09.0248907Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-07-06T12:07:09.0256264Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-07-06T12:07:09.0310074Z	Information	App	[AnythingLLM] Availability check result: True
+2026-07-06T12:07:09.0321365Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
+2026-07-06T12:07:09.0339714Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=True, Message=Checking AnythingLLM status...
+2026-07-06T12:07:09.0357200Z	Information	TestCaseEditorApp.Services.NavigationService	NavigationService created with initial title: 'Systems ATE APP'
+2026-07-06T12:07:09.0375685Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: True, Starting: True
+2026-07-06T12:07:09.0380615Z	Information	App	[AnythingLLM] Availability check result: True
+2026-07-06T12:07:09.0401594Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: SUCCESS
+2026-07-06T12:07:09.0407166Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-06T12:07:09.0429064Z	Information	TestCaseEditorApp.Services.NavigationService	NavigationService initial TitleChanged event fired with 'Systems ATE APP'
+2026-07-06T12:07:09.0434226Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected=True, Text=LLM: Connecting...
+2026-07-06T12:07:09.0448938Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-06T12:07:09.0469271Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: SUCCESS
+2026-07-06T12:07:09.0501997Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected=True, Text=LLM: AnythingLLM
+2026-07-06T12:07:09.0527974Z	Information	TestCaseEditorApp.App	AnythingLLM auto-start completed successfully
+2026-07-06T12:07:09.0629646Z	Information	App	[RecentFiles] Load() called, path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\recent-files.json
+2026-07-06T12:07:09.0769877Z	Information	App	[RecentFiles] Loaded JSON: [
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B TL Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Top Level C4B Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD-268C4B.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\CMP-6000.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Decagon.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\RTU-42XX.tcex.json"
+]
+2026-07-06T12:07:09.3054230Z	Information	App	[TesseractOCR] Initializing with tessdata path: C:\Users\e10653214\AppData\Local\Programs\Tesseract-OCR\tessdata
+2026-07-06T12:07:09.4095849Z	Information	App	[RecentFiles] Deserialized 8 files
+2026-07-06T12:07:09.4358360Z	Information	App	[RecentFiles] After filtering non-existent: 8 files
+2026-07-06T12:07:09.7176895Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-07-06T12:07:09.7206468Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel initialized as simple 5-workspace container
+2026-07-06T12:07:10.0969669Z	Information	App	[TesseractOCR] Tesseract OCR engine initialized successfully
+2026-07-06T12:07:10.0993241Z	Information	App	[JamaConnect] OCR engine availability: Available
+2026-07-06T12:07:10.2323498Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-07-06T12:07:10.2344540Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel initialized as simple 5-workspace container
+2026-07-06T12:07:11.3022917Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-06T12:07:11.3051408Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-06T12:07:36.5291572Z	Information	TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel	NotificationWorkspaceViewModel initialized
+2026-07-06T12:07:36.5312125Z	Information	App	[NotificationWorkspaceVM] MEDIATOR DEBUG: NotificationWorkspaceViewModel created and subscribing to events
+2026-07-06T12:07:36.5345954Z	Information	TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel	Notification workspace reset to defaults
+2026-07-06T12:07:36.5384406Z	Information	App	[OllamaStatusMonitor] Starting Ollama status monitoring (polling every 3 seconds)
+2026-07-06T12:07:36.5455880Z	Information	App	[NotificationWorkspaceVM] Ollama status display updated: Ollama: Unknown
+2026-07-06T12:07:36.5480201Z	Information	App	[NotificationWorkspaceVM] Ollama status monitoring started
+2026-07-06T12:07:36.5496239Z	Information	App	[NotificationWorkspaceVM] MEDIATOR DEBUG: Requesting current LLM status
+2026-07-06T12:07:36.5515765Z	Information	App	[AnythingLLMMediator] Broadcasting last known status via NotifyStatusUpdated: Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-06T12:07:36.5533587Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-06T12:07:36.5556226Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-06T12:07:36.5611284Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotificationMediator resolved: SUCCESS
+2026-07-06T12:07:36.5631427Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: Calling UpdateLlmStatus - Connected=True, Text=LLM: AnythingLLM
+2026-07-06T12:07:36.5660195Z	Information	App	[NotificationWorkspaceVM] MEDIATOR DEBUG: OnLlmStatusChanged received - Connected=True, Text=LLM: AnythingLLM
+2026-07-06T12:07:36.5718158Z	Information	App	[OllamaStatusMonitor] Status changed: Unknown -> NotLoaded
+2026-07-06T12:07:36.5814842Z	Information	App	[NotificationWorkspaceVM] Ollama status display updated: Ollama: Running (No Model Loaded)
+2026-07-06T12:07:43.3550158Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-06T12:07:43.3587231Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-06T12:07:43.3629875Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-07-06T12:07:43.3817929Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-07-06T12:07:43.4763705Z	Warning	TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel	[LLMTestCaseGenerator] No AnythingLLM workspace found in current project context during initialization
+2026-07-06T12:07:43.4814388Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel	[LLMTestCaseGenerator] 🔍 SAVED TEST CASES DEBUG: LoadSavedTestCasesFromRequirements called with 0 requirements
+2026-07-06T12:07:43.4842686Z	Information	TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel	[LLMTestCaseGenerator] Loaded 0 unique test cases from 0 requirements, 0 total associations
+2026-07-06T12:07:48.3197483Z	Error	App	[ViewAreaCoordinator] Error applying configuration for TestCaseCreation: 🚨 MEDIATOR NOT REGISTERED: TestCaseCreationMediator must be registered in DI container before creating ViewModels! Check ViewModelFactory registration.
+System.InvalidOperationException: 🚨 MEDIATOR NOT REGISTERED: TestCaseCreationMediator must be registered in DI container before creating ViewModels! Check ViewModelFactory registration.
+   at TestCaseEditorApp.MVVM.ViewModels.BaseDomainViewModel..ctor(Object mediator, ILogger logger) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\ViewModels\BaseDomainViewModel.cs:line 53
+   at TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreationMainVM..ctor(ITestCaseCreationMediator mediator, ILogger`1 logger) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\TestCaseCreation\ViewModels\TestCaseCreationMainVM.cs:line 28
+   at TestCaseEditorApp.Services.DependencyInjection.ViewModelExtensions.<>c.<AddViewModels>b__0_8(IServiceProvider provider) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\DependencyInjection\ViewModelExtensions.cs:line 163
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitFactory(FactoryCallSite factoryCallSite, RuntimeResolverContext context)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSiteMain(ServiceCallSite callSite, TArgument argument)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitDisposeCache(ServiceCallSite transientCallSite, RuntimeResolverContext context)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.Resolve(ServiceCallSite callSite, ServiceProviderEngineScope scope)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.DynamicServiceProviderEngine.<>c__DisplayClass2_0.<RealizeService>b__0(ServiceProviderEngineScope scope)
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(Type serviceType)
+   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService[T](IServiceProvider provider)
+   at TestCaseEditorApp.Services.ViewConfigurationService.CreateTestCaseCreationConfiguration(Object context) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\ViewConfigurationService.cs:line 371
+   at TestCaseEditorApp.Services.ViewConfigurationService.GetConfigurationForSection(String sectionName, Object context) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\ViewConfigurationService.cs:line 77
+   at TestCaseEditorApp.Services.ViewConfigurationService.ApplyConfiguration(String sectionName, Object context) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\ViewConfigurationService.cs:line 106
+   at TestCaseEditorApp.Services.ViewAreaCoordinator.OnSectionChangeRequested(SectionChangeRequested request) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\ViewAreaCoordinator.cs:line 104
+2026-07-06T12:07:48.3691333Z	Error	App	[ViewAreaCoordinator] Error applying configuration for TestCaseCreation: 🚨 MEDIATOR NOT REGISTERED: TestCaseCreationMediator must be registered in DI container before creating ViewModels! Check ViewModelFactory registration.
+System.InvalidOperationException: 🚨 MEDIATOR NOT REGISTERED: TestCaseCreationMediator must be registered in DI container before creating ViewModels! Check ViewModelFactory registration.
+   at TestCaseEditorApp.MVVM.ViewModels.BaseDomainViewModel..ctor(Object mediator, ILogger logger) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\ViewModels\BaseDomainViewModel.cs:line 53
+   at TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreationMainVM..ctor(ITestCaseCreationMediator mediator, ILogger`1 logger) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\TestCaseCreation\ViewModels\TestCaseCreationMainVM.cs:line 28
+   at TestCaseEditorApp.Services.DependencyInjection.ViewModelExtensions.<>c.<AddViewModels>b__0_8(IServiceProvider provider) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\DependencyInjection\ViewModelExtensions.cs:line 163
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitFactory(FactoryCallSite factoryCallSite, RuntimeResolverContext context)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSiteMain(ServiceCallSite callSite, TArgument argument)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitDisposeCache(ServiceCallSite transientCallSite, RuntimeResolverContext context)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.Resolve(ServiceCallSite callSite, ServiceProviderEngineScope scope)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.DynamicServiceProviderEngine.<>c__DisplayClass2_0.<RealizeService>b__0(ServiceProviderEngineScope scope)
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(Type serviceType)
+   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService[T](IServiceProvider provider)
+   at TestCaseEditorApp.Services.ViewConfigurationService.CreateTestCaseCreationConfiguration(Object context) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\ViewConfigurationService.cs:line 371
+   at TestCaseEditorApp.Services.ViewConfigurationService.GetConfigurationForSection(String sectionName, Object context) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\ViewConfigurationService.cs:line 77
+   at TestCaseEditorApp.Services.ViewConfigurationService.ApplyConfiguration(String sectionName, Object context) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\ViewConfigurationService.cs:line 106
+   at TestCaseEditorApp.Services.ViewAreaCoordinator.OnSectionChangeRequested(SectionChangeRequested request) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\ViewAreaCoordinator.cs:line 104
+2026-07-06T12:07:50.5929443Z	Error	App	[ViewAreaCoordinator] Error applying configuration for TestCaseCreation: 🚨 MEDIATOR NOT REGISTERED: TestCaseCreationMediator must be registered in DI container before creating ViewModels! Check ViewModelFactory registration.
+System.InvalidOperationException: 🚨 MEDIATOR NOT REGISTERED: TestCaseCreationMediator must be registered in DI container before creating ViewModels! Check ViewModelFactory registration.
+   at TestCaseEditorApp.MVVM.ViewModels.BaseDomainViewModel..ctor(Object mediator, ILogger logger) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\ViewModels\BaseDomainViewModel.cs:line 53
+   at TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreationMainVM..ctor(ITestCaseCreationMediator mediator, ILogger`1 logger) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\TestCaseCreation\ViewModels\TestCaseCreationMainVM.cs:line 28
+   at TestCaseEditorApp.Services.DependencyInjection.ViewModelExtensions.<>c.<AddViewModels>b__0_8(IServiceProvider provider) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\DependencyInjection\ViewModelExtensions.cs:line 163
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitFactory(FactoryCallSite factoryCallSite, RuntimeResolverContext context)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSiteMain(ServiceCallSite callSite, TArgument argument)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.Resolve(ServiceCallSite callSite, ServiceProviderEngineScope scope)
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.DynamicServiceProviderEngine.<>c__DisplayClass2_0.<RealizeService>b__0(ServiceProviderEngineScope scope)
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(Type serviceType)
+   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService[T](IServiceProvider provider)
+   at TestCaseEditorApp.Services.ViewConfigurationService.CreateTestCaseCreationConfiguration(Object context) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\ViewConfigurationService.cs:line 371
+   at TestCaseEditorApp.Services.ViewConfigurationService.GetConfigurationForSection(String sectionName, Object context) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\ViewConfigurationService.cs:line 77
+   at TestCaseEditorApp.Services.ViewConfigurationService.ApplyConfiguration(String sectionName, Object context) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\ViewConfigurationService.cs:line 106
+   at TestCaseEditorApp.Services.ViewAreaCoordinator.OnSectionChangeRequested(SectionChangeRequested request) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\ViewAreaCoordinator.cs:line 104
+2026-07-06T12:10:44.8190283Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-06T12:10:44.8230456Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-06T12:10:44.8251140Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-07-06T12:10:44.8413748Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-07-06T12:10:45.5910686Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-06T12:10:45.5947836Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-06T12:10:45.5966537Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-07-06T12:10:45.6146723Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-07-06T12:14:54.4031429Z	Information	Microsoft.Hosting.Lifetime	Application is shutting down...
+2026-07-06T12:14:54.4433958Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-06T12:14:54.4455510Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-06T12:14:54.4482649Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-06T12:14:54.4527386Z	Information	TestCaseEditorApp.Services.RequirementAnalysisCache	[AnalysisCache] Disposed cache with 0 hits, 0 misses, 0ms saved
