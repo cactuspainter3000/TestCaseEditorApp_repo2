@@ -321,6 +321,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         #endregion
 
+        #region Fields
+
+        private readonly INavigationMediator _navigationMediator;
+
+        #endregion
+
         #region Constructor
 
         public UnifiedRequirementsMainViewModel(
@@ -329,6 +335,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             IPersistenceService persistence,
             ITextEditingDialogService textEditingDialogService,
             RequirementsSearchAttachmentsViewModel requirementsSearchAttachmentsViewModel,
+            INavigationMediator navigationMediator,
             IRequirementAnalysisService? analysisService = null)
             : base(mediator, logger)
         {
@@ -336,6 +343,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
             _textEditingDialogService = textEditingDialogService ?? throw new ArgumentNullException(nameof(textEditingDialogService));
             RequirementsSearchAttachmentsViewModel = requirementsSearchAttachmentsViewModel ?? throw new ArgumentNullException(nameof(requirementsSearchAttachmentsViewModel));
+            _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
 
             // Initialize commands
             InitializeCommands();
@@ -501,10 +509,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 .Select(s => s.Requirement.GlobalId)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            if (!_batchSelectionInitialized && selectedIds.Count == 0)
+            // Only load persisted selections once, and only if we have requirements loaded
+            // This ensures we don't load stale selections from different projects
+            if (!_batchSelectionInitialized && selectedIds.Count == 0 && _mediator.Requirements.Count > 0)
             {
                 selectedIds = LoadPersistedBatchSelectionIds();
                 _batchSelectionInitialized = true;
+                _logger.LogDebug("[UnifiedRequirementsMainVM] Loaded persisted batch selections: {Count} items", selectedIds.Count);
             }
 
             BatchRequirementSelections.Clear();
@@ -517,12 +528,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 BatchRequirementSelections.Add(item);
             }
 
-            if (!BatchRequirementSelections.Any(s => s.IsSelected))
+            // Apply default selection only if:
+            // 1. No items are currently selected AND
+            // 2. We have requirements available AND
+            // 3. Either we haven't initialized yet OR we just cleared persisted selections
+            if (!BatchRequirementSelections.Any(s => s.IsSelected) && BatchRequirementSelections.Count > 0)
             {
-                foreach (var item in BatchRequirementSelections.Take(5))
+                var itemsToSelect = BatchRequirementSelections.Take(5).ToList();
+                foreach (var item in itemsToSelect)
                 {
                     item.IsSelected = true;
                 }
+                _logger.LogDebug("[UnifiedRequirementsMainVM] Applied default batch selection to first {Count} items", itemsToSelect.Count);
             }
 
             PersistSelectedBatchRequirementIds();
@@ -1291,31 +1308,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private void ExecuteNavigateToTestCaseCreation()
         {
             _logger.LogInformation("[UnifiedRequirementsMainVM] Navigating to TestCase Creation workspace");
-            
-            var navigationMediator = App.ServiceProvider?.GetService<INavigationMediator>();
-            if (navigationMediator != null)
-            {
-                navigationMediator.NavigateToSection("testcasecreation");
-            }
-            else
-            {
-                _logger.LogError("[UnifiedRequirementsMainVM] INavigationMediator not available for navigation");
-            }
+            _navigationMediator.NavigateToSection("testcasecreation");
         }
 
         private void ExecuteNavigateToMain()
         {
             _logger.LogInformation("[UnifiedRequirementsMainVM] Navigating to main/startup view");
-            
-            var navigationMediator = App.ServiceProvider?.GetService<INavigationMediator>();
-            if (navigationMediator != null)
-            {
-                navigationMediator.NavigateToSection("startup");
-            }
-            else
-            {
-                _logger.LogError("[UnifiedRequirementsMainVM] INavigationMediator not available for navigation");
-            }
+            _navigationMediator.NavigateToSection("startup");
         }
 
         private void UpdateAnalysisTimer()

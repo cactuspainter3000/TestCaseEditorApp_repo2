@@ -84,10 +84,11 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 var textEditingService = provider.GetRequiredService<ITextEditingDialogService>();
                 var logger = provider.GetRequiredService<ILogger<UnifiedRequirementsMainViewModel>>();
                 var requirementsSearchAttachmentsViewModel = provider.GetRequiredService<RequirementsSearchAttachmentsViewModel>();
+                var navigationMediator = provider.GetRequiredService<INavigationMediator>();
                 var analysisService = provider.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Services.IRequirementAnalysisService>();
 
                 return new UnifiedRequirementsMainViewModel(
-                    reqMediator, logger, persistence, textEditingService, requirementsSearchAttachmentsViewModel, analysisService);
+                    reqMediator, logger, persistence, textEditingService, requirementsSearchAttachmentsViewModel, navigationMediator, analysisService);
             });
 
             // Requirements Header (SINGLETON)

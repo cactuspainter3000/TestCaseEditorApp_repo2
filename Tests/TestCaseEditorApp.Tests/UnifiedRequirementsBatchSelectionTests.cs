@@ -8,6 +8,7 @@ using Moq;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.Tests.Requirements
@@ -105,6 +106,7 @@ namespace TestCaseEditorApp.Tests.Requirements
 
             var vmLogger = new Mock<ILogger<UnifiedRequirementsMainViewModel>>();
             var textEditingService = new Mock<ITextEditingDialogService>(MockBehavior.Loose);
+            var navigationMediatorMock = new Mock<INavigationMediator>();
 
             return new UnifiedRequirementsMainViewModel(
                 mediatorMock.Object,
@@ -112,6 +114,7 @@ namespace TestCaseEditorApp.Tests.Requirements
                 persistence,
                 textEditingService.Object,
                 reqSearchVm,
+                navigationMediatorMock.Object,
                 null);
         }
 
