@@ -23,8 +23,6 @@
         xmlns:reqviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.Views"
         xmlns:tccvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels"
         xmlns:tccviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Views"
-        xmlns:notificationvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Notification.ViewModels"
-        xmlns:notificationviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Notification.Views"
         xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
         xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
         Height="665" Width="1200"
@@ -70,11 +68,6 @@
 
         <!-- DefaultNotificationViewModel DataTemplate deleted - obsolete notification system -->
 
-        <!-- Notification Domain DataTemplate - maps to proper view -->
-        <DataTemplate DataType="{x:Type notificationvm:NotificationWorkspaceViewModel}">
-            <notificationviews:NotificationWorkspaceView />
-        </DataTemplate>
-
         <!-- REMOVED: TestCaseGeneratorMainVM DataTemplate - dead code, never used -->
 
         <!-- Startup ViewModels DataTemplates -->
@@ -94,10 +87,6 @@
             <startupviews:StartUp_NavigationView />
         </DataTemplate>
         
-        <DataTemplate DataType="{x:Type startupvm:StartUp_NotificationViewModel}">
-            <startupviews:StartUp_NotificationView />
-        </DataTemplate>
-
         <!-- NEW-STYLE Dummy ViewModels DataTemplates (AI Guide compliant) -->
         <DataTemplate DataType="{x:Type dummyvm:Dummy_TitleViewModel}">
             <dummyviews:Dummy_TitleView />
@@ -166,7 +155,7 @@
             <reqviews:RequirementsSearchAttachmentsView />
         </DataTemplate>
 
-        <!-- Requirements uses shared NavigationViewModel and NotificationWorkspaceViewModel -->
+        <!-- Requirements uses shared NavigationViewModel -->
 
         <DataTemplate DataType="{x:Type vm:LLMLearningViewModel}">
             <views:LLMLearningView />

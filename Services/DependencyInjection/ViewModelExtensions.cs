@@ -7,7 +7,6 @@ using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Startup.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
-using TestCaseEditorApp.MVVM.Domains.Notification.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Title.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels;
@@ -15,7 +14,6 @@ using TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.Startup.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.Notification.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.Shared.ViewModels;
 using Microsoft.Extensions.Logging;
@@ -241,15 +239,6 @@ namespace TestCaseEditorApp.Services.DependencyInjection
             services.AddTransient<Dummy_NavigationViewModel>();
             services.AddTransient<Dummy_TitleViewModel>();
             services.AddTransient<Dummy_NotificationViewModel>();
-
-            // === NOTIFICATION DOMAIN VIEWMODELS ===
-            services.AddSingleton<NotificationWorkspaceViewModel>(provider =>
-            {
-                var notificationMediator = provider.GetRequiredService<INotificationMediator>();
-                var logger = provider.GetRequiredService<ILogger<NotificationWorkspaceViewModel>>();
-                var ollamaStatusMonitor = provider.GetService<IOllamaStatusMonitor>();
-                return new NotificationWorkspaceViewModel(notificationMediator, logger, ollamaStatusMonitor);
-            });
 
             // === TEST CASE GENERATOR MODE VIEWMODELS ===
             services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels.TestCaseGeneratorMode_MainVM>();

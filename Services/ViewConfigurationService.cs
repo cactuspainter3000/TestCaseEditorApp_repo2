@@ -31,7 +31,6 @@ namespace TestCaseEditorApp.Services
         
         // Cached view models - created once and reused
         private WorkspaceHeaderViewModel? _workspaceHeader;
-        private TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel? _notificationWorkspace;
         
         public ViewConfiguration? CurrentConfiguration { get; private set; }
 
@@ -119,14 +118,12 @@ namespace TestCaseEditorApp.Services
             var headerVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_HeaderViewModel>();
             var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel>();
             var navVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_NavigationViewModel>();
-            // Startup screen uses its own notification VM - Ollama monitoring starts when LLM sections are accessed
-            var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_NotificationViewModel>();
+            // Notification workspace host was removed from shell; keep section configuration notification-free.
             
             if (titleVM == null) throw new InvalidOperationException("StartUp_TitleViewModel not resolved from DI container");
             if (headerVM == null) throw new InvalidOperationException("StartUp_HeaderViewModel not resolved from DI container");
             if (mainVM == null) throw new InvalidOperationException("StartUp_MainViewModel not resolved from DI container");
             if (navVM == null) throw new InvalidOperationException("StartUp_NavigationViewModel not resolved from DI container");
-            if (notificationVM == null) throw new InvalidOperationException("StartUp_NotificationViewModel not resolved from DI container");
             
             return new ViewConfiguration(
                 sectionName: "Startup",
@@ -134,7 +131,7 @@ namespace TestCaseEditorApp.Services
                 headerViewModel: headerVM,
                 contentViewModel: mainVM,
                 navigationViewModel: navVM,
-                notificationViewModel: notificationVM,
+                notificationViewModel: null,
                 context: context
             );
         }
@@ -153,9 +150,6 @@ namespace TestCaseEditorApp.Services
                 // OpenProject mode: Project workflow with null shared ViewModels (handled internally)
                 var projectStaticView = new TestCaseEditorApp.MVVM.Views.ProjectStaticView();
                 var blankHeaderVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("");
-                var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
-                
-                if (notificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not resolved");
                 
                 return new ViewConfiguration(
                     sectionName: "Workshop",
@@ -163,7 +157,7 @@ namespace TestCaseEditorApp.Services
                     headerViewModel: blankHeaderVM,
                     contentViewModel: projectStaticView,
                     navigationViewModel: null, // Workshop mode handles navigation internally
-                    notificationViewModel: notificationVM,
+                    notificationViewModel: null,
                     context: context
                 );
             }
@@ -192,7 +186,6 @@ namespace TestCaseEditorApp.Services
                 var headerVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Learning Configuration");
                 var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.ViewModels.LLMLearningViewModel>() 
                             ?? new TestCaseEditorApp.MVVM.ViewModels.LLMLearningViewModel();
-                var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
                 
                 return new ViewConfiguration(
                     sectionName: "LLM Learning",
@@ -200,7 +193,7 @@ namespace TestCaseEditorApp.Services
                     headerViewModel: headerVM,
                     contentViewModel: mainVM,        // ViewModel → DataTemplate renders LLMLearningView
                     navigationViewModel: null, // LLM Learning domain handles navigation internally
-                    notificationViewModel: notificationVM, // Shared notification with LLM status
+                    notificationViewModel: null,
                     context: context
                 );
             }
@@ -254,18 +247,11 @@ namespace TestCaseEditorApp.Services
                 System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: Requirements_NavigationViewModel resolved: {requirementsNavigationVM != null}\n");
             } catch { /* ignore */ }
             
-            try {
-                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: About to resolve NotificationWorkspaceViewModel\n");
-            } catch { /* ignore */ }
-            var sharedNotificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
-            try {
-                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: NotificationWorkspaceViewModel resolved: {sharedNotificationVM != null}\n");
-            } catch { /* ignore */ }
             
-            System.Diagnostics.Debug.WriteLine($"[ViewConfigurationService] *** Retrieved ViewModels: Main={unifiedMainVM != null}, Header={requirementsHeaderVM != null}, Navigation={requirementsNavigationVM != null}, Notification={sharedNotificationVM != null} ***");
+            System.Diagnostics.Debug.WriteLine($"[ViewConfigurationService] *** Retrieved ViewModels: Main={unifiedMainVM != null}, Header={requirementsHeaderVM != null}, Navigation={requirementsNavigationVM != null} ***");
             try {
                 System.IO.File.AppendAllText("debug_requirements.log", 
-                    $"{DateTime.Now}: ViewConfigurationService: Retrieved ViewModels - Main={unifiedMainVM != null}, Header={requirementsHeaderVM != null}, Navigation={requirementsNavigationVM != null}, Notification={sharedNotificationVM != null}\\n");
+                    $"{DateTime.Now}: ViewConfigurationService: Retrieved ViewModels - Main={unifiedMainVM != null}, Header={requirementsHeaderVM != null}, Navigation={requirementsNavigationVM != null}\\n");
             } catch { /* ignore */ }
             TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] Retrieved UnifiedRequirementsMainViewModel instance {unifiedMainVM?.GetHashCode()} for workspace");
             
@@ -284,10 +270,6 @@ namespace TestCaseEditorApp.Services
                     System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: ERROR: Requirements_NavigationViewModel is NULL!\\n");
                     throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
                 }
-                if (sharedNotificationVM == null) {
-                    System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: ERROR: NotificationWorkspaceViewModel is NULL!\\n");
-                    throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
-                }
             } catch (Exception ex) {
                 System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: EXCEPTION in validation: {ex.Message}\\n");
                 throw;
@@ -304,7 +286,7 @@ namespace TestCaseEditorApp.Services
                 headerViewModel: requirementsHeaderVM, // Requirements-specific header  
                 contentViewModel: unifiedMainVM, // Unified ViewModel → DataTemplate renders appropriate Requirements view
                 navigationViewModel: requirementsNavigationVM, // Requirements navigation for left panel
-                notificationViewModel: sharedNotificationVM, // Shared notification
+                notificationViewModel: null,
                 context: context
             );
         }
@@ -314,15 +296,12 @@ namespace TestCaseEditorApp.Services
         private ViewConfiguration CreateTestFlowConfiguration(object? context)
         {
             EnsureWorkspaceHeader();
-
-            var sharedNotificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
-            if (sharedNotificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
             
             return new ViewConfiguration(
                 sectionName: "TestFlow",
                 headerViewModel: GetWorkspaceHeader(),
                 contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Test Flow Designer"),
-                notificationViewModel: sharedNotificationVM, // SHARED: Same notification area for all domains
+                notificationViewModel: null,
                 context: context
             );
         }
@@ -330,15 +309,12 @@ namespace TestCaseEditorApp.Services
         private ViewConfiguration CreateImportConfiguration(object? context)
         {
             EnsureWorkspaceHeader();
-
-            var sharedNotificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
-            if (sharedNotificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
             
             return new ViewConfiguration(
                 sectionName: "Import",
                 headerViewModel: _workspaceHeader,
                 contentViewModel: new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel(""),
-                notificationViewModel: sharedNotificationVM, // SHARED: Same notification area for all domains
+                notificationViewModel: null,
                 context: context
             );
         }
@@ -369,11 +345,9 @@ namespace TestCaseEditorApp.Services
             var titleVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("Test Case Creation");
             var headerVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("");
             var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreationMainVM>();
-            var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
             
             // Fail-fast validation
             if (mainVM == null) throw new InvalidOperationException("TestCaseCreationMainVM not registered in DI container");
-            if (notificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
             
             // Use null for navigationViewModel - TestCaseCreation handles its own navigation internally
             TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] TestCaseCreation ViewModels resolved successfully");
@@ -384,7 +358,7 @@ namespace TestCaseEditorApp.Services
                 headerViewModel: headerVM,
                 contentViewModel: mainVM,
                 navigationViewModel: null,
-                notificationViewModel: notificationVM,
+                notificationViewModel: null,
                 context: context
             );
         }
@@ -397,11 +371,9 @@ namespace TestCaseEditorApp.Services
             var titleVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("LLM Test Case Generator");
             var headerVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("");
             var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.LLMTestCaseGeneratorViewModel>();
-            var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
             
             // Fail-fast validation
             if (mainVM == null) throw new InvalidOperationException("LLMTestCaseGeneratorViewModel not registered in DI container");
-            if (notificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
             
             // Resolve navigation ViewModel from DI container
             var navigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels.TestCaseCreation_NavigationViewModel>();
@@ -415,7 +387,7 @@ namespace TestCaseEditorApp.Services
                 headerViewModel: headerVM,
                 contentViewModel: mainVM,
                 navigationViewModel: navigationVM,
-                notificationViewModel: notificationVM,
+                notificationViewModel: null,
                 context: context
             );
         }
@@ -427,11 +399,9 @@ namespace TestCaseEditorApp.Services
             // TestCaseGenerator domain using legitimate ViewModels only (no deprecated TestCaseGeneration ViewModels)
             var blankHeaderVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("");
             var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels.TestCaseGeneratorMode_MainVM>();
-            var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
             
             // Fail-fast validation (AI Guide requirement)
             if (mainVM == null) throw new InvalidOperationException("TestCaseGeneratorMode_MainVM not registered in DI container");
-            if (notificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
             
             TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All TestCaseGenerator ViewModels resolved successfully");
 
@@ -442,7 +412,7 @@ namespace TestCaseEditorApp.Services
                 headerViewModel: blankHeaderVM,  // Blank header (will be updated later)
                 contentViewModel: mainVM,        // ViewModel → DataTemplate renders TestCaseGeneratorMainView
                 navigationViewModel: null, // TestCaseGenerator domain handles navigation internally
-                notificationViewModel: notificationVM, // SHARED: Same notification area for all domains
+                notificationViewModel: null,
                 context: context
             );
         }
@@ -537,12 +507,10 @@ namespace TestCaseEditorApp.Services
                 // NewProject domain using own ViewModels (no shared deprecated ViewModels)
                 var headerVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectHeaderViewModel>();
                 var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels.NewProjectWorkflowViewModel>();
-                var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
                 
                 // Fail-fast validation (AI Guide requirement)
                 if (headerVM == null) throw new InvalidOperationException("NewProjectHeaderViewModel not registered in DI container");
                 if (mainVM == null) throw new InvalidOperationException("NewProjectWorkflowViewModel not registered in DI container");
-                if (notificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
                 
                 TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] All NewProject ViewModels resolved successfully");
 
@@ -553,7 +521,7 @@ namespace TestCaseEditorApp.Services
                     headerViewModel: headerVM,       // ViewModel → DataTemplate renders NewProjectHeaderView
                     contentViewModel: mainVM,        // ViewModel → DataTemplate renders NewProject_MainView
                     navigationViewModel: null,       // NewProject domain handles navigation internally
-                    notificationViewModel: notificationVM, // Shared notification workspace
+                    notificationViewModel: null,
                     context: context
                 );
             }
@@ -582,11 +550,9 @@ namespace TestCaseEditorApp.Services
                 // OpenProject domain using own ViewModels (no shared deprecated ViewModels)
                 var blankHeaderVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("");
                 var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels.OpenProjectWorkflowViewModel>();
-                var notificationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>();
                 
                 // Fail-fast validation (AI Guide requirement)
                 if (mainVM == null) throw new InvalidOperationException("OpenProjectWorkflowViewModel not registered in DI container");
-                if (notificationVM == null) throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
 
                 // If navigation provided a workshop path, open it immediately.
                 mainVM.ApplyNavigationContext(context);
@@ -600,7 +566,7 @@ namespace TestCaseEditorApp.Services
                     headerViewModel: blankHeaderVM,       // Blank header (will be updated later)
                     contentViewModel: mainVM,        // ViewModel → DataTemplate renders OpenProject_MainView
                     navigationViewModel: null, // OpenProject domain handles navigation internally
-                    notificationViewModel: notificationVM, // Shared notification workspace
+                    notificationViewModel: null,
                     context: context
                 );
             }
@@ -646,17 +612,6 @@ namespace TestCaseEditorApp.Services
         {
             EnsureWorkspaceHeader();
             return _workspaceHeader!;
-        }
-
-        private TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel EnsureNotificationWorkspace()
-        {
-            if (_notificationWorkspace == null)
-            {
-                // Get the notification ViewModel from the service provider
-                _notificationWorkspace = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Notification.ViewModels.NotificationWorkspaceViewModel>()
-                    ?? throw new InvalidOperationException("NotificationWorkspaceViewModel not registered in DI container");
-            }
-            return _notificationWorkspace;
         }
 
         #endregion
