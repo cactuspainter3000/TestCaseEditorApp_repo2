@@ -162,8 +162,9 @@ namespace TestCaseEditorApp.Services
         {
             TestCaseEditorApp.Services.Logging.Log.Info($"[ViewAreaCoordinator] Project creation detected: {projectEvent.ProjectName}. Auto-navigating to workshop (openproject view).");
             
-            // Automatically navigate to the openproject view to load the newly created project's workshop
-            _navigationMediator.NavigateToSection("openproject", projectEvent);
+            // Automatically navigate to the openproject view and pass the project file path as context
+            // so it auto-opens the newly created project
+            _navigationMediator.NavigateToSection("openproject", projectEvent.ProjectPath);
         }
     }
 }
