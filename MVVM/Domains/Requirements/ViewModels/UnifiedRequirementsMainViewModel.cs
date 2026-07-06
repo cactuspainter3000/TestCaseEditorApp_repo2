@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Specialized;
 using System.Windows.Input;
 using TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
@@ -236,10 +237,45 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public ICommand GenerateTestsCommand { get; private set; } = null!;
         public ICommand ViewInTestGenCommand { get; private set; } = null!;
 
-        // Navigation Commands (TODO)
-        public ICommand? PreviousRequirementCommand => null; // TODO: Implement via mediator
-        public ICommand? NextRequirementCommand => null; // TODO: Implement via mediator
-        public ICommand? NextWithoutTestCaseCommand => null; // TODO: Implement via mediator
+        // Requirement Navigation Commands (in-view replacement for removed workspace navigation)
+        public ICommand PreviousRequirementCommand { get; private set; } = null!;
+        public ICommand NextRequirementCommand { get; private set; } = null!;
+
+        public ObservableCollection<Requirement> Requirements => _mediator.Requirements;
+
+        public Requirement? SelectedRequirement
+        {
+            get => CurrentRequirement;
+            set
+            {
+                if (value == null || CurrentRequirement?.GlobalId == value.GlobalId)
+                {
+                    return;
+                }
+
+                _mediator.SelectRequirement(value);
+            }
+        }
+
+        public string RequirementPositionDisplay
+        {
+            get
+            {
+                var total = _mediator.Requirements.Count;
+                if (total == 0)
+                {
+                    return "0 / 0";
+                }
+
+                var currentIndex = _mediator.GetCurrentRequirementIndex();
+                if (currentIndex < 0)
+                {
+                    return $"0 / {total}";
+                }
+
+                return $"{currentIndex + 1} / {total}";
+            }
+        }
 
         #endregion
 
@@ -357,6 +393,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             QuickAnalyzeCommand = new RelayCommand(ExecuteQuickAnalyze, () => HasCurrentRequirement);
             GenerateTestsCommand = new RelayCommand(ExecuteGenerateTests, () => CanGenerateTests);
             ViewInTestGenCommand = new RelayCommand(ExecuteViewInTestGen, () => HasCurrentRequirement);
+
+            // In-view requirement navigation
+            PreviousRequirementCommand = new RelayCommand(ExecutePreviousRequirement, CanExecutePreviousRequirement);
+            NextRequirementCommand = new RelayCommand(ExecuteNextRequirement, CanExecuteNextRequirement);
         }
 
         private void SubscribeToEvents()
@@ -387,8 +427,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     SelectedBy = "ViewModel_Initialization"
                 });
             }
+
+            _mediator.Requirements.CollectionChanged += OnRequirementsCollectionUpdated;
             
             _logger.LogInformation("[UnifiedRequirementsMainVM] Event subscriptions completed");
+        }
+
+        private void OnRequirementsCollectionUpdated(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            OnPropertyChanged(nameof(Requirements));
+            OnPropertyChanged(nameof(RequirementPositionDisplay));
+            NotifyCommandsCanExecuteChanged();
         }
 
         private void InitializeAnalysisViewModel(IRequirementAnalysisService? analysisService)
@@ -486,6 +535,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
 
             // Notify commands
+            OnPropertyChanged(nameof(SelectedRequirement));
+            OnPropertyChanged(nameof(RequirementPositionDisplay));
             NotifyCommandsCanExecuteChanged();
         }
 
@@ -912,6 +963,30 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             return CanSelectAllVisible();
         }
 
+        private void ExecutePreviousRequirement()
+        {
+            _mediator.NavigateToPrevious();
+            OnPropertyChanged(nameof(RequirementPositionDisplay));
+        }
+
+        private bool CanExecutePreviousRequirement()
+        {
+            return _mediator.GetCurrentRequirementIndex() > 0;
+        }
+
+        private void ExecuteNextRequirement()
+        {
+            _mediator.NavigateToNext();
+            OnPropertyChanged(nameof(RequirementPositionDisplay));
+        }
+
+        private bool CanExecuteNextRequirement()
+        {
+            var idx = _mediator.GetCurrentRequirementIndex();
+            var total = _mediator.Requirements.Count;
+            return idx >= 0 && idx < total - 1;
+        }
+
         // Analysis & Test Generation Commands
         private async void ExecuteQuickAnalyze()
         {
@@ -980,6 +1055,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             ((RelayCommand)QuickAnalyzeCommand).NotifyCanExecuteChanged();
             ((RelayCommand)GenerateTestsCommand).NotifyCanExecuteChanged();
             ((RelayCommand)ViewInTestGenCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)PreviousRequirementCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)NextRequirementCommand).NotifyCanExecuteChanged();
         }
 
         #endregion
@@ -1029,6 +1106,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 _userSettingsVm.PropertyChanged -= OnUserSettingsProbePropertyChanged;
             }
+
+            _mediator.Requirements.CollectionChanged -= OnRequirementsCollectionUpdated;
             
             this.PropertyChanged -= OnViewModePropertyChanged;
             
