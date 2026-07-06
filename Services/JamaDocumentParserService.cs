@@ -2565,6 +2565,7 @@ Extract all legitimate requirements:";
                         projectId,
                         documentContent,
                         derivationResult.DerivedCapabilities,
+                        derivationResult.RejectedItems,
                         derivedRequirements,
                         cancellationToken);
                     
@@ -2686,6 +2687,7 @@ Extract all legitimate requirements:";
             int projectId,
             string documentContent,
             IReadOnlyList<DerivedCapability> capabilities,
+            IReadOnlyList<RejectedItem> rejectedItems,
             IReadOnlyList<Requirement> derivedRequirements,
             CancellationToken cancellationToken)
         {
@@ -2729,6 +2731,19 @@ Extract all legitimate requirements:";
                     .Select(NormalizeForTraceMatch)
                     .Where(s => s.Length >= 16)
                     .Distinct(StringComparer.Ordinal)
+                    .ToList();
+
+                var normalizedRejected = (rejectedItems ?? Array.Empty<RejectedItem>())
+                    .Where(item => item != null && !string.IsNullOrWhiteSpace(item.OriginalText))
+                    .Select(item => new
+                    {
+                        OriginalText = item.OriginalText,
+                        NormalizedText = NormalizeForTraceMatch(item.OriginalText),
+                        RejectionReason = item.RejectionReason,
+                        SuggestedLevel = item.SuggestedLevel,
+                        SuggestedPlacement = item.SuggestedPlacement
+                    })
+                    .Where(item => item.NormalizedText.Length >= 16)
                     .ToList();
 
                 var usedClauses = new List<string>();
@@ -2803,6 +2818,76 @@ Extract all legitimate requirements:";
                     }
 
                     report.AppendLine();
+                }
+
+                report.AppendLine("EXAMINED CLAUSES WITH DECISIONS");
+                report.AppendLine("------------------------------");
+                if (clauses.Count == 0)
+                {
+                    report.AppendLine("<none>");
+                }
+                else
+                {
+                    for (var i = 0; i < clauses.Count; i++)
+                    {
+                        var clause = clauses[i];
+                        var normalizedClause = NormalizeForTraceMatch(clause);
+
+                        var matchedCapability = capabilities.FirstOrDefault(cap =>
+                        {
+                            var sourceText = cap.SourceMetadata != null && cap.SourceMetadata.TryGetValue("SourceRequirementText", out var src)
+                                ? src
+                                : cap.SourceATPStep;
+
+                            var normalizedSource = NormalizeForTraceMatch(sourceText);
+                            return normalizedSource.Length >= 16 &&
+                                   (normalizedSource.Contains(normalizedClause, StringComparison.Ordinal) ||
+                                    normalizedClause.Contains(normalizedSource, StringComparison.Ordinal));
+                        });
+
+                        var matchedRejected = normalizedRejected.FirstOrDefault(item =>
+                            item.NormalizedText.Contains(normalizedClause, StringComparison.Ordinal) ||
+                            normalizedClause.Contains(item.NormalizedText, StringComparison.Ordinal));
+
+                        string decision;
+                        string criteria;
+
+                        if (matchedCapability != null)
+                        {
+                            decision = "IS_REQUIREMENT";
+                            var rationale = string.IsNullOrWhiteSpace(matchedCapability.DerivationRationale)
+                                ? "Classified by taxonomy and converted to derived capability"
+                                : matchedCapability.DerivationRationale;
+
+                            criteria = $"Matched derived capability '{TruncateForReport(matchedCapability.RequirementText, 140)}'; " +
+                                       $"taxonomy={matchedCapability.TaxonomySubcategory}, confidence={matchedCapability.ConfidenceScore:F2}, rationale={TruncateForReport(rationale, 180)}";
+                        }
+                        else if (matchedRejected != null)
+                        {
+                            decision = "NOT_REQUIREMENT";
+                            var rejectionReason = string.IsNullOrWhiteSpace(matchedRejected.RejectionReason)
+                                ? "Rejected during capability derivation"
+                                : matchedRejected.RejectionReason;
+
+                            var level = string.IsNullOrWhiteSpace(matchedRejected.SuggestedLevel)
+                                ? "Unspecified"
+                                : matchedRejected.SuggestedLevel;
+                            var placement = string.IsNullOrWhiteSpace(matchedRejected.SuggestedPlacement)
+                                ? "Unspecified"
+                                : matchedRejected.SuggestedPlacement;
+
+                            criteria = $"Rejected: {TruncateForReport(rejectionReason, 180)}; suggestedLevel={level}; suggestedPlacement={placement}";
+                        }
+                        else
+                        {
+                            decision = "UNDECIDED_REVIEW";
+                            criteria = "Clause did not match a kept capability or an explicit rejected item in this run";
+                        }
+
+                        report.AppendLine($"[{i + 1}] Decision: {decision}");
+                        report.AppendLine($"    Clause: {TruncateForReport(clause, 220)}");
+                        report.AppendLine($"    Criteria: {criteria}");
+                    }
                 }
 
                 report.AppendLine("USED SOURCE CLAUSES");
