@@ -28,6 +28,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
         private readonly RecentFilesService _recentFilesService;
         private readonly IJamaConnectService _jamaConnectService;
         private readonly IWorkspaceContext _workspaceContext;
+        private readonly INavigationMediator _navigationMediator;
         private bool _isScanning = false;
         
         [ObservableProperty]
@@ -92,6 +93,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             RecentFilesService recentFilesService, 
             IJamaConnectService jamaConnectService,
             IWorkspaceContext workspaceContext,
+            INavigationMediator navigationMediator,
             ILogger<OpenProjectWorkflowViewModel> logger)
             : base(mediator, logger)
         {
@@ -100,6 +102,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             _recentFilesService = recentFilesService ?? throw new ArgumentNullException(nameof(recentFilesService));
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
+            _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
             
             // Initialize commands
             OpenProjectCommand = new AsyncRelayCommand(OpenProjectAsync);
@@ -185,6 +188,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                             OnPropertyChanged(nameof(RecentProjects));
                             ProjectStatus = "Requirements Workshop opened successfully";
                             _logger.LogInformation($"Project opened successfully: {SelectedProjectPath}");
+                            _navigationMediator.NavigateToSection("requirements");
                         }
                         else
                         {
@@ -482,6 +486,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                     OnPropertyChanged(nameof(RecentProjects));
                     ProjectStatus = "Requirements Workshop opened successfully";
                     _logger.LogInformation($"Project opened successfully: {filePath}");
+                    _navigationMediator.NavigateToSection("requirements");
                 }
                 else
                 {

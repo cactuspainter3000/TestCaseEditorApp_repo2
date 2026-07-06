@@ -195,8 +195,9 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 var recentFilesService = provider.GetRequiredService<RecentFilesService>();
                 var jamaConnectService = provider.GetRequiredService<IJamaConnectService>();
                 var workspaceContext = provider.GetRequiredService<IWorkspaceContext>();
+                var navigationMediator = provider.GetRequiredService<INavigationMediator>();
                 var logger = provider.GetRequiredService<ILogger<OpenProjectWorkflowViewModel>>();
-                return new OpenProjectWorkflowViewModel(mediator, persistenceService, recentFilesService, jamaConnectService, workspaceContext, logger);
+                return new OpenProjectWorkflowViewModel(mediator, persistenceService, recentFilesService, jamaConnectService, workspaceContext, navigationMediator, logger);
             });
             services.AddTransient<OpenProject_TitleViewModel>();
             services.AddTransient<OpenProject_HeaderViewModel>();
