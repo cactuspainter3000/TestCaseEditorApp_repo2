@@ -22,7 +22,7 @@
 
         <!-- Workflow Action Buttons Section -->
         <Border Grid.Row="0" Background="Transparent" Padding="16,4">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+            <StackPanel Orientation="Vertical" HorizontalAlignment="Left">
                 <Button Command="{Binding SearchAttachmentsCommand}"
                         IsEnabled="{Binding SearchAttachmentsCommand.CanExecute}"
                         Style="{StaticResource SideMenuPopupButtonStyle}"
@@ -39,6 +39,51 @@
                         <ToolTip Content="Scan the selected project for attachments and documents"/>
                     </Button.ToolTip>
                 </Button>
+
+                <Border Margin="0,8,0,0"
+                        Padding="10,8"
+                        Background="{StaticResource Brush.Background.Header}"
+                        BorderBrush="{StaticResource Brush.Border.Subtle}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <ProgressBar Grid.Column="0"
+                                     Height="8"
+                                     IsIndeterminate="True"
+                                     VerticalAlignment="Center"
+                                     Margin="0,0,12,0"/>
+
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding StatusMessage}"
+                                   VerticalAlignment="Center"
+                                   Foreground="{StaticResource Brush.Text.Primary}"
+                                   TextTrimming="CharacterEllipsis"
+                                   TextWrapping="NoWrap"
+                                   Margin="0,0,12,0"/>
+
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding ElapsedTime, StringFormat=Elapsed {0}}"
+                                   VerticalAlignment="Center"
+                                   Foreground="{StaticResource Brush.Text.Secondary}"
+                                   Margin="0,0,12,0"
+                                   Visibility="{Binding IsTimerVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                        <Button Grid.Column="3"
+                                Content="Cancel"
+                                Command="{Binding CancelParseCommand}"
+                                Style="{StaticResource SideMenuPopupButtonStyle}"
+                                Padding="10,4"
+                                VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
             </StackPanel>
         </Border>
 
