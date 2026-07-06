@@ -471,91 +471,36 @@ namespace TestCaseEditorApp.Services
         {
             try
             {
-                progressCallback?.Invoke($"Testing document access for '{attachment.FileName}' before extraction...");
+                progressCallback?.Invoke($"Optimizing AnythingLLM workspace configuration for '{attachment.FileName}'...");
                 
-                // CRITICAL: Test RAG document access before attempting extraction
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Testing RAG document access for workspace '{workspaceSlug}'");
+                // CRITICAL: Apply optimal RAG configuration BEFORE extraction to ensure comprehensive retrieval
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Applying optimal RAG configuration proactively for workspace '{workspaceSlug}'");
+                var configApplied = await _llmService.FixRagConfigurationAsync(workspaceSlug, cancellationToken);
+                
+                if (configApplied)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ RAG configuration applied - waiting for settings to take effect...");
+                    await Task.Delay(1500, cancellationToken); // Allow config to persist
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ⚠️ Could not apply RAG configuration - proceeding with current settings");
+                }
+                
+                progressCallback?.Invoke($"Testing document access for '{attachment.FileName}'...");
+                
+                // Now test RAG document access with optimal settings applied
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Testing RAG document access for workspace '{workspaceSlug}' with optimized settings");
                 var (hasAccess, diagnostics) = await _llmService.TestDocumentAccessAsync(workspaceSlug, cancellationToken);
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] RAG Test Results: {diagnostics}");
                 
-                // DEBUG: Check current workspace configuration after our fixes
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🔍 Checking if workspace configuration was properly applied...");
-                
                 if (!hasAccess)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ CRITICAL: RAG document access test FAILED");
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] LLM cannot access document content - similarity threshold or other RAG settings blocking retrieval");
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] This means our workspace configuration fixes didn't work as expected");
-                    
-                    // Force apply RAG configuration fix for existing workspace
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ⚠️ Applying emergency RAG fix to existing workspace");
-                    progressCallback?.Invoke($"⚠️ Applying RAG configuration fix...");
-                    
-                    var fixApplied = await _llmService.FixRagConfigurationAsync(workspaceSlug, cancellationToken);
-                    if (fixApplied)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] RAG fix applied - retesting document access");
-                        await Task.Delay(2000, cancellationToken); // Let config take effect
-                        
-                        var (retestSuccess, retestDiagnostics) = await _llmService.TestDocumentAccessAsync(workspaceSlug, cancellationToken);
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Retest Results: {retestDiagnostics}");
-                        
-                        if (!retestSuccess)
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ RAG fix failed - fundamental AnythingLLM configuration issue");
-                            progressCallback?.Invoke($"❌ RAG fix failed - cannot access document"); 
-                            return new List<Requirement>();
-                        }
-                        else
-                        {
-                            hasAccess = true; // Update to proceed
-                        }
-                    }
-                    else
-                    {
-                        progressCallback?.Invoke($"❌ Document access failed - RAG configuration issue detected");
-                        return new List<Requirement>(); // Return empty list
-                    }
-                }
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ⚠️ Initial RAG test failed - applying troubleshooting configuration");
-                    progressCallback?.Invoke($"Document access failed - applying RAG troubleshooting fix...");
-                    
-                    // Apply RAG configuration fix based on AnythingLLM documentation
-                    var fixApplied = await _llmService.FixRagConfigurationAsync(workspaceSlug, cancellationToken);
-                    if (fixApplied)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] RAG fix applied - retesting document access");
-                        progressCallback?.Invoke($"RAG configuration updated - retesting document access...");
-                        
-                        // Wait for configuration to take effect
-                        await Task.Delay(2000, cancellationToken);
-                        
-                        // Retest document access
-                        var (retestSuccess, retestDiagnostics) = await _llmService.TestDocumentAccessAsync(workspaceSlug, cancellationToken);
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Retest Results: {retestDiagnostics}");
-                        
-                        if (!retestSuccess)
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ CRITICAL: RAG fix failed - document still inaccessible");
-                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] This indicates a deeper AnythingLLM configuration issue");
-                            
-                            progressCallback?.Invoke($"❌ RAG troubleshooting failed - cannot extract real requirements");
-                            return new List<Requirement>(); // Return empty list
-                        }
-                        else
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ RAG fix successful - document access restored");
-                            hasAccess = true; // Update access status to proceed
-                        }
-                    }
-                    else
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ Could not apply RAG configuration fix");
-                        progressCallback?.Invoke($"❌ Could not fix document access - aborting extraction");
-                        return new List<Requirement>();
-                    }
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ Document access test FAILED even after RAG configuration");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] This indicates a fundamental AnythingLLM or workspace issue");
+                    progressCallback?.Invoke($"❌ Document access failed - cannot extract requirements"); 
+                    return new List<Requirement>();
                 }
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ RAG document access confirmed - proceeding with extraction");
@@ -686,45 +631,65 @@ Begin extraction now. Extract ALL technical specifications and constraints you c
         /// </summary>
         private string BuildComprehensiveExtractionPrompt(JamaAttachment attachment)
         {
-            return $@"CRITICAL: DOCUMENT CONTENT ACCESS DIAGNOSTIC + REQUIREMENT EXTRACTION
+            return $@"CRITICAL: EXHAUSTIVE REQUIREMENT EXTRACTION FOR TECHNICAL DOCUMENT
 
 FILE: {attachment.FileName}
 
-STEP 1 - DOCUMENT ACCESSIBILITY TEST:
-Before extracting requirements, first confirm what document content you can access:
-- List the first few section headings, page numbers, or chapter titles you can see
-- Report document length/section count if visible  
-- If you see NO document content, state: ""NO CONTENT ACCESSIBLE""
-- Only proceed to extraction if you have actual document access
+⚠️ IMPORTANT: You may have access to only partial document chunks through RAG retrieval.
+STRATEGY: Scan EVERY chunk you receive, looking for any requirement-related content.
+Don't rely only on obvious matches - look in ALL sections, headers, tables, specs.
 
-STEP 2 - EXTRACT EVERY REQUIREMENT (only if content accessible):
-Find ALL technical requirements and specifications. Extract anything that states what the system:
-- SHALL, MUST, WILL, SHOULD do or have
-- Performance limitations, timing constraints, accuracy specs
-- Interface specifications, protocol requirements
-- Environmental operating conditions
-- Physical constraints, design limits
-- Safety, security, quality requirements
-- Test criteria, acceptance conditions
+STEP 1 - INVENTORY DOCUMENT STRUCTURE:
+List everything you can see:
+- Document sections and headings (all of them)
+- Tables, diagrams, specifications
+- Any lists or structured data
+- Appendices or reference sections
+- If you see scattered chunks rather than continuous text, note that
 
-CRITICAL RULES:
-- Extract from ACTUAL document content you can see, not generic examples
-- Include specific numbers, values, references mentioned in the document
-- If uncertain whether something is a requirement, INCLUDE IT
-- Better to over-extract than miss critical requirements
+STEP 2 - EXHAUSTIVE REQUIREMENT SCAN:
+Go through EVERY section and EVERY piece of content looking for:
 
-OUTPUT FORMAT (for each requirement found):
+✓ SHALL, MUST, WILL, SHOULD statements (formal requirements)
+✓ Performance specs: timing, throughput, latency, accuracy
+✓ Interface specifications: protocols, message formats, API specs
+✓ Acceptance criteria and test requirements
+✓ Environmental constraints: hardware, OS, dependencies
+✓ Safety, security, compliance requirements
+✓ Quality metrics, reliability, availability specs
+✓ Physical constraints or design limits
+✓ Numbers, thresholds, tolerance values
+✓ References to standards or other requirements
+✓ State machines, sequences, procedural steps
+✓ Capability descriptions (""system shall be capable of..."")
+✓ Table entries (often contain specs and constraints)
+✓ Figure captions with technical details
+✓ Section headers that contain spec info
+
+STEP 3 - AGGREGATE AND OUTPUT:
+Output EVERYTHING that could possibly be a requirement.
+Better to include marginal cases than miss requirements.
+
+FORMAT FOR EACH REQUIREMENT:
 
 ---
 ID: REQ-001
-Text: [Complete requirement from actual document - include specific details/values]
+Text: [Exact text from document - include numbers, references, constraints]
 Category: [Functional/Performance/Interface/Environmental/Safety/Design/Quality/Test/Compliance]
 Priority: [High/Medium/Low]
 Verification: [Test/Analysis/Inspection/Demonstration]
-Source: [Specific section, page, or location where found]
+Source: [Section name, table name, or location]
 ---
 
-IMPORTANT: Only extract requirements if you have actual document access. Do not create generic example requirements.";
+CRITICAL RULES:
+- Use exact wording from the document
+- Include ALL numbers, units, thresholds
+- If multiple related specs exist, extract each separately
+- Number sequentially from REQ-001
+- Scan the FULL document - check every section listed in STEP 1
+
+⚠️ AGGRESSIVE EXTRACTION: If you find only 4-5 requirements, you're likely missing most of the document.
+For a technical ATP/SRS document, expect 15-50+ requirements minimum.";
         }
 
         /// <summary>
@@ -1073,11 +1038,16 @@ Begin validation now - be thorough and honest about what you can actually see:";
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] COMPLETENESS CHECK - Found {initialRequirements.Count} requirements for {attachment.FileName}");
                 
                 var expectedMin = EstimateMinimumRequirements(attachment);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] COMPLETENESS CHECK - Expected minimum: {expectedMin} requirements for {attachment.FileSize / 1024.0:F1}KB document");
                 
                 // If we found significantly fewer than expected, run a second extraction pass
-                if (initialRequirements.Count < expectedMin * 0.7) // If less than 70% of expected
+                // Threshold: 50% instead of 70% to be more aggressive about recovery
+                var completenessThreshold = expectedMin * 0.5;
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] COMPLETENESS CHECK - Threshold: {completenessThreshold:F1} (50% of {expectedMin})");
+                
+                if (initialRequirements.Count < completenessThreshold)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Count seems low ({initialRequirements.Count} < {expectedMin * 0.7:F0}), running recovery extraction pass...");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] COMPLETENESS CHECK - TRIGGERED ({initialRequirements.Count} < {completenessThreshold:F1}), running recovery extraction pass...");
                     
                     var recoveryPrompt = BuildRecoveryExtractionPrompt(attachment, initialRequirements);
                     // Use shorter timeout for recovery operations to prevent long waits
@@ -1106,6 +1076,10 @@ Begin validation now - be thorough and honest about what you can actually see:";
                         return allRequirements;
                     }
                 }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] COMPLETENESS CHECK - PASSED ({initialRequirements.Count} >= {completenessThreshold:F1}), no recovery needed");
+                }
                 
                 return initialRequirements;
             }
@@ -1124,42 +1098,88 @@ Begin validation now - be thorough and honest about what you can actually see:";
             var foundIds = alreadyFound.Select(r => r.GlobalId ?? "Unknown").ToList();
             var foundIdsText = string.Join(", ", foundIds);
             
-            return $@"RECOVERY SCAN: FIND MISSED REQUIREMENTS IN {attachment.FileName}
+            return $@"RECOVERY SCAN: EXHAUSTIVE RE-EXTRACTION OF MISSED REQUIREMENTS
 
-CONTEXT: Initial extraction found only {alreadyFound.Count} requirements: {foundIdsText}
+FILE: {attachment.FileName}
+ALREADY FOUND: {alreadyFound.Count} requirements ({foundIdsText})
 
-This seems low for a technical document. Please perform a thorough re-scan focusing on areas commonly missed:
+⚠️ CRITICAL: Only {alreadyFound.Count} requirements found suggests RAG retrieval limitation.
+You may be receiving document chunks in isolation without context.
+TASK: Re-scan EVERY part of the document systematically for ALL types of requirements.
 
-TARGETED SEARCH AREAS:
-1. Tables and charts with numerical specifications
-2. Appendices and reference sections
-3. Figure captions with technical specs
-4. Bullet points and numbered lists
-5. Headers that contain requirement-like text
-6. Performance sections, specifications sections
-7. Test procedures, acceptance criteria
-8. Interface descriptions, protocol specifications
-9. Environmental, safety, compliance sections
-10. Any ""The system shall..."" or similar statements
+EXHAUSTIVE SCAN PROTOCOL:
+1. DOCUMENT STRUCTURE SCAN:
+   - What sections/chapters exist?
+   - Are there tables with specs?
+   - Are there numbered lists or bullet points?
+   - Are there figures or diagrams with captions?
+   - Any appendices or reference sections?
 
-AGGRESSIVE EXTRACTION:
-- Look for ANY text that specifies system behavior, constraints, or performance
-- Include threshold values, limits, tolerances
-- Extract test requirements and acceptance criteria
-- Include interface specifications and standards references
-- Don't be conservative - if it looks like a requirement, extract it
+2. REQUIREMENT HUNTING IN EACH SECTION:
+   
+   ✓ Functional Requirements:
+   - System capabilities (""shall be capable of..."")
+   - Processes and workflows
+   - State transitions
+   - Input/output handling
+   
+   ✓ Performance Requirements:
+   - Response times, latency (milliseconds, seconds)
+   - Throughput, bandwidth, data rates
+   - Memory, storage requirements
+   - Scalability, capacity limits
+   - Availability, uptime percentages
+   
+   ✓ Interface Requirements:
+   - API specifications, endpoints
+   - Data formats (JSON, XML, etc)
+   - Protocol requirements (TCP, HTTP, etc)
+   - Message structures
+   - Encoding/compression
+   
+   ✓ Test & Acceptance Criteria:
+   - Test cases with specific conditions
+   - Pass/fail criteria
+   - Acceptance thresholds
+   - Validation procedures
+   - Test data requirements
+   
+   ✓ Environmental:
+   - Hardware requirements (CPU, RAM, disk)
+   - Operating system versions
+   - Browser compatibility
+   - Network requirements
+   - Database versions
+   
+   ✓ Safety/Security/Compliance:
+   - Encryption requirements
+   - Authentication mechanisms
+   - Permission/role requirements
+   - Audit logging needs
+   - Data protection rules
+   - Regulatory requirements
 
-DOCUMENT ACCESS CHECK:
-First confirm you can see actual document content (not just metadata). List a few actual text snippets or headings you can see from the document.
+3. AGGRESSIVE EXTRACTION RULES:
+   - Include EVERY number, threshold, percentage
+   - Extract constraint statements (""must not exceed..."")
+   - Extract each numbered item as separate requirement
+   - Include table entries that specify behavior/limits
+   - Treat section headers as requirement sources if they describe system behavior
+   - If unsure: EXTRACT IT (false positive better than false negative)
 
-FORMAT: Same as before with --- delimiters:
-ID: REQ-XXX (continue numbering from REQ-{alreadyFound.Count + 1:D3})
-Text: [Specific requirement text from actual document]
-Category: [Type]
-Source: [Exact location where found]
+OUTPUT FORMAT (continue from REQ-{alreadyFound.Count + 1:D3}):
+
+---
+ID: REQ-{alreadyFound.Count + 1:D3}
+Text: [Exact requirement text from document]
+Category: [Functional/Performance/Interface/Environmental/Safety/Design/Quality/Test/Compliance]
+Priority: [High/Medium/Low]
+Verification: [Test/Analysis/Inspection/Demonstration]
+Source: [Specific section/table/figure where found]
 ---
 
-GOAL: Find real requirements we missed in the first pass. Look harder at the actual document content.";
+⚠️ SUCCESS INDICATOR: If still finding only {alreadyFound.Count} total, document may have limited specifications.
+But thoroughly scan all sections first before concluding.";
         }
 
         /// <summary>
@@ -1167,22 +1187,29 @@ GOAL: Find real requirements we missed in the first pass. Look harder at the act
         /// </summary>
         private int EstimateMinimumRequirements(JamaAttachment attachment)
         {
-            // Basic heuristic based on file size and type
+            // Aggressive heuristic: Technical documents (ATP, SRS, etc) have many requirements
+            // Use 1 requirement per 15-20KB as baseline for comprehensive documents
             long fileSize = attachment.FileSize;
             var sizeKB = fileSize / 1024.0;
             
-            // Documents over 100KB typically have multiple requirements
+            // Technical documents over 100KB typically have many requirements (ATP, SRS, Interface specs, etc)
             if (sizeKB > 100)
             {
-                return Math.Max(5, (int)(sizeKB / 50)); // Rough estimate: 1 req per 50KB
+                // More aggressive: 1 requirement per 20KB for large technical docs
+                // For 135KB: 135/20 = 6.75 → 15 minimum expected
+                return Math.Max(15, (int)(sizeKB / 20));
             }
             else if (sizeKB > 50)
             {
-                return 3; // Medium documents should have at least a few requirements
+                return Math.Max(8, (int)(sizeKB / 15)); // Medium technical doc: at least 8, or 1 per 15KB
+            }
+            else if (sizeKB > 20)
+            {
+                return 5; // Small technical doc should have multiple requirements
             }
             else
             {
-                return 1; // Small documents should have at least one requirement
+                return 2; // Very small document
             }
         }
 
