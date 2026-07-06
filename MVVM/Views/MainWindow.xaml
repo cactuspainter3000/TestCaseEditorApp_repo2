@@ -393,9 +393,6 @@
                 <RowDefinition Height="Auto"/>
                 <!-- notification area -->
                 <RowDefinition Height="4"/>
-                <RowDefinition Height="60"/>
-                <!-- workspace header / summary -->
-                <RowDefinition Height="4"/>
                 <RowDefinition Height="*"/>
                 <!-- workspace content -->
             </Grid.RowDefinitions>
@@ -453,30 +450,13 @@
                 </Grid>
             </Border>
 
-            <!-- Workspace header -->
-            <Border Grid.Row="4" Grid.Column="2" Style="{StaticResource HeaderBorderStyle}" Padding="0" Margin="0">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1*"/>
-                        <ColumnDefinition Width="3*"/>
-                        <ColumnDefinition Width="1*"/>
-                        <ColumnDefinition Width="0.6*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <Grid Grid.ColumnSpan="4" Margin="0">
-                        <!-- Header content rendered via the HeaderViewModel (DataTemplate or UserControl) -->
-                        <ContentControl Content="{Binding HeaderWorkspace}" />
-                    </Grid>
-                </Grid>
-            </Border>
-
             <!-- Notification area - positioned directly below title with full width -->
             <Border Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource ContentBorderStyle}">
                 <ContentControl Content="{Binding NotificationWorkspace}" />
             </Border>
 
             <!-- Content area -->
-            <Border Grid.Column="2" Grid.Row="6" Style="{StaticResource ContentBorderStyle}">
+            <Border Grid.Column="2" Grid.Row="4" Style="{StaticResource ContentBorderStyle}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <!-- use relative stars that are easy to reason about -->
@@ -496,7 +476,7 @@
             </Border>
 
             <!-- Modal overlay system - TEMPORARILY DISABLED while debugging -->
-            <Grid Grid.Row="0" Grid.RowSpan="7" Grid.Column="0" Grid.ColumnSpan="3"
+            <Grid Grid.Row="0" Grid.RowSpan="5" Grid.Column="0" Grid.ColumnSpan="3"
                   Panel.ZIndex="9998"
                   Visibility="Collapsed"
                   x:Name="ModalOverlay"
@@ -601,7 +581,7 @@
             </Grid>
             
             <!-- Toast notification container - bottom-right corner -->
-            <ItemsControl Grid.Row="0" Grid.RowSpan="7" Grid.Column="0" Grid.ColumnSpan="3"
+            <ItemsControl Grid.Row="0" Grid.RowSpan="5" Grid.Column="0" Grid.ColumnSpan="3"
                          ItemsSource="{Binding ToastNotifications}"
                          VerticalAlignment="Bottom"
                          HorizontalAlignment="Right"
