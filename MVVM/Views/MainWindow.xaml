@@ -406,12 +406,16 @@
                         <ColumnDefinition Width="Auto"/> <!-- Window controls -->
                     </Grid.ColumnDefinitions>
                     
-                    <!-- Title Domain View - displays project name + save/undo actions -->
-                    <ContentPresenter Grid.Column="0"
-                                      Content="{Binding TitleVM}"
-                                      VerticalAlignment="Center"
-                                      HorizontalAlignment="Stretch"
-                                      Margin="4,0,10,0"/>
+                    <!-- Simplified shell title area after title workspace decommission -->
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding DisplayName, FallbackValue=Test Case Editor}"
+                               Foreground="White"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Left"
+                               Margin="12,0,10,0"
+                               TextTrimming="CharacterEllipsis"/>
                     
                     <!-- Window Controls -->
                     <StackPanel Grid.Column="1"
