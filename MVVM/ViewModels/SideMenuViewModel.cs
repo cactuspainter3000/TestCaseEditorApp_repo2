@@ -819,9 +819,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         {
 // ("*** SideMenuViewModel.NavigateToOpenProject called! ***");
             
-            SelectedSection = "OpenProject"; // Update selected section to trigger SectionChanged event
-            
-            _navigationMediator.NavigateToSection("OpenProject");
+            // Open workshop is now handled on the Startup dashboard (Browse + recents).
+            SelectedSection = "startup";
+            _navigationMediator.NavigateToSection("startup");
         }
 
         // ===============================================

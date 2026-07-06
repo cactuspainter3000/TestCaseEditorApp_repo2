@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.Win32;
+using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Startup.Mediators;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Models;
@@ -27,6 +29,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         private readonly IWorkspaceContext _workspaceContext;
         private readonly IJamaConnectService _jamaConnectService;
         private readonly AnythingLLMService _anythingLlmService;
+        private readonly IOpenProjectMediator _openProjectMediator;
         
         [ObservableProperty]
         private string title = "Systems ATE APP";
@@ -65,6 +68,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
             IWorkspaceContext workspaceContext,
             IJamaConnectService jamaConnectService,
             AnythingLLMService anythingLlmService,
+            IOpenProjectMediator openProjectMediator,
             ILogger<StartUp_MainViewModel> logger)
             : base(mediator, logger)
         {
@@ -74,6 +78,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
             _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _anythingLlmService = anythingLlmService ?? throw new ArgumentNullException(nameof(anythingLlmService));
+            _openProjectMediator = openProjectMediator ?? throw new ArgumentNullException(nameof(openProjectMediator));
 
             _workspaceContext.WorkspaceChanged += OnWorkspaceChanged;
 
@@ -105,20 +110,60 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         }
 
         [RelayCommand]
-        private void OpenRecentWorkshop(string? filePath)
+        private async Task OpenRecentWorkshopAsync(string? filePath)
         {
             if (string.IsNullOrWhiteSpace(filePath))
             {
                 return;
             }
 
-            _navigationMediator.NavigateToSection("OpenProject", filePath);
+            await OpenWorkshopFileAsync(filePath);
         }
 
         [RelayCommand]
-        private void ViewAllWorkshops()
+        private async Task BrowseWorkshopAsync()
         {
-            _navigationMediator.NavigateToSection("OpenProject");
+            var fileDialog = new OpenFileDialog
+            {
+                Title = "Open a Requirements Workshop",
+                Filter = "Test Case Editor Session|*.tcex.json|JSON Files|*.json|All Files|*.*",
+                CheckFileExists = true,
+                Multiselect = false
+            };
+
+            if (fileDialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(fileDialog.FileName))
+            {
+                await OpenWorkshopFileAsync(fileDialog.FileName);
+            }
+        }
+
+        [RelayCommand]
+        private async Task ViewAllWorkshopsAsync()
+        {
+            await BrowseWorkshopAsync();
+        }
+
+        private async Task OpenWorkshopFileAsync(string filePath)
+        {
+            if (!File.Exists(filePath))
+            {
+                return;
+            }
+
+            var success = await _openProjectMediator.OpenProjectFileAsync(filePath);
+            if (!success)
+            {
+                return;
+            }
+
+            _recentFilesService.AddRecentFile(filePath);
+            RefreshDashboardData();
+            _navigationMediator.NavigateToSection("requirements");
         }
 
         private void LoadRecentWorkshops()

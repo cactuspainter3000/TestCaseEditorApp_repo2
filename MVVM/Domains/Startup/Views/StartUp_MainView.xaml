@@ -190,6 +190,10 @@
                                     Style="{StaticResource HeroPrimaryButtonStyle}"
                                     Margin="0,0,14,0"
                                     />
+                            <Button Content="Browse Workshop"
+                                Command="{Binding BrowseWorkshopCommand}"
+                                Style="{StaticResource TextLinkButtonStyle}"
+                                Margin="0,0,14,0"/>
                             <Button Content="Import from Jama"
                                     Command="{Binding ImportFromJamaCommand}"
                                     Style="{StaticResource TextLinkButtonStyle}"
@@ -282,7 +286,7 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="RECENT WORKSHOPS" Style="{StaticResource SectionLabelStyle}"/>
                         <Button Grid.Column="1"
-                                Content="View all"
+                            Content="Browse files"
                                 Command="{Binding ViewAllWorkshopsCommand}"
                             Style="{StaticResource TextLinkButtonStyle}"
                             Foreground="#D15A14"/>

@@ -145,17 +145,15 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                 {
                     if (!_jamaConnectService.IsConfigured)
                     {
-                        var error = "This project is associated with Jama, but Jama Connect is not configured. Open is blocked to prevent stale requirement data.";
-                        _logger.LogError("❌ {Error}", error);
-                        PublishEvent(new OpenProjectEvents.ProjectOpenFailed
-                        {
-                            FilePath = filePath,
-                            ErrorMessage = error
-                        });
-                        ShowNotification(error, DomainNotificationType.Error);
-                        return false;
+                        var warning = "This project is associated with Jama, but Jama Connect is not configured. Opening cached workspace data and skipping live Jama sync.";
+                        _logger.LogWarning("⚠️ {Warning}", warning);
+                        ShowNotification(warning, DomainNotificationType.Warning);
+                        resolvedJamaProjectId = null;
                     }
+                }
 
+                if (resolvedJamaProjectId.HasValue)
+                {
                     ShowProgress("Syncing requirements from Jama...", 65);
 
                     List<Requirement> jamaRequirements;
@@ -165,80 +163,87 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                     }
                     catch (Exception ex)
                     {
-                        var error = $"Failed to refresh requirements from Jama project {resolvedJamaProjectId.Value}: {ex.Message}";
-                        _logger.LogError(ex, "❌ {Error}", error);
-                        PublishEvent(new OpenProjectEvents.ProjectOpenFailed
-                        {
-                            FilePath = filePath,
-                            ErrorMessage = error,
-                            Exception = ex
-                        });
-                        ShowNotification(error, DomainNotificationType.Error);
-                        return false;
+                        var warning = $"Could not refresh requirements from Jama project {resolvedJamaProjectId.Value}. Opening cached workspace data instead.";
+                        _logger.LogWarning(ex, "⚠️ {Warning}", warning);
+                        ShowNotification(warning, DomainNotificationType.Warning);
+                        resolvedJamaProjectId = null;
+                        jamaRequirements = workspace.Requirements ?? new List<Requirement>();
                     }
 
-                    workspace.Requirements = jamaRequirements ?? new List<Requirement>();
-                    workspace.JamaProjectId = resolvedJamaProjectId.Value;
-                    workspace.JamaProject = resolvedJamaProjectId.Value.ToString();
-                    workspace.ImportSource = "Jama";
-
-                    try
+                    if (resolvedJamaProjectId.HasValue)
                     {
-                        var projects = await _jamaConnectService.GetProjectsAsync(CancellationToken.None);
-                        var matchingProject = projects.FirstOrDefault(p => p.Id == resolvedJamaProjectId.Value);
-                        if (matchingProject != null)
+                        workspace.Requirements = jamaRequirements ?? new List<Requirement>();
+                        workspace.JamaProjectId = resolvedJamaProjectId.Value;
+                        workspace.JamaProject = resolvedJamaProjectId.Value.ToString();
+                        workspace.ImportSource = "Jama";
+                    }
+
+                    if (resolvedJamaProjectId.HasValue)
+                    {
+                        try
                         {
-                            workspace.JamaProjectName = matchingProject.Name;
-                            if (string.IsNullOrWhiteSpace(workspace.JamaTestPlan))
+                            var projects = await _jamaConnectService.GetProjectsAsync(CancellationToken.None);
+                            var matchingProject = projects.FirstOrDefault(p => p.Id == resolvedJamaProjectId.Value);
+                            if (matchingProject != null)
                             {
-                                workspace.JamaTestPlan = matchingProject.Name;
+                                workspace.JamaProjectName = matchingProject.Name;
+                                if (string.IsNullOrWhiteSpace(workspace.JamaTestPlan))
+                                {
+                                    workspace.JamaTestPlan = matchingProject.Name;
+                                }
+
+                                foreach (var req in workspace.Requirements.Where(r => string.IsNullOrWhiteSpace(r.Project)))
+                                {
+                                    req.Project = matchingProject.Name;
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Could not refresh Jama project metadata for project {ProjectId}", resolvedJamaProjectId.Value);
+                        }
+
+                        try
+                        {
+                            var (requirementTypeSuccess, requirementItemType) = await _jamaConnectService.GetRequirementItemTypeAsync(resolvedJamaProjectId.Value, CancellationToken.None);
+                            if (requirementTypeSuccess && requirementItemType.HasValue)
+                            {
+                                liveRequirementCount = await _jamaConnectService.GetProjectItemCountAsync(
+                                    resolvedJamaProjectId.Value,
+                                    requirementItemType.Value,
+                                    CancellationToken.None);
                             }
 
-                            foreach (var req in workspace.Requirements.Where(r => string.IsNullOrWhiteSpace(r.Project)))
+                            var (testCaseTypeSuccess, testCaseItemType) = await _jamaConnectService.GetTestCaseItemTypeAsync(resolvedJamaProjectId.Value, CancellationToken.None);
+                            if (testCaseTypeSuccess && testCaseItemType.HasValue)
                             {
-                                req.Project = matchingProject.Name;
+                                liveTestCaseCount = await _jamaConnectService.GetProjectItemCountAsync(
+                                    resolvedJamaProjectId.Value,
+                                    testCaseItemType.Value,
+                                    CancellationToken.None);
                             }
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Could not refresh Jama project metadata for project {ProjectId}", resolvedJamaProjectId.Value);
-                    }
-
-                    try
-                    {
-                        var (requirementTypeSuccess, requirementItemType) = await _jamaConnectService.GetRequirementItemTypeAsync(resolvedJamaProjectId.Value, CancellationToken.None);
-                        if (requirementTypeSuccess && requirementItemType.HasValue)
+                        catch (Exception ex)
                         {
-                            liveRequirementCount = await _jamaConnectService.GetProjectItemCountAsync(
-                                resolvedJamaProjectId.Value,
-                                requirementItemType.Value,
-                                CancellationToken.None);
-                        }
-
-                        var (testCaseTypeSuccess, testCaseItemType) = await _jamaConnectService.GetTestCaseItemTypeAsync(resolvedJamaProjectId.Value, CancellationToken.None);
-                        if (testCaseTypeSuccess && testCaseItemType.HasValue)
-                        {
-                            liveTestCaseCount = await _jamaConnectService.GetProjectItemCountAsync(
-                                resolvedJamaProjectId.Value,
-                                testCaseItemType.Value,
-                                CancellationToken.None);
+                            _logger.LogWarning(ex, "Could not refresh live Jama counts for project {ProjectId}", resolvedJamaProjectId.Value);
                         }
                     }
-                    catch (Exception ex)
+
+                    if (resolvedJamaProjectId.HasValue)
                     {
-                        _logger.LogWarning(ex, "Could not refresh live Jama counts for project {ProjectId}", resolvedJamaProjectId.Value);
+                        WorkspaceFileManager.Save(filePath, workspace);
                     }
 
-                    WorkspaceFileManager.Save(filePath, workspace);
+                    if (resolvedJamaProjectId.HasValue)
+                    {
+                        _logger.LogInformation("✅ Jama sync on open complete for project {ProjectId}. Requirements refreshed: {Count}",
+                            resolvedJamaProjectId.Value,
+                            workspace.Requirements.Count);
 
-                    _logger.LogInformation("✅ Jama sync on open complete for project {ProjectId}. Requirements refreshed: {Count}",
-                        resolvedJamaProjectId.Value,
-                        workspace.Requirements.Count);
-
-                    ShowNotification(
-                        $"Refreshed {workspace.Requirements.Count} requirements from Jama project {resolvedJamaProjectId.Value}.",
-                        DomainNotificationType.Success);
+                        ShowNotification(
+                            $"Refreshed {workspace.Requirements.Count} requirements from Jama project {resolvedJamaProjectId.Value}.",
+                            DomainNotificationType.Success);
+                    }
                 }
                 else
                 {
