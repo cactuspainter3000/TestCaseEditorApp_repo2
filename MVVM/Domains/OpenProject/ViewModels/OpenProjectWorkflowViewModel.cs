@@ -508,13 +508,13 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
         /// <summary>
         /// Automatically triggers background Jama attachment scanning when a project is opened
         /// </summary>
-        private async Task ScanJamaAttachmentsAsync()
+        private Task ScanJamaAttachmentsAsync()
         {
             // Prevent concurrent scans
             if (_isScanning)
             {
                 _logger.LogInformation("Jama attachment scan already in progress, skipping duplicate scan");
-                return;
+                return Task.CompletedTask;
             }
             
             _isScanning = true;
@@ -532,14 +532,14 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                 if (currentWorkspace == null || currentWorkspaceInfo == null)
                 {
                     _logger.LogWarning("Workspace context not available, skipping background attachment scan");
-                    return;
+                    return Task.CompletedTask;
                 }
                 
                 // Check if Jama is configured
                 if (!_jamaConnectService.IsConfigured)
                 {
                     _logger.LogInformation("Jama Connect not configured, skipping background attachment scan");
-                    return;
+                    return Task.CompletedTask;
                 }
                 
                 // Resolve target project strictly from workspace metadata.
@@ -558,63 +558,11 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                     targetProjectId = parsedProjectId;
                     _logger.LogInformation("Using parsed workspace JamaProject for background scan: {ProjectId}", targetProjectId.Value);
                 }
-
-                // 3) Name/key mapping fallback
-                if (!targetProjectId.HasValue)
-                {
-                    var candidateNames = new[]
-                    {
-                        currentWorkspace.JamaProjectName,
-                        currentWorkspace.JamaProject,
-                        currentWorkspace.JamaTestPlan
-                    }
-                    .Where(value => !string.IsNullOrWhiteSpace(value))
-                    .Select(value => value!.Trim())
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-
-                    if (candidateNames.Count > 0)
-                    {
-                        var projects = await _jamaConnectService.GetProjectsAsync();
-                        var matchingProject = projects?.FirstOrDefault(p =>
-                            candidateNames.Any(candidate =>
-                                string.Equals(p.Name, candidate, StringComparison.OrdinalIgnoreCase) ||
-                                string.Equals(p.Key, candidate, StringComparison.OrdinalIgnoreCase) ||
-                                string.Equals(p.Id.ToString(), candidate, StringComparison.OrdinalIgnoreCase)));
-
-                        if (matchingProject != null)
-                        {
-                            targetProjectId = matchingProject.Id;
-                            _logger.LogInformation("Mapped workspace Jama metadata to project {ProjectName} ({ProjectId})", matchingProject.Name, matchingProject.Id);
-                        }
-                    }
-                }
-
-                // 4) Infer from loaded requirement project values when workspace metadata is incomplete.
-                if (!targetProjectId.HasValue && currentWorkspace.Requirements != null && currentWorkspace.Requirements.Count > 0)
-                {
-                    var inferredProjectIds = currentWorkspace.Requirements
-                        .Select(requirement => requirement.Project)
-                        .Where(value => !string.IsNullOrWhiteSpace(value) && int.TryParse(value, out var parsed) && parsed > 0)
-                        .Select(value => int.Parse(value!))
-                        .Distinct()
-                        .ToList();
-
-                    if (inferredProjectIds.Count == 1)
-                    {
-                        targetProjectId = inferredProjectIds[0];
-                        _logger.LogInformation("Inferred Jama project ID {ProjectId} from requirement.Project values", targetProjectId.Value);
-                    }
-                    else if (inferredProjectIds.Count > 1)
-                    {
-                        _logger.LogWarning("Found multiple requirement.Project values ({ProjectIds}); cannot infer unique Jama project ID", string.Join(",", inferredProjectIds));
-                    }
-                }
                 
                 if (!targetProjectId.HasValue)
                 {
                     _logger.LogInformation("Could not determine target Jama project, skipping background attachment scan");
-                    return;
+                    return Task.CompletedTask;
                 }
 
                 // Keep canonical workspace metadata in sync for manual attachment scans after project open.
@@ -644,6 +592,8 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             {
                 _isScanning = false;
             }
+
+            return Task.CompletedTask;
         }
         
         /// <summary>

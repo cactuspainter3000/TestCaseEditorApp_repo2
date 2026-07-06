@@ -1036,8 +1036,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         }
 
         /// <summary>
-        /// Gets the current project ID, resolving project keys to numeric IDs if needed.
-        /// Use this method instead of CurrentProjectId when project key resolution might be required.
+        /// Gets the current project ID from canonical numeric workspace metadata.
         /// </summary>
         public async Task<int> GetCurrentProjectIdAsync()
         {
@@ -1050,35 +1049,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 {
                     return projectId;
                 }
-                
-                // Fallback: Try resolving project key to numeric ID (backwards compatibility)
-                var resolvedId = await TryResolveProjectKeyToIdAsync(currentWorkspace.JamaProject);
-                if (resolvedId > 0)
-                {
-                    return resolvedId;
-                }
             }
             
+            await Task.CompletedTask;
             return -1; // No valid project ID
-        }
-
-        private async Task<int> TryResolveProjectKeyToIdAsync(string projectKey)
-        {
-            try
-            {
-                var projects = await GetProjectsAsync();
-                var matchingProject = projects?.FirstOrDefault(p => 
-                    p.ProjectKey?.Equals(projectKey, StringComparison.OrdinalIgnoreCase) == true ||
-                    p.Key?.Equals(projectKey, StringComparison.OrdinalIgnoreCase) == true ||
-                    p.Name?.Equals(projectKey, StringComparison.OrdinalIgnoreCase) == true);
-                
-                return matchingProject?.Id ?? -1;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[RequirementsMediator] Error resolving project key '{ProjectKey}' to ID", projectKey);
-                return -1;
-            }
         }
 
         public void UpdateProjectContext(string? projectName)
@@ -1181,14 +1155,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             {
                 TestCaseEditorApp.Services.Logging.Log.Debug("[RequirementsMediator] IsJamaDataSource() returning true (Jama project association present)");
                 return true;
-            }
-
-            // Fallback for legacy workspaces that rely on ImportSource only.
-            if (!string.IsNullOrEmpty(currentWorkspace.ImportSource))
-            {
-                var isJama = string.Equals(currentWorkspace.ImportSource, "Jama", StringComparison.OrdinalIgnoreCase);
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementsMediator] IsJamaDataSource() returning {isJama} (ImportSource fallback)");
-                return isJama;
             }
 
             // Default to document view if no Jama association and no import marker.
