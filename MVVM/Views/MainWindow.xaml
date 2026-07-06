@@ -379,11 +379,8 @@
             CornerRadius="20">
         <Grid Margin="0">
             <Grid.ColumnDefinitions>
-                <!-- left menu: auto-size to content but keep a reasonable minimum to preserve layout -->
-                <ColumnDefinition Width="Auto" MinWidth="260"/>
-                <!-- left menu auto width (min 260px) -->
-                <ColumnDefinition Width="4"/>
-                <!-- gutter -->
+                <ColumnDefinition Width="0" MinWidth="0"/>
+                <ColumnDefinition Width="0"/>
                 <ColumnDefinition Width="*"/>
                 <!-- main content -->
             </Grid.ColumnDefinitions>
@@ -476,10 +473,6 @@
                 </Grid>
             </Border>
 
-            <!-- Left menu section: Test Case / Test Flow, with one-open-at-a-time behavior -->
-            <views:NewSideMenuView Grid.Column="0" Grid.Row="4" Grid.RowSpan="5" 
-                               DataContext="{Binding SideMenuWorkspace}"/>
-            
             <!-- Notification area - positioned directly below title with full width -->
             <Border Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource ContentBorderStyle}">
                 <ContentControl Content="{Binding NotificationWorkspace}" />
