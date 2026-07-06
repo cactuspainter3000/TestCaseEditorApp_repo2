@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Win32;
+using System.Windows;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Startup.Mediators;
 using Microsoft.Extensions.Logging;
@@ -268,6 +269,27 @@ namespace TestCaseEditorApp.MVVM.Domains.Startup.ViewModels
         }
 
         private void RefreshDashboardData()
+        {
+            if (Application.Current?.Dispatcher?.CheckAccess() == true)
+            {
+                RefreshDashboardDataCore();
+                return;
+            }
+
+            // Workspace change notifications may come from background threads.
+            // Always marshal collection/property mutations to the UI Dispatcher.
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher != null)
+            {
+                _ = dispatcher.InvokeAsync(RefreshDashboardDataCore);
+                return;
+            }
+
+            // Fallback for unexpected contexts where no WPF Application is available.
+            RefreshDashboardDataCore();
+        }
+
+        private void RefreshDashboardDataCore()
         {
             LoadRecentWorkshops();
             RefreshPulseMetrics();
