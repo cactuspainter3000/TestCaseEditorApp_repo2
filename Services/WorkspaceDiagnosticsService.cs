@@ -33,30 +33,17 @@ namespace TestCaseEditorApp.Services
 
                 var summaryBuilder = new StringBuilder();
                 summaryBuilder.AppendLine("Logs exported successfully.");
-                summaryBuilder.AppendLine();
                 summaryBuilder.AppendLine($"Desktop zip: {result.ZipPath}");
                 summaryBuilder.AppendLine($"Repo folder: {result.RepositoryExportPath}");
-                summaryBuilder.AppendLine($"Detected root: {result.ProjectRoot}");
-                summaryBuilder.AppendLine($"Root resolution: {result.RootResolutionInfo}");
-                summaryBuilder.AppendLine($"App base directory: {result.AppBaseDirectory}");
-                summaryBuilder.AppendLine($"Current directory: {result.CurrentDirectory}");
-                summaryBuilder.AppendLine();
+                summaryBuilder.AppendLine($"Full details: {result.SummaryPath}");
 
                 if (result.GitPushSucceeded)
                 {
-                    summaryBuilder.AppendLine("Git: add/commit/push completed.");
-                    if (!string.IsNullOrWhiteSpace(result.CommitHash))
-                    {
-                        summaryBuilder.AppendLine($"Commit: {result.CommitHash}");
-                    }
+                    summaryBuilder.AppendLine($"Git push: completed{(string.IsNullOrWhiteSpace(result.CommitHash) ? string.Empty : $" (commit {result.CommitHash})")}");
                 }
                 else
                 {
-                    summaryBuilder.AppendLine("Git: add/commit/push did not fully complete.");
-                    if (!string.IsNullOrWhiteSpace(result.GitFailureMessage))
-                    {
-                        summaryBuilder.AppendLine(result.GitFailureMessage);
-                    }
+                    summaryBuilder.AppendLine("Git push: not completed (see export-summary.txt)");
                 }
 
                 MessageBox.Show(
@@ -64,6 +51,13 @@ namespace TestCaseEditorApp.Services
                     "Export Analysis Logs",
                     MessageBoxButton.OK,
                     result.GitPushSucceeded ? MessageBoxImage.Information : MessageBoxImage.Warning);
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "notepad.exe",
+                    Arguments = $"\"{result.SummaryPath}\"",
+                    UseShellExecute = true
+                });
 
                 Process.Start(new ProcessStartInfo
                 {
@@ -239,23 +233,30 @@ namespace TestCaseEditorApp.Services
                 File.Copy(file, destination, overwrite: true);
             }
 
-            var summaryPath = Path.Combine(repoExportPath, "export-summary.txt");
-            File.WriteAllText(
-                summaryPath,
-                $"Created: {DateTime.Now:O}{Environment.NewLine}" +
-                $"Source machine: {Environment.MachineName}{Environment.NewLine}" +
-                $"Zip: {zipPath}{Environment.NewLine}" +
-                $"DetectedRoot: {projectRoot}{Environment.NewLine}" +
-                $"RootResolution: {rootResolution.ResolutionInfo}{Environment.NewLine}" +
-                $"AppBaseDirectory: {AppContext.BaseDirectory}{Environment.NewLine}" +
-                $"CurrentDirectory: {Environment.CurrentDirectory}{Environment.NewLine}");
-
             var gitResult = TryCommitAndPushExport(projectRoot, repoExportPath);
+
+            var summaryPath = Path.Combine(repoExportPath, "export-summary.txt");
+            var detailedSummary = new StringBuilder();
+            detailedSummary.AppendLine("TestCaseEditorApp Analysis Log Export");
+            detailedSummary.AppendLine($"Created: {DateTime.Now:O}");
+            detailedSummary.AppendLine($"Source machine: {Environment.MachineName}");
+            detailedSummary.AppendLine($"Zip: {zipPath}");
+            detailedSummary.AppendLine($"Repo folder: {repoExportPath}");
+            detailedSummary.AppendLine($"DetectedRoot: {projectRoot}");
+            detailedSummary.AppendLine($"RootResolution: {rootResolution.ResolutionInfo}");
+            detailedSummary.AppendLine($"AppBaseDirectory: {AppContext.BaseDirectory}");
+            detailedSummary.AppendLine($"CurrentDirectory: {Environment.CurrentDirectory}");
+            detailedSummary.AppendLine();
+            detailedSummary.AppendLine($"GitPushSucceeded: {gitResult.Succeeded}");
+            detailedSummary.AppendLine($"CommitHash: {gitResult.CommitHash ?? "(none)"}");
+            detailedSummary.AppendLine($"GitFailureMessage: {gitResult.FailureMessage ?? "(none)"}");
+            File.WriteAllText(summaryPath, detailedSummary.ToString());
 
             _logger.LogInformation("[WorkspaceDiagnosticsService] Exported analysis logs zip={ZipPath}, repoFolder={RepoFolder}", zipPath, repoExportPath);
             return new LogExportResult(
                 zipPath,
                 repoExportPath,
+                summaryPath,
                 gitResult.Succeeded,
                 gitResult.CommitHash,
                 gitResult.FailureMessage,
@@ -465,6 +466,7 @@ namespace TestCaseEditorApp.Services
         private sealed record LogExportResult(
             string ZipPath,
             string RepositoryExportPath,
+            string SummaryPath,
             bool GitPushSucceeded,
             string? CommitHash,
             string? GitFailureMessage,
