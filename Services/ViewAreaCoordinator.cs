@@ -156,14 +156,14 @@ namespace TestCaseEditorApp.Services
 
         /// <summary>
         /// Event handler for successful project creation.
-        /// Auto-navigates to Requirements view after project is created.
+        /// Auto-navigates to the workshop (project view) after project is created.
         /// </summary>
         private void OnProjectCreatedWithWorkspace(NewProjectEvents.ProjectCreatedWithWorkspace projectEvent)
         {
-            TestCaseEditorApp.Services.Logging.Log.Info($"[ViewAreaCoordinator] Project creation detected: {projectEvent.ProjectName}. Auto-navigating to Requirements view.");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[ViewAreaCoordinator] Project creation detected: {projectEvent.ProjectName}. Auto-navigating to workshop (project view).");
             
-            // Automatically navigate to Requirements view after successful project creation
-            _navigationMediator.NavigateToSection("requirements", projectEvent);
+            // Automatically navigate to the workshop view after successful project creation
+            _navigationMediator.NavigateToSection("project", projectEvent);
         }
     }
 }
