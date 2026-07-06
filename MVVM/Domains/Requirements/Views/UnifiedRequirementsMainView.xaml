@@ -135,13 +135,29 @@
 
         <!-- Tab Navigation -->
         <DockPanel Grid.Row="0" Margin="10,0" LastChildFill="False">
-            <!-- Temporary: Jama probe shortcut button -->
-            <Button Content="🔍 Jama Probe"
-                DockPanel.Dock="Right"
-                Command="{Binding RunJamaProbeCommand}"
-                ToolTip="Run Jama relationship capability probe for the configured project"
-                Style="{DynamicResource SmallButtonStyle}"
-                Margin="8,2,0,2"/>
+            <!-- Workspace Navigation Buttons (replaces removed side menu) -->
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="0,2,8,2" VerticalAlignment="Center">
+                <!-- Navigate to Test Case Creation -->
+                <Button Content="📋 Test Case Creation"
+                    Command="{Binding NavigateToTestCaseCreationCommand}"
+                    ToolTip="Navigate to Test Case Creation workspace"
+                    Style="{DynamicResource SmallButtonStyle}"
+                    Margin="0,0,4,0"/>
+
+                <!-- Navigate back to Main -->
+                <Button Content="🏠 Main"
+                    Command="{Binding NavigateToMainCommand}"
+                    ToolTip="Navigate back to the main/startup page"
+                    Style="{DynamicResource SmallButtonStyle}"
+                    Margin="0,0,4,0"/>
+
+                <!-- Temporary: Jama probe shortcut button -->
+                <Button Content="🔍 Jama Probe"
+                    Command="{Binding RunJamaProbeCommand}"
+                    ToolTip="Run Jama relationship capability probe for the configured project"
+                    Style="{DynamicResource SmallButtonStyle}"
+                    Margin="0,0,0,0"/>
+            </StackPanel>
 
             <TextBlock DockPanel.Dock="Right"
                 Text="{Binding JamaProbeStatus}"

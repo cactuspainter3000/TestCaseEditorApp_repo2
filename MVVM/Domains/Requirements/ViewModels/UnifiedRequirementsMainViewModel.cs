@@ -15,6 +15,7 @@ using TestCaseEditorApp.MVVM.Domains.Requirements.Enums;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.ViewModels;
 using TestCaseEditorApp.MVVM.Events;
+using TestCaseEditorApp.MVVM.Utils;
 using EditableDataControl.ViewModels;
 using RequirementsEvents = TestCaseEditorApp.MVVM.Domains.Requirements.Events.RequirementsEvents;
 using Microsoft.Extensions.Logging;
@@ -248,6 +249,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public ICommand GenerateTestsCommand { get; private set; } = null!;
         public ICommand ViewInTestGenCommand { get; private set; } = null!;
 
+        // Workspace Navigation Commands (replaces removed side menu navigation)
+        public ICommand NavigateToTestCaseCreationCommand { get; private set; } = null!;
+        public ICommand NavigateToMainCommand { get; private set; } = null!;
+
         // Requirement Navigation Commands (in-view replacement for removed workspace navigation)
         public ICommand PreviousRequirementCommand { get; private set; } = null!;
         public ICommand NextRequirementCommand { get; private set; } = null!;
@@ -432,6 +437,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             GenerateTestsCommand = new RelayCommand(ExecuteGenerateTests, () => CanGenerateTests);
             ViewInTestGenCommand = new RelayCommand(ExecuteViewInTestGen, () => HasCurrentRequirement);
 
+            // Workspace Navigation (replaces removed side menu navigation)
+            NavigateToTestCaseCreationCommand = new RelayCommand(ExecuteNavigateToTestCaseCreation);
+            NavigateToMainCommand = new RelayCommand(ExecuteNavigateToMain);
+
             // In-view requirement navigation
             PreviousRequirementCommand = new RelayCommand(ExecutePreviousRequirement, CanExecutePreviousRequirement);
             NextRequirementCommand = new RelayCommand(ExecuteNextRequirement, CanExecuteNextRequirement);
@@ -553,9 +562,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 var key = GetBatchSelectionPersistenceKey();
                 var persisted = _persistence.Load<List<string>>(key) ?? new List<string>();
 
-                return persisted
+                var persistedIds = persisted
                     .Where(id => !string.IsNullOrWhiteSpace(id))
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                // Validate that persisted selections still exist in current requirements
+                // If none of the persisted IDs exist in current project, assume it's a new/different project
+                var currentRequirementIds = _mediator.Requirements
+                    .Where(r => !string.IsNullOrWhiteSpace(r.GlobalId))
+                    .Select(r => r.GlobalId)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                var validIds = persistedIds.Where(id => currentRequirementIds.Contains(id)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                // Only return persisted selections if we can validate at least some exist in current project
+                // If no persisted selections are valid, return empty to trigger default 5-item selection
+                return validIds.Count > 0 ? validIds : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             }
             catch (Exception ex)
             {
@@ -1264,6 +1286,36 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _logger.LogInformation("[UnifiedRequirementsMainVM] View in test generation executed - Requirement: {RequirementName}", CurrentRequirement.Name);
             
             // Navigate to test generation for viewing through workspace coordinator  
+        }
+
+        private void ExecuteNavigateToTestCaseCreation()
+        {
+            _logger.LogInformation("[UnifiedRequirementsMainVM] Navigating to TestCase Creation workspace");
+            
+            var navigationMediator = App.ServiceProvider?.GetService<INavigationMediator>();
+            if (navigationMediator != null)
+            {
+                navigationMediator.NavigateToSection("testcasecreation");
+            }
+            else
+            {
+                _logger.LogError("[UnifiedRequirementsMainVM] INavigationMediator not available for navigation");
+            }
+        }
+
+        private void ExecuteNavigateToMain()
+        {
+            _logger.LogInformation("[UnifiedRequirementsMainVM] Navigating to main/startup view");
+            
+            var navigationMediator = App.ServiceProvider?.GetService<INavigationMediator>();
+            if (navigationMediator != null)
+            {
+                navigationMediator.NavigateToSection("startup");
+            }
+            else
+            {
+                _logger.LogError("[UnifiedRequirementsMainVM] INavigationMediator not available for navigation");
+            }
         }
 
         private void UpdateAnalysisTimer()
