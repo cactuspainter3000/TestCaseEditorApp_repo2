@@ -41,6 +41,7 @@ namespace TestCaseEditorApp.Services
         private readonly IServiceComplianceWrapper? _complianceWrapper;
         private readonly IABTestingFramework? _abTestingFramework;
         private readonly ITelemetryDashboardService? _telemetryService;
+        private bool _ollamaStatusMonitoringStarted;
         
         private const string PARSING_WORKSPACE_PREFIX = "jama-doc-parse";
 
@@ -3436,6 +3437,17 @@ Extract all legitimate requirements:";
         {
             try
             {
+                if (_ollamaStatusMonitor != null)
+                {
+                    if (!_ollamaStatusMonitoringStarted)
+                    {
+                        _ollamaStatusMonitor.StartMonitoring();
+                        _ollamaStatusMonitoringStarted = true;
+                    }
+
+                    await _ollamaStatusMonitor.CheckStatusNowAsync();
+                }
+
                 // Smart monitoring: check current status before deciding what to do
                 var currentStatus = _ollamaStatusMonitor?.CurrentStatus ?? OllamaModelStatus.Unknown;
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Current Ollama status: {currentStatus}");
@@ -3478,9 +3490,31 @@ Extract all legitimate requirements:";
                 }
                 else
                 {
-                    // Status is Unknown or Loading - something's wrong, restart
-                    progressCallback?.Invoke($"⚠️ Ollama status {currentStatus} - restarting...");
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Ollama status {currentStatus} - restarting for clean state");
+                    var ollamaHealthy = _ollamaProcessManager != null && await _ollamaProcessManager.IsOllamaHealthyAsync(cancellationToken);
+                    if (ollamaHealthy)
+                    {
+                        progressCallback?.Invoke(currentStatus == OllamaModelStatus.Loading
+                            ? "🔥 Model is loading - waiting for readiness..."
+                            : "🔥 Ollama reachable - initializing AI model...");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Ollama status {currentStatus} but service is healthy - attempting pre-warm before restart");
+
+                        var preWarmSuccess = await PreWarmOllamaModelAsync(cancellationToken);
+                        if (preWarmSuccess)
+                        {
+                            progressCallback?.Invoke("✅ AI model ready");
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Healthy Ollama instance became ready without restart");
+                            return true;
+                        }
+
+                        progressCallback?.Invoke("⚠️ Ollama reachable but model did not become ready - restarting service...");
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Healthy Ollama instance did not complete warmup from status {currentStatus} - restarting");
+                    }
+                    else
+                    {
+                        // Status is Unknown and HTTP health check failed - restart is justified.
+                        progressCallback?.Invoke($"⚠️ Ollama status {currentStatus} and service is not healthy - restarting...");
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Ollama status {currentStatus} with failed health check - restarting for clean state");
+                    }
                 }
 
                 // Restart Ollama and try pre-warming
