@@ -1393,23 +1393,52 @@ But thoroughly scan all sections first before concluding.";
 
                 progressCallback?.Invoke($"🔍 Indexing document content for analysis...");
 
-                // Isolate parsing context to the current attachment. Reusing prior project chunks
-                // can bleed IDs/content from previously parsed documents into this run.
-                var cleared = await _directRagService!.ClearProjectIndexAsync(projectId, cancellationToken);
-                if (!cleared)
+                // Reuse unchanged single-document indexes to avoid unnecessary re-indexing.
+                // We only reuse when the attachment key matches and project index is already isolated.
+                var canReuseIndex = false;
+                try
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Could not clear existing project index for {projectId} before indexing attachment {attachment.Id}. Continuing with potential mixed context.");
+                    var validation = await _directRagService!.ValidateAttachmentIndexesAsync(
+                        projectId,
+                        new[] { attachment },
+                        cancellationToken);
+
+                    var stats = await _directRagService.GetProjectIndexStatsAsync(projectId, cancellationToken);
+                    canReuseIndex =
+                        validation.TryGetValue(attachment.Id, out var attachmentValidation) &&
+                        attachmentValidation.State == AttachmentIndexValidationState.Match &&
+                        stats.TotalDocuments == 1;
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Index reuse check failed for attachment {attachment.Id}: {ex.Message}");
+                }
+
+                if (canReuseIndex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Reusing existing index for unchanged attachment {attachment.Id} ({attachment.FileName}).");
+                    progressCallback?.Invoke("♻️ Reusing existing index (document unchanged)...");
                 }
                 else
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Cleared project index for {projectId} before indexing attachment {attachment.Id} ({attachment.FileName}).");
-                }
-                
-                // Step 3: Index document with DirectRagService
-                var indexSuccess = await _directRagService!.IndexDocumentAsync(attachment, documentContent, projectId, cancellationToken);
-                if (!indexSuccess)
-                {
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[DirectRag] Failed to index document {attachment.FileName}");
+                    // Isolate parsing context to the current attachment. Reusing prior project chunks
+                    // can bleed IDs/content from previously parsed documents into this run.
+                    var cleared = await _directRagService!.ClearProjectIndexAsync(projectId, cancellationToken);
+                    if (!cleared)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Could not clear existing project index for {projectId} before indexing attachment {attachment.Id}. Continuing with potential mixed context.");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Cleared project index for {projectId} before indexing attachment {attachment.Id} ({attachment.FileName}).");
+                    }
+
+                    // Step 3: Index document with DirectRagService
+                    var indexSuccess = await _directRagService!.IndexDocumentAsync(attachment, documentContent, projectId, cancellationToken);
+                    if (!indexSuccess)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[DirectRag] Failed to index document {attachment.FileName}");
+                    }
                 }
 
                 progressCallback?.Invoke($"🧠 Analyzing document for requirements with AI...");
@@ -2032,6 +2061,16 @@ Extract all legitimate requirements:";
 
             var score = obligationScore + actorScore + actionScore + constraintScore + verifiableScore + scopeScore + proceduralScore;
 
+            var isVerificationLedClause = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"^\s*(?:Acceptance\s+Criteria\s+)?(?:The\s+)?(?:production\s+test|test\s+station|test\s+system|test\s+procedure)\s+shall\s+verify\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            var hasExplicitSystemObligation = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"\b(?:the\s+)?(?:system|software|hardware|equipment|display\s+head|unit|module|interface)\s+shall\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
             var looksFragmented = normalized.Count(ch => ch == '[') != normalized.Count(ch => ch == ']') ||
                                  normalized.Count(ch => ch == '(') > normalized.Count(ch => ch == ')') ||
                                  normalized.EndsWith("[", StringComparison.Ordinal) ||
@@ -2059,10 +2098,15 @@ Extract all legitimate requirements:";
                 _ => looksFragmented ? "Heading/Structure" : "Rejected Candidate"
             };
 
+            if (isVerificationLedClause && !hasExplicitSystemObligation)
+            {
+                classification = score >= 9 ? "Verification/Test Requirement" : "Potential Requirement";
+            }
+
             var isPromoted = !looksFragmented && !proceduralNoise &&
                              ((classification == "True System Requirement" && score >= 11) ||
                               (classification == "Verification/Test Requirement" && score >= 9 && strongVerificationSignal));
-            var reason = $"Score {score}/14 (obligation {obligationScore}, actor {actorScore}, action {actionScore}, constraint {constraintScore}, verifiable {verifiableScore}, scope {scopeScore}, non-procedural {proceduralScore})";
+            var reason = $"Score {score}/14 (obligation {obligationScore}, actor {actorScore}, action {actionScore}, constraint {constraintScore}, verifiable {verifiableScore}, scope {scopeScore}, non-procedural {proceduralScore}); verification-led={isVerificationLedClause}, explicit-system-obligation={hasExplicitSystemObligation}";
 
             return new DeterministicQualificationResult(score, classification, reason, isPromoted);
         }
