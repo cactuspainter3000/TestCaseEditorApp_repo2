@@ -1508,6 +1508,10 @@ But thoroughly scan all sections first before concluding.";
                     var deterministic = ExtractDeterministicRequirementCandidates(documentContent, attachment, projectId);
                     if (deterministic.Count > 0)
                     {
+                        var promotedDeterministic = deterministic
+                            .Where(c => c.IsPromoted && c.Requirement != null)
+                            .ToList();
+
                         var deterministicExistingIds = new HashSet<string>(
                             allRequirements
                                 .Where(r => !string.IsNullOrWhiteSpace(r.GlobalId))
@@ -1521,9 +1525,9 @@ But thoroughly scan all sections first before concluding.";
                             StringComparer.OrdinalIgnoreCase);
 
                         var addedCount = 0;
-                        foreach (var candidate in deterministic)
+                        foreach (var candidate in promotedDeterministic)
                         {
-                            var candidateReq = candidate.Requirement;
+                            var candidateReq = candidate.Requirement!;
                             var candidateId = candidateReq.GlobalId ?? string.Empty;
                             var candidateDescription = (candidateReq.Description ?? string.Empty).Trim();
 
@@ -1549,9 +1553,9 @@ But thoroughly scan all sections first before concluding.";
 
                         await WriteDeterministicTraceabilityReportAsync(attachment, projectId, documentContent, deterministic, cancellationToken);
                         TestCaseEditorApp.Services.Logging.Log.Warn(
-                            $"[DirectRag] Requirement count {allRequirements.Count - addedCount} below expected minimum {expectedMinimum}; deterministic augmentation added {addedCount} unique candidates ({deterministic.Count} total candidates).");
+                            $"[DirectRag] Requirement count {allRequirements.Count - addedCount} below expected minimum {expectedMinimum}; deterministic capture found {deterministic.Count} candidates, qualification promoted {promotedDeterministic.Count}, augmentation added {addedCount} unique candidates.");
                         progressCallback?.Invoke(
-                            $"⚠️ Requirement count below expected minimum ({allRequirements.Count - addedCount} < {expectedMinimum}); deterministic augmentation added {addedCount} candidates");
+                            $"⚠️ Requirement count below expected minimum ({allRequirements.Count - addedCount} < {expectedMinimum}); captured {deterministic.Count} candidates and promoted {addedCount} after qualification");
                     }
                 }
 
@@ -1844,7 +1848,6 @@ Extract all legitimate requirements:";
 
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var index = 1;
-            var rejectedCount = 0;
 
             var statements = statementRegex.Matches(normalizedContent).Cast<System.Text.RegularExpressions.Match>().ToList();
 
@@ -1853,12 +1856,6 @@ Extract all legitimate requirements:";
                 var text = System.Text.RegularExpressions.Regex.Replace(statement.Value, @"\s+", " ").Trim();
                 if (string.IsNullOrWhiteSpace(text) || text.Length < 20)
                 {
-                    continue;
-                }
-
-                if (!ShouldIncludeDeterministicClause(text))
-                {
-                    rejectedCount++;
                     continue;
                 }
 
@@ -1889,40 +1886,185 @@ Extract all legitimate requirements:";
                     : text;
                 var traceReference = BuildRequirementTraceReference(attachment.Id, itemId, index);
 
-                var requirement = new Requirement
+                var qualification = QualifyDeterministicRequirementCandidate(sourceClause);
+
+                Requirement? promotedRequirement = null;
+                if (qualification.IsPromoted)
                 {
-                    GlobalId = !string.IsNullOrWhiteSpace(parsedId)
-                        ? parsedId
-                        : $"DOC-{attachment.Id}-{index:D3}",
-                    Item = itemId,
-                    TraceReference = traceReference,
-                    Name = GenerateRequirementNameFromCapability(normalizedDescription, "Deterministic"),
-                    Description = normalizedDescription,
-                    RequirementType = "Deterministic - Modal Statement",
-                    Rationale = $"Recovered via deterministic fallback from {attachment.FileName}\n\n**Trace Reference:** {traceReference}\n\n**Source Clause:** {sourceClause}",
-                    Heading = "Derived",
-                    ItemType = "System Requirement",
-                    CreatedDate = DateTime.Now,
-                    ModifiedDate = DateTime.Now,
-                    Project = projectId.ToString(),
-                    SourceDocumentName = attachment.FileName,
-                    SourceAttachmentId = attachment.Id,
-                    SourceJamaItemId = attachment.Item > 0 ? attachment.Item : null,
-                    TagList = new List<string> { "Derived", "DeterministicFallback", $"TraceRef:{traceReference}" }
-                };
+                    promotedRequirement = new Requirement
+                    {
+                        GlobalId = !string.IsNullOrWhiteSpace(parsedId)
+                            ? parsedId
+                            : $"DOC-{attachment.Id}-{index:D3}",
+                        Item = itemId,
+                        TraceReference = traceReference,
+                        Name = GenerateRequirementNameFromCapability(normalizedDescription, "Deterministic"),
+                        Description = normalizedDescription,
+                        RequirementType = $"Deterministic - {qualification.Classification}",
+                        Rationale = $"Recovered via deterministic fallback from {attachment.FileName}\n\n**Trace Reference:** {traceReference}\n\n**Source Clause:** {sourceClause}\n\n**Qualification:** {qualification.Classification} (Score {qualification.Score}/14)\n{qualification.Reason}",
+                        Heading = "Derived",
+                        ItemType = "System Requirement",
+                        CreatedDate = DateTime.Now,
+                        ModifiedDate = DateTime.Now,
+                        Project = projectId.ToString(),
+                        SourceDocumentName = attachment.FileName,
+                        SourceAttachmentId = attachment.Id,
+                        SourceJamaItemId = attachment.Item > 0 ? attachment.Item : null,
+                        TagList = new List<string>
+                        {
+                            "Derived",
+                            "DeterministicFallback",
+                            $"TraceRef:{traceReference}",
+                            $"Qualification:{qualification.Classification}",
+                            $"Score:{qualification.Score}"
+                        }
+                    };
+                }
 
                 results.Add(new DeterministicRequirementCandidate
                 {
-                    Requirement = requirement,
-                    SourceClause = sourceClause
+                    Requirement = promotedRequirement,
+                    SourceClause = sourceClause,
+                    Classification = qualification.Classification,
+                    QualificationScore = qualification.Score,
+                    QualificationReason = qualification.Reason,
+                    IsPromoted = qualification.IsPromoted
                 });
                 index++;
             }
 
+            var promotedCount = results.Count(r => r.IsPromoted);
             TestCaseEditorApp.Services.Logging.Log.Info(
-                $"[DirectRag] Deterministic clause screening kept {results.Count} of {statements.Count} candidates (rejected {rejectedCount}) for attachment {attachment.Id}");
+                $"[DirectRag] Deterministic candidate capture found {results.Count} of {statements.Count} modal clauses; qualification promoted {promotedCount} and held {results.Count - promotedCount} for review for attachment {attachment.Id}");
 
             return results;
+        }
+
+        private static DeterministicQualificationResult QualifyDeterministicRequirementCandidate(string clause)
+        {
+            if (string.IsNullOrWhiteSpace(clause))
+            {
+                return new DeterministicQualificationResult(0, "Rejected Candidate", "Empty clause", false);
+            }
+
+            var normalized = System.Text.RegularExpressions.Regex.Replace(clause, @"\s+", " ").Trim();
+            var lower = normalized.ToLowerInvariant();
+
+            if (normalized.Length < 25)
+            {
+                return new DeterministicQualificationResult(1, "Heading/Structure", "Very short or incomplete fragment", false);
+            }
+
+            var startsWithWeakContinuation = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"^(and|or|but|then|when|where|while|unless|if|it|this|these|those|the\s+measurement|the\s+default\s+states)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (startsWithWeakContinuation && normalized.Length < 80)
+            {
+                return new DeterministicQualificationResult(2, "Heading/Structure", "Continuation fragment without stable subject", false);
+            }
+
+            var hardRejectPatterns = new[]
+            {
+                "contents of this document are proprietary",
+                "shall not be disclosed",
+                "all rights reserved",
+                "table of contents",
+                "revision history"
+            };
+
+            if (hardRejectPatterns.Any(p => lower.Contains(p)))
+            {
+                return new DeterministicQualificationResult(0, "Rejected Candidate", "Legal/template boilerplate", false);
+            }
+
+            var obligationScore = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(shall|must|required\s+to|is\s+to)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                ? 2
+                : System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(will|should)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                    ? 1
+                    : 0;
+
+            var actorScore = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"^\s*(?:Acceptance\s+Criteria\s+)?(?:The\s+)?(?:system|software|hardware|equipment|test\s+station|test\s+system|production\s+test|display\s+head|unit|interface|controller|module)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                ? 2
+                : System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(system|software|hardware|equipment|test|display|unit|module)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                    ? 1
+                    : 0;
+
+            var actionScore = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(shall|must|will|should)\s+[a-zA-Z]{3,}", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                ? 2
+                : 0;
+
+            var constraintScore = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"\b(within\s+the\s+range|at\s+least|at\s+most|less\s+than|greater\s+than|between|\+/-|when|if|while|for\s+at\s+least|vdc|vac|ms|degrees|%)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                ? 2
+                : System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(on|off|open|gnd|logic\s+low|logic\s+high)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                    ? 1
+                    : 0;
+
+            var verifiableScore = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"\b(verify|measures?|detects?|indicates?|displayed|fault|calibrate|write|program|test)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                ? 2
+                : System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(within\s+the\s+range|\+/-|at\s+least|at\s+most)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                    ? 1
+                    : 0;
+
+            var scopeScore = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"\b(system|software|hardware|equipment|interface|display\s+head|production\s+test|test\s+station|unit|module)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                ? 2
+                : 0;
+
+            var proceduralNoise = System.Text.RegularExpressions.Regex.IsMatch(
+                lower,
+                @"\b(note:|recommended\s+power|procedure|suggested|for\s+example|\(e\.g\.|\(ex\.|_ref|mergeformat|table\s+\d+)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            var proceduralScore = proceduralNoise ? 0 : 2;
+
+            var score = obligationScore + actorScore + actionScore + constraintScore + verifiableScore + scopeScore + proceduralScore;
+
+            var looksFragmented = normalized.Count(ch => ch == '[') != normalized.Count(ch => ch == ']') ||
+                                 normalized.Count(ch => ch == '(') > normalized.Count(ch => ch == ')') ||
+                                 normalized.EndsWith("[", StringComparison.Ordinal) ||
+                                 normalized.EndsWith("(", StringComparison.Ordinal);
+
+            if (looksFragmented && score > 0)
+            {
+                score = Math.Max(0, score - 3);
+            }
+
+            if (startsWithWeakContinuation && score > 0)
+            {
+                score = Math.Max(0, score - 2);
+            }
+
+            var strongSystemSignal = obligationScore >= 1 && actorScore >= 2 && actionScore >= 1 && (constraintScore >= 1 || verifiableScore >= 1);
+            var strongVerificationSignal = obligationScore >= 1 && actorScore >= 1 && actionScore >= 1 && verifiableScore >= 1;
+
+            var classification = score switch
+            {
+                >= 11 => strongSystemSignal ? "True System Requirement" : "Verification/Test Requirement",
+                >= 9 => strongVerificationSignal ? "Verification/Test Requirement" : "Potential Requirement",
+                >= 7 => "Potential Requirement",
+                >= 4 => obligationScore > 0 ? "Derived Requirement Candidate" : "Informational Text",
+                _ => looksFragmented ? "Heading/Structure" : "Rejected Candidate"
+            };
+
+            var isPromoted = !looksFragmented && !proceduralNoise &&
+                             ((classification == "True System Requirement" && score >= 11) ||
+                              (classification == "Verification/Test Requirement" && score >= 9 && strongVerificationSignal));
+            var reason = $"Score {score}/14 (obligation {obligationScore}, actor {actorScore}, action {actionScore}, constraint {constraintScore}, verifiable {verifiableScore}, scope {scopeScore}, non-procedural {proceduralScore})";
+
+            return new DeterministicQualificationResult(score, classification, reason, isPromoted);
         }
 
         private static bool ShouldIncludeDeterministicClause(string clause)
@@ -2019,18 +2161,25 @@ Extract all legitimate requirements:";
             JamaAttachment attachment,
             int projectId,
             string documentContent,
-            IReadOnlyList<DeterministicRequirementCandidate> deterministicRequirements,
+            IReadOnlyList<DeterministicRequirementCandidate> deterministicCandidates,
             CancellationToken cancellationToken)
         {
             try
             {
-                if (deterministicRequirements.Count == 0)
+                if (deterministicCandidates.Count == 0)
                 {
                     return;
                 }
 
+                var promotedRequirements = deterministicCandidates
+                    .Where(c => c.IsPromoted && c.Requirement != null)
+                    .ToList();
+                var heldCandidates = deterministicCandidates
+                    .Where(c => !c.IsPromoted)
+                    .ToList();
+
                 var allClauses = ExtractSourceClauses(documentContent);
-                var normalizedUsed = deterministicRequirements
+                var normalizedUsed = promotedRequirements
                     .Select(candidate => NormalizeForTraceMatch(candidate.SourceClause))
                     .Where(s => s.Length >= 16)
                     .Distinct(StringComparer.Ordinal)
@@ -2052,29 +2201,52 @@ Extract all legitimate requirements:";
                 report.AppendLine($"ProjectId: {projectId}");
                 report.AppendLine($"AttachmentId: {attachment.Id}");
                 report.AppendLine($"FileName: {attachment.FileName}");
-                report.AppendLine($"DerivedRequirementCount: {deterministicRequirements.Count}");
+                report.AppendLine($"CandidateCount: {deterministicCandidates.Count}");
+                report.AppendLine($"PromotedRequirementCount: {promotedRequirements.Count}");
+                report.AppendLine($"HeldCandidateCount: {heldCandidates.Count}");
                 report.AppendLine($"CandidateClauseCount: {allClauses.Count}");
-                report.AppendLine($"UsedClauseCount: {deterministicRequirements.Count}");
+                report.AppendLine($"UsedClauseCount: {promotedRequirements.Count}");
                 report.AppendLine($"UnusedClauseCount: {unusedClauses.Count}");
                 report.AppendLine();
 
                 report.AppendLine("REQUIREMENT -> SOURCE MAP");
                 report.AppendLine("------------------------");
-                for (var i = 0; i < deterministicRequirements.Count; i++)
+                for (var i = 0; i < promotedRequirements.Count; i++)
                 {
-                    var candidate = deterministicRequirements[i];
+                    var candidate = promotedRequirements[i];
                     report.AppendLine($"[{i + 1}] RequirementId: {candidate.Requirement.Item}");
                     report.AppendLine($"    TraceReference: {candidate.Requirement.TraceReference}");
                     report.AppendLine($"    RequirementText: {TruncateForReport(candidate.Requirement.Description, 220)}");
                     report.AppendLine($"    SourceRequirementText: {TruncateForReport(candidate.SourceClause, 220)}");
+                    report.AppendLine($"    Qualification: {candidate.Classification} (Score {candidate.QualificationScore}/14)");
+                    report.AppendLine($"    QualificationReason: {candidate.QualificationReason}");
                     report.AppendLine();
+                }
+
+                report.AppendLine("HELD CANDIDATES (NOT PROMOTED)");
+                report.AppendLine("------------------------------");
+                if (heldCandidates.Count == 0)
+                {
+                    report.AppendLine("<none>");
+                }
+                else
+                {
+                    for (var i = 0; i < heldCandidates.Count; i++)
+                    {
+                        var candidate = heldCandidates[i];
+                        report.AppendLine($"[{i + 1}] Classification: {candidate.Classification}");
+                        report.AppendLine($"    QualificationScore: {candidate.QualificationScore}/14");
+                        report.AppendLine($"    QualificationReason: {candidate.QualificationReason}");
+                        report.AppendLine($"    SourceClause: {TruncateForReport(candidate.SourceClause, 220)}");
+                        report.AppendLine();
+                    }
                 }
 
                 report.AppendLine("USED SOURCE CLAUSES");
                 report.AppendLine("-------------------");
-                for (var i = 0; i < deterministicRequirements.Count; i++)
+                for (var i = 0; i < promotedRequirements.Count; i++)
                 {
-                    report.AppendLine($"[{i + 1}] {deterministicRequirements[i].SourceClause}");
+                    report.AppendLine($"[{i + 1}] {promotedRequirements[i].SourceClause}");
                 }
 
                 report.AppendLine();
@@ -2236,9 +2408,15 @@ Extract all legitimate requirements:";
 
         private sealed class DeterministicRequirementCandidate
         {
-            public Requirement Requirement { get; init; } = new Requirement();
+            public Requirement? Requirement { get; init; }
             public string SourceClause { get; init; } = string.Empty;
+            public string Classification { get; init; } = string.Empty;
+            public int QualificationScore { get; init; }
+            public string QualificationReason { get; init; } = string.Empty;
+            public bool IsPromoted { get; init; }
         }
+
+        private readonly record struct DeterministicQualificationResult(int Score, string Classification, string Reason, bool IsPromoted);
 
         /// <summary>
         /// Parse LLM response text into structured Requirement objects
