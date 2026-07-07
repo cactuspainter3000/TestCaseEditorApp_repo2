@@ -346,14 +346,24 @@ namespace TestCaseEditorApp.Services
 
         private static TraceabilityExportInfo CollectTraceabilityReports(string projectRoot, string stagingDir)
         {
-            var traceabilityDir = Path.Combine(projectRoot, "exports", "traceability-reports");
-            if (!Directory.Exists(traceabilityDir))
+            var traceabilityDirectories = new[]
+            {
+                Path.Combine(projectRoot, "exports", "traceability-reports"),
+                Path.Combine(Environment.CurrentDirectory, "exports", "traceability-reports"),
+                Path.Combine(AppContext.BaseDirectory, "exports", "traceability-reports")
+            }
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(Directory.Exists)
+            .ToList();
+
+            if (traceabilityDirectories.Count == 0)
             {
                 return new TraceabilityExportInfo(0, null);
             }
 
-            var reportFiles = Directory
-                .GetFiles(traceabilityDir, "derivation-trace-*.txt")
+            var reportFiles = traceabilityDirectories
+                .SelectMany(directory => Directory.GetFiles(directory, "derivation-trace-*.txt"))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Select(path => new FileInfo(path))
                 .OrderByDescending(info => info.LastWriteTimeUtc)
                 .Take(20)
