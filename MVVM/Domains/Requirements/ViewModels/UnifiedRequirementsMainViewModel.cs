@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Collections.Specialized;
 using System.Windows;
@@ -435,7 +436,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Content Management
             AddRequirementCommand = new RelayCommand(AddRequirement);
             RemoveRequirementCommand = new RelayCommand(RemoveSelectedRequirement, () => CurrentRequirement != null);
-            DeleteRequirementsAboveThresholdCommand = new RelayCommand(DeleteRequirementsAboveThreshold, CanDeleteRequirementsAboveThreshold);
+            DeleteRequirementsAboveThresholdCommand = new RelayCommand(DeleteRequirementsAboveThreshold);
 
             // Table Operations
             SelectAllTablesCommand = new RelayCommand(SelectAllTables, () => HasTables);
@@ -1093,14 +1094,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             NotifyCommandsCanExecuteChanged();
         }
 
-        private bool CanDeleteRequirementsAboveThreshold()
-        {
-            var threshold = DeleteItemSuffixThreshold;
-            return _mediator.Requirements.Any(r =>
-                TryGetTrailingNumber(r.Item, out var itemSuffix) && itemSuffix > threshold ||
-                TryGetTrailingNumber(r.GlobalId, out var globalSuffix) && globalSuffix > threshold);
-        }
-
         partial void OnDeleteItemSuffixThresholdChanged(int value)
         {
             NotifyCommandsCanExecuteChanged();
@@ -1114,25 +1107,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 return false;
             }
 
-            var end = text.Length - 1;
-            while (end >= 0 && char.IsWhiteSpace(text[end]))
-            {
-                end--;
-            }
-
-            if (end < 0 || !char.IsDigit(text[end]))
+            var match = Regex.Match(text, @"(\d+)(?!.*\d)");
+            if (!match.Success)
             {
                 return false;
             }
 
-            var start = end;
-            while (start >= 0 && char.IsDigit(text[start]))
-            {
-                start--;
-            }
-
-            var numberText = text.Substring(start + 1, end - start);
-            return int.TryParse(numberText, out value);
+            return int.TryParse(match.Groups[1].Value, out value);
         }
 
         // Table Operations
@@ -1434,7 +1415,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private void NotifyCommandsCanExecuteChanged()
         {
             ((RelayCommand)RemoveRequirementCommand).NotifyCanExecuteChanged();
-            ((RelayCommand)DeleteRequirementsAboveThresholdCommand).NotifyCanExecuteChanged();
             ((RelayCommand)SelectAllTablesCommand).NotifyCanExecuteChanged();
             ((RelayCommand)ClearAllTablesCommand).NotifyCanExecuteChanged();
             ((RelayCommand)SelectAllParagraphsCommand).NotifyCanExecuteChanged();
