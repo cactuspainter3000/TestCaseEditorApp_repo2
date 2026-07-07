@@ -229,6 +229,8 @@ namespace TestCaseEditorApp.Services
                 File.Copy(file, destination, overwrite: true);
             }
 
+            var gitResult = TryCommitAndPushExport(projectRoot, repoExportPath);
+
             var summaryPath = Path.Combine(repoExportPath, "export-summary.txt");
             var detailedSummary = new StringBuilder();
             detailedSummary.AppendLine("TestCaseEditorApp Analysis Log Export");
@@ -243,13 +245,25 @@ namespace TestCaseEditorApp.Services
             detailedSummary.AppendLine();
             detailedSummary.AppendLine($"TraceReportsIncluded: {traceabilityInfo.ReportCount}");
             detailedSummary.AppendLine($"LatestTraceReport: {traceabilityInfo.LatestReportPath ?? "(none)"}");
-            detailedSummary.AppendLine("GitPushResult: recorded in export dialog (computed after commit/push step)");
+            detailedSummary.AppendLine();
+            detailedSummary.AppendLine("Git automation");
+            detailedSummary.AppendLine($"Succeeded: {gitResult.Succeeded}");
+            detailedSummary.AppendLine($"CommitHash: {gitResult.CommitHash ?? "(none)"}");
+            detailedSummary.AppendLine($"LastSuccessfulStep: {gitResult.LastSuccessfulStep}");
+            detailedSummary.AppendLine($"FailedStep: {gitResult.FailedStep ?? "(none)"}");
+            detailedSummary.AppendLine($"FailureMessage: {gitResult.FailureMessage ?? "(none)"}");
+
+            if (!string.IsNullOrWhiteSpace(gitResult.CommandOutput))
+            {
+                detailedSummary.AppendLine();
+                detailedSummary.AppendLine("Git command output");
+                detailedSummary.AppendLine(gitResult.CommandOutput);
+            }
+
             File.WriteAllText(summaryPath, detailedSummary.ToString());
 
             // Include summary in desktop zip as well.
             File.Copy(summaryPath, Path.Combine(stagingDir, "export-summary.txt"), overwrite: true);
-
-            var gitResult = TryCommitAndPushExport(projectRoot, repoExportPath);
 
             if (File.Exists(zipPath))
             {
@@ -404,7 +418,7 @@ namespace TestCaseEditorApp.Services
             {
                 if (!Directory.Exists(Path.Combine(projectRoot, ".git")))
                 {
-                    return new GitAutomationResult(false, null, "Not a git repository. Logs were exported locally only.");
+                    return new GitAutomationResult(false, null, "none", "repository-check", "Not a git repository. Logs were exported locally only.", null);
                 }
 
                 var relativeExportPath = Path.GetRelativePath(projectRoot, repoExportPath).Replace('\\', '/');
@@ -416,17 +430,32 @@ namespace TestCaseEditorApp.Services
 
                 if (commitOutput.Contains("nothing to commit", StringComparison.OrdinalIgnoreCase))
                 {
-                    return new GitAutomationResult(false, null, "No repo changes to commit. Logs were exported locally only.");
+                    return new GitAutomationResult(false, null, "add", "commit", "No repo changes to commit. Logs were exported locally only.", commitOutput);
                 }
 
                 var commitHash = RunGitCommand(projectRoot, "rev-parse --short HEAD").Trim();
                 RunGitCommand(projectRoot, "push");
 
-                return new GitAutomationResult(true, commitHash, null);
+                return new GitAutomationResult(true, commitHash, "push", null, null, commitOutput);
             }
             catch (Exception ex)
             {
-                return new GitAutomationResult(false, null, $"Git automation error: {ex.Message}");
+                var message = ex.Message ?? "Unknown git automation error";
+                var failedStep = message.Contains("git add", StringComparison.OrdinalIgnoreCase)
+                    ? "add"
+                    : message.Contains("git commit", StringComparison.OrdinalIgnoreCase)
+                        ? "commit"
+                        : message.Contains("git push", StringComparison.OrdinalIgnoreCase)
+                            ? "push"
+                            : "unknown";
+                var lastSuccessfulStep = failedStep switch
+                {
+                    "add" => "none",
+                    "commit" => "add",
+                    "push" => "commit",
+                    _ => "unknown"
+                };
+                return new GitAutomationResult(false, null, lastSuccessfulStep, failedStep, $"Git automation error: {message}", message);
             }
         }
 
@@ -538,7 +567,10 @@ namespace TestCaseEditorApp.Services
         private sealed record GitAutomationResult(
             bool Succeeded,
             string? CommitHash,
-            string? FailureMessage);
+            string LastSuccessfulStep,
+            string? FailedStep,
+            string? FailureMessage,
+            string? CommandOutput);
 
         private sealed record ProjectRootResolution(
             string RootPath,
