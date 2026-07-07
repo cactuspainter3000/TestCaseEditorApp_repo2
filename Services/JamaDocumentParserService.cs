@@ -1313,21 +1313,33 @@ But thoroughly scan all sections first before concluding.";
                 var contextContent = await _directRagService!.GetRequirementAnalysisContextAsync(
                     "requirements specifications constraints criteria shall must should will system component interface protocol performance safety", 
                     projectId, 
-                    maxContextChunks: 8, // Reduced from 20 to prevent context overflow
+                    maxContextChunks: 20,
                     cancellationToken);
+
+                var contextCoverage = documentContent.Length > 0
+                    ? (double)(contextContent?.Length ?? 0) / documentContent.Length
+                    : 0d;
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[DirectRag] Context coverage: {(contextCoverage * 100):F1}% ({contextContent?.Length ?? 0}/{documentContent.Length} chars)");
 
                 // Validate we have meaningful content to analyze
                 if (string.IsNullOrWhiteSpace(contextContent) || contextContent.Length < 50)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Insufficient context content ({contextContent?.Length ?? 0} chars) - using full document");
                     // Use the extracted document content directly if RAG context is insufficient  
-                    contextContent = documentContent.Length > 4000 ? documentContent.Substring(0, 4000) + "..." : documentContent;
+                    contextContent = documentContent.Length > 12000 ? documentContent.Substring(0, 12000) + "..." : documentContent;
                 }
-                else if (contextContent.Length > 4000)
+                else if (contextContent.Length > 12000)
                 {
                     // Trim context if it's too large for the LLM
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Context too large ({contextContent.Length} chars), trimming to 4000 chars");
-                    contextContent = contextContent.Substring(0, 4000) + "...";
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Context too large ({contextContent.Length} chars), trimming to 12000 chars");
+                    contextContent = contextContent.Substring(0, 12000) + "...";
+                }
+
+                if (contextCoverage < 0.15)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[DirectRag] Low context coverage detected ({(contextCoverage * 100):F1}%). Extraction may miss requirements unless recovery paths add coverage.");
                 }
 
                 // Step 5: Use Template Form Architecture (NO LEGACY FALLBACK)
@@ -1385,15 +1397,56 @@ But thoroughly scan all sections first before concluding.";
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Final result: {extractedRequirements.Count} extracted + {derivedRequirements.Count} derived = {allRequirements.Count} total requirements from {attachment.FileName}");
 
-                if (allRequirements.Count == 0 && !string.IsNullOrWhiteSpace(documentContent))
+                var expectedMinimum = EstimateMinimumRequirements(attachment);
+                if (allRequirements.Count < expectedMinimum && !string.IsNullOrWhiteSpace(documentContent))
                 {
                     var deterministic = ExtractDeterministicRequirementCandidates(documentContent, attachment, projectId);
                     if (deterministic.Count > 0)
                     {
-                        allRequirements.AddRange(deterministic.Select(candidate => candidate.Requirement));
+                        var deterministicExistingIds = new HashSet<string>(
+                            allRequirements
+                                .Where(r => !string.IsNullOrWhiteSpace(r.GlobalId))
+                                .Select(r => r.GlobalId!),
+                            StringComparer.OrdinalIgnoreCase);
+
+                        var existingDescriptions = new HashSet<string>(
+                            allRequirements
+                                .Select(r => (r.Description ?? string.Empty).Trim())
+                                .Where(d => !string.IsNullOrWhiteSpace(d)),
+                            StringComparer.OrdinalIgnoreCase);
+
+                        var addedCount = 0;
+                        foreach (var candidate in deterministic)
+                        {
+                            var candidateReq = candidate.Requirement;
+                            var candidateId = candidateReq.GlobalId ?? string.Empty;
+                            var candidateDescription = (candidateReq.Description ?? string.Empty).Trim();
+
+                            var duplicateById = !string.IsNullOrWhiteSpace(candidateId) && deterministicExistingIds.Contains(candidateId);
+                            var duplicateByDescription = !string.IsNullOrWhiteSpace(candidateDescription) && existingDescriptions.Contains(candidateDescription);
+
+                            if (duplicateById || duplicateByDescription)
+                            {
+                                continue;
+                            }
+
+                            allRequirements.Add(candidateReq);
+                            if (!string.IsNullOrWhiteSpace(candidateId))
+                            {
+                                deterministicExistingIds.Add(candidateId);
+                            }
+                            if (!string.IsNullOrWhiteSpace(candidateDescription))
+                            {
+                                existingDescriptions.Add(candidateDescription);
+                            }
+                            addedCount++;
+                        }
+
                         await WriteDeterministicTraceabilityReportAsync(attachment, projectId, documentContent, deterministic, cancellationToken);
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] AI returned 0 requirements; deterministic fallback recovered {deterministic.Count} candidates");
-                        progressCallback?.Invoke($"⚠️ AI returned no requirements; deterministic fallback recovered {deterministic.Count} candidates");
+                        TestCaseEditorApp.Services.Logging.Log.Warn(
+                            $"[DirectRag] Requirement count {allRequirements.Count - addedCount} below expected minimum {expectedMinimum}; deterministic augmentation added {addedCount} unique candidates ({deterministic.Count} total candidates).");
+                        progressCallback?.Invoke(
+                            $"⚠️ Requirement count below expected minimum ({allRequirements.Count - addedCount} < {expectedMinimum}); deterministic augmentation added {addedCount} candidates");
                     }
                 }
 
