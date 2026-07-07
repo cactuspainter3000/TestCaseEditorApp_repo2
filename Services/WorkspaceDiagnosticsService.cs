@@ -209,19 +209,15 @@ namespace TestCaseEditorApp.Services
             Directory.CreateDirectory(stagingDir);
 
             var copiedAny = CollectKnownLogs(projectRoot, stagingDir);
-            if (!copiedAny)
+            var traceabilityInfo = CollectTraceabilityReports(projectRoot, stagingDir);
+
+            if (!copiedAny && traceabilityInfo.ReportCount == 0)
             {
                 throw new InvalidOperationException("No known log files were found to export.");
             }
 
             var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
             var zipPath = Path.Combine(desktop, $"TestCaseEditorApp-AnalysisLogs-{timestamp}.zip");
-            if (File.Exists(zipPath))
-            {
-                File.Delete(zipPath);
-            }
-
-            ZipFile.CreateFromDirectory(stagingDir, zipPath, CompressionLevel.Optimal, includeBaseDirectory: false);
 
             var repoExportRoot = Path.Combine(projectRoot, "exports", "analysis-logs");
             var repoExportPath = Path.Combine(repoExportRoot, timestamp);
@@ -232,8 +228,6 @@ namespace TestCaseEditorApp.Services
                 var destination = Path.Combine(repoExportPath, Path.GetFileName(file));
                 File.Copy(file, destination, overwrite: true);
             }
-
-            var gitResult = TryCommitAndPushExport(projectRoot, repoExportPath);
 
             var summaryPath = Path.Combine(repoExportPath, "export-summary.txt");
             var detailedSummary = new StringBuilder();
@@ -247,10 +241,22 @@ namespace TestCaseEditorApp.Services
             detailedSummary.AppendLine($"AppBaseDirectory: {AppContext.BaseDirectory}");
             detailedSummary.AppendLine($"CurrentDirectory: {Environment.CurrentDirectory}");
             detailedSummary.AppendLine();
-            detailedSummary.AppendLine($"GitPushSucceeded: {gitResult.Succeeded}");
-            detailedSummary.AppendLine($"CommitHash: {gitResult.CommitHash ?? "(none)"}");
-            detailedSummary.AppendLine($"GitFailureMessage: {gitResult.FailureMessage ?? "(none)"}");
+            detailedSummary.AppendLine($"TraceReportsIncluded: {traceabilityInfo.ReportCount}");
+            detailedSummary.AppendLine($"LatestTraceReport: {traceabilityInfo.LatestReportPath ?? "(none)"}");
+            detailedSummary.AppendLine("GitPushResult: recorded in export dialog (computed after commit/push step)");
             File.WriteAllText(summaryPath, detailedSummary.ToString());
+
+            // Include summary in desktop zip as well.
+            File.Copy(summaryPath, Path.Combine(stagingDir, "export-summary.txt"), overwrite: true);
+
+            var gitResult = TryCommitAndPushExport(projectRoot, repoExportPath);
+
+            if (File.Exists(zipPath))
+            {
+                File.Delete(zipPath);
+            }
+
+            ZipFile.CreateFromDirectory(stagingDir, zipPath, CompressionLevel.Optimal, includeBaseDirectory: false);
 
             _logger.LogInformation("[WorkspaceDiagnosticsService] Exported analysis logs zip={ZipPath}, repoFolder={RepoFolder}", zipPath, repoExportPath);
             return new LogExportResult(
@@ -336,6 +342,50 @@ namespace TestCaseEditorApp.Services
             }
 
             return copiedAny;
+        }
+
+        private static TraceabilityExportInfo CollectTraceabilityReports(string projectRoot, string stagingDir)
+        {
+            var traceabilityDir = Path.Combine(projectRoot, "exports", "traceability-reports");
+            if (!Directory.Exists(traceabilityDir))
+            {
+                return new TraceabilityExportInfo(0, null);
+            }
+
+            var reportFiles = Directory
+                .GetFiles(traceabilityDir, "derivation-trace-*.txt")
+                .Select(path => new FileInfo(path))
+                .OrderByDescending(info => info.LastWriteTimeUtc)
+                .Take(20)
+                .ToList();
+
+            if (reportFiles.Count == 0)
+            {
+                return new TraceabilityExportInfo(0, null);
+            }
+
+            foreach (var report in reportFiles)
+            {
+                var destination = Path.Combine(stagingDir, $"traceability-{report.Name}");
+                File.Copy(report.FullName, destination, overwrite: true);
+            }
+
+            var latestReportPath = reportFiles[0].FullName;
+            var indexPath = Path.Combine(stagingDir, "traceability-index.txt");
+            var indexBuilder = new StringBuilder();
+            indexBuilder.AppendLine("Traceability Report Index");
+            indexBuilder.AppendLine($"Generated: {DateTime.Now:O}");
+            indexBuilder.AppendLine($"Count: {reportFiles.Count}");
+            indexBuilder.AppendLine($"Latest: {latestReportPath}");
+            indexBuilder.AppendLine();
+
+            for (var i = 0; i < reportFiles.Count; i++)
+            {
+                indexBuilder.AppendLine($"[{i + 1}] {reportFiles[i].FullName}");
+            }
+
+            File.WriteAllText(indexPath, indexBuilder.ToString());
+            return new TraceabilityExportInfo(reportFiles.Count, latestReportPath);
         }
 
         private GitAutomationResult TryCommitAndPushExport(string projectRoot, string repoExportPath)
@@ -483,5 +533,9 @@ namespace TestCaseEditorApp.Services
         private sealed record ProjectRootResolution(
             string RootPath,
             string ResolutionInfo);
+
+        private sealed record TraceabilityExportInfo(
+            int ReportCount,
+            string? LatestReportPath);
     }
 }
