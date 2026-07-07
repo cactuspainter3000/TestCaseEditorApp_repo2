@@ -68,6 +68,38 @@ namespace TestCaseEditorApp.Services
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Index statistics</returns>
         Task<DocumentIndexStats> GetProjectIndexStatsAsync(int projectId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Validate whether each attachment's current metadata key matches the persisted index key.
+        /// Used to detect stale indexes after document re-uploads.
+        /// </summary>
+        /// <param name="projectId">Jama project ID</param>
+        /// <param name="attachments">Attachments to validate</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Per-attachment validation results keyed by attachment ID</returns>
+        Task<Dictionary<int, AttachmentIndexValidationResult>> ValidateAttachmentIndexesAsync(
+            int projectId,
+            IReadOnlyCollection<JamaAttachment> attachments,
+            CancellationToken cancellationToken = default);
+    }
+
+    public enum AttachmentIndexValidationState
+    {
+        Unknown = 0,
+        NotIndexed = 1,
+        Match = 2,
+        KeyMismatch = 3,
+        LegacyIndex = 4
+    }
+
+    public sealed class AttachmentIndexValidationResult
+    {
+        public int AttachmentId { get; set; }
+        public AttachmentIndexValidationState State { get; set; } = AttachmentIndexValidationState.Unknown;
+        public bool ScrapeBlocked { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public string CurrentKey { get; set; } = string.Empty;
+        public string StoredKey { get; set; } = string.Empty;
     }
 
     /// <summary>

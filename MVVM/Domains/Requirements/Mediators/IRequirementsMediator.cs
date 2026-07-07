@@ -255,6 +255,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         Task<List<Requirement>> ParseAttachmentRequirementsAsync(JamaAttachment attachment, int projectId, System.Action<string>? progressCallback = null, System.Action<Requirement>? onRequirementDiscovered = null, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Validate current attachment index keys against Jama metadata to detect stale indexes.
+        /// </summary>
+        Task<Dictionary<int, AttachmentIndexValidationResult>> GetAttachmentIndexValidationAsync(
+            int projectId,
+            IReadOnlyCollection<JamaAttachment> attachments,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Rebuild index for a specific attachment without scraping requirements.
+        /// </summary>
+        Task<bool> ReindexAttachmentAsync(
+            JamaAttachment attachment,
+            int projectId,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Import extracted requirements into the current project
         /// </summary>
         Task ImportRequirementsAsync(List<Requirement> requirements);

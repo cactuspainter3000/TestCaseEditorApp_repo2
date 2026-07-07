@@ -286,6 +286,66 @@ namespace TestCaseEditorApp.Services
             }
         }
 
+        public async Task<Dictionary<int, AttachmentIndexValidationResult>> ValidateAttachmentIndexesAsync(
+            int projectId,
+            IReadOnlyCollection<JamaAttachment> attachments,
+            CancellationToken cancellationToken = default)
+        {
+            var results = new Dictionary<int, AttachmentIndexValidationResult>();
+
+            if (attachments == null || attachments.Count == 0)
+            {
+                return results;
+            }
+
+            var projectIndex = await GetProjectIndexAsync(projectId);
+
+            foreach (var attachment in attachments)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var currentKey = BuildAttachmentIndexKey(attachment);
+                var hasChunks = projectIndex.DocumentChunks.TryGetValue(attachment.Id, out var chunks) && chunks.Count > 0;
+                var hasStoredKey = projectIndex.AttachmentKeys.TryGetValue(attachment.Id, out var storedKey);
+
+                var result = new AttachmentIndexValidationResult
+                {
+                    AttachmentId = attachment.Id,
+                    CurrentKey = currentKey,
+                    StoredKey = storedKey ?? string.Empty
+                };
+
+                if (!hasChunks)
+                {
+                    result.State = AttachmentIndexValidationState.NotIndexed;
+                    result.ScrapeBlocked = false;
+                    result.Message = "Not indexed yet";
+                }
+                else if (!hasStoredKey || string.IsNullOrWhiteSpace(storedKey))
+                {
+                    result.State = AttachmentIndexValidationState.LegacyIndex;
+                    result.ScrapeBlocked = false;
+                    result.Message = "Indexed (legacy key metadata missing)";
+                }
+                else if (string.Equals(storedKey, currentKey, StringComparison.Ordinal))
+                {
+                    result.State = AttachmentIndexValidationState.Match;
+                    result.ScrapeBlocked = false;
+                    result.Message = "Index key matches";
+                }
+                else
+                {
+                    result.State = AttachmentIndexValidationState.KeyMismatch;
+                    result.ScrapeBlocked = true;
+                    result.Message = "Index key mismatch - re-index required before scrape";
+                }
+
+                results[attachment.Id] = result;
+            }
+
+            return results;
+        }
+
         // === PRIVATE IMPLEMENTATION ===
 
         private async Task<ProjectDocumentIndex> GetProjectIndexAsync(int projectId)
@@ -329,6 +389,14 @@ namespace TestCaseEditorApp.Services
         private string GetProjectIndexPath(int projectId)
         {
             return Path.Combine(_indexStoragePath, $"project_{projectId}.json");
+        }
+
+        private static string BuildAttachmentIndexKey(JamaAttachment attachment)
+        {
+            var createdDate = attachment.CreatedDate ?? string.Empty;
+            var fileName = attachment.FileName ?? string.Empty;
+            var mimeType = attachment.MimeType ?? string.Empty;
+            return $"{attachment.Id}|{attachment.FileSize}|{createdDate}|{fileName}|{mimeType}";
         }
 
         private async Task<float[]?> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken)
@@ -457,6 +525,7 @@ namespace TestCaseEditorApp.Services
         public int ProjectId { get; set; }
         public DateTime LastUpdate { get; set; } = DateTime.UtcNow;
         public Dictionary<int, List<DocumentChunk>> DocumentChunks { get; set; } = new();
+        public Dictionary<int, string> AttachmentKeys { get; set; } = new();
 
         public ProjectDocumentIndex() { }
         
@@ -474,12 +543,17 @@ namespace TestCaseEditorApp.Services
         public void AddDocument(JamaAttachment attachment, List<DocumentChunk> chunks)
         {
             DocumentChunks[attachment.Id] = chunks;
+            var createdDate = attachment.CreatedDate ?? string.Empty;
+            var fileName = attachment.FileName ?? string.Empty;
+            var mimeType = attachment.MimeType ?? string.Empty;
+            AttachmentKeys[attachment.Id] = $"{attachment.Id}|{attachment.FileSize}|{createdDate}|{fileName}|{mimeType}";
             LastUpdate = DateTime.UtcNow;
         }
 
         public void RemoveDocument(int attachmentId)
         {
             DocumentChunks.Remove(attachmentId);
+            AttachmentKeys.Remove(attachmentId);
             LastUpdate = DateTime.UtcNow;
         }
 

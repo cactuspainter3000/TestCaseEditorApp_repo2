@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Models;
@@ -1483,7 +1484,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                         var existingItems = await _jamaConnectService.SearchAbstractItemsAsync(
                             projectId,
                             contains: tracePrefix,
-                            maxResults: 500);
+                            maxResults: 50);
 
                         if (existingItems.Count > 0)
                         {
@@ -1638,6 +1639,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 });
 
             return string.Join(" | ", sample);
+        }
+
+        public async Task<Dictionary<int, AttachmentIndexValidationResult>> GetAttachmentIndexValidationAsync(
+            int projectId,
+            IReadOnlyCollection<JamaAttachment> attachments,
+            CancellationToken cancellationToken = default)
+        {
+            return await _jamaDocumentParserService.GetAttachmentIndexValidationAsync(projectId, attachments, cancellationToken);
+        }
+
+        public async Task<bool> ReindexAttachmentAsync(
+            JamaAttachment attachment,
+            int projectId,
+            CancellationToken cancellationToken = default)
+        {
+            return await _jamaDocumentParserService.ReindexAttachmentAsync(attachment, projectId, cancellationToken);
         }
 
         private static void WriteAttachmentParseFailureSnapshot(JamaAttachment attachment, int projectId, Exception exception)

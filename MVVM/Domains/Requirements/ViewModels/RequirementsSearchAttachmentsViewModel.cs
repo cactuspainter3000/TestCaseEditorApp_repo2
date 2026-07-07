@@ -184,10 +184,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             // Keep SelectedAttachment in sync with filter selection
             SelectedAttachment = value;
+
+            if (value?.ScrapeBlocked == true)
+            {
+                StatusMessage = $"⚠️ {value.DisplayName}: {value.IndexValidationMessage}";
+            }
             
             // Notify computed properties that depend on selection
             OnPropertyChanged(nameof(CanScanForRequirements));
             UpdateWorkflowState();
+
+            ReindexSelectedAttachmentCommand?.NotifyCanExecuteChanged();
         }
 
         /// <summary>
@@ -415,6 +422,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public IAsyncRelayCommand TestConnectionCommand { get; private set; } = null!;
         public IRelayCommand<JamaAttachment> SelectAttachmentCommand { get; private set; } = null!;
         public IAsyncRelayCommand OpenAttachmentCommand { get; private set; } = null!;
+        public IAsyncRelayCommand ReindexSelectedAttachmentCommand { get; private set; } = null!;
         public IAsyncRelayCommand ExecuteSmartActionCommand { get; private set; } = null!;
         public IAsyncRelayCommand SmartToggleCommand { get; private set; } = null!;
         public IRelayCommand<Requirement> LookupRequirementSourceCommand { get; private set; } = null!;
@@ -424,7 +432,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// <summary>
         /// Can scan for requirements when attachments have been searched and we have a selected attachment
         /// </summary>
-        public bool CanScanForRequirements => HasSearchedAttachments && SelectedAttachmentFilter != null && !IsSearching && !IsParsing && !IsBusy;
+        public bool CanScanForRequirements => HasSearchedAttachments && SelectedAttachmentFilter != null && SelectedAttachmentFilter.ScrapeBlocked == false && !IsSearching && !IsParsing && !IsBusy;
         
         /// <summary>
         /// Can import requirements when we have scanned and extracted requirements
@@ -533,6 +541,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             TestConnectionCommand = new AsyncRelayCommand(TestJamaConnectionAsync, () => !IsBusy);
             SelectAttachmentCommand = new RelayCommand<JamaAttachment>(SelectAttachment);
             OpenAttachmentCommand = new AsyncRelayCommand(OpenSelectedAttachmentAsync, CanExecuteOpenAttachment);
+            ReindexSelectedAttachmentCommand = new AsyncRelayCommand(ReindexSelectedAttachmentAsync, CanExecuteReindexAttachment);
             ExecuteSmartActionCommand = new AsyncRelayCommand(ExecuteSmartActionAsync, () => SmartButtonEnabled);
             SmartToggleCommand = new AsyncRelayCommand(SmartToggleAsync, () => true);
             LookupRequirementSourceCommand = new RelayCommand<Requirement>(LookupRequirementSource);
@@ -596,6 +605,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 CurrentWorkflowState = AttachmentScrapingWorkflowState.ReadyToImport;
                 SmartButtonText = "📤 Import Requirements";
                 SmartButtonEnabled = true;
+            }
+            else if (SelectedAttachmentFilter?.ScrapeBlocked == true)
+            {
+                CurrentWorkflowState = AttachmentScrapingWorkflowState.ReadyToScrape;
+                SmartButtonText = "⚠️ Re-index Required";
+                SmartButtonEnabled = false;
             }
             else if (AvailableAttachments?.Any(a => !a.Name.Contains("No documents")) == true && SelectedAttachmentFilter != null && !SelectedAttachmentFilter.Name.Contains("No documents"))
             {
@@ -1162,6 +1177,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
                     attachments = await _mediator.ScanProjectAttachmentsAsync(projectId, progress, cancellationToken);
                 }
+
+                if (attachments != null && attachments.Count > 0)
+                {
+                    await ApplyAttachmentIndexValidationAsync(projectId, attachments, cancellationToken);
+                }
                 
                 _logger.LogInformation("[RequirementsSearchAttachments] *** API CALL COMPLETED ***");
                 _logger.LogInformation("[RequirementsSearchAttachments] Raw attachments returned: {Count}", attachments?.Count ?? 0);
@@ -1389,6 +1409,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 _logger.LogWarning("[RequirementsSearchAttachments] ⚠️ Early return: SelectedAttachment={HasAttachment}, CanExecute={CanExecute}", 
                     SelectedAttachment != null, CanExecuteParseAttachment());
+                if (SelectedAttachment?.ScrapeBlocked == true)
+                {
+                    StatusMessage = $"⚠️ Scrape disabled for {SelectedAttachment.DisplayName}: {SelectedAttachment.IndexValidationMessage}";
+                }
                 return;
             }
 
@@ -1895,7 +1919,55 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         private bool CanExecuteParseAttachment()
         {
-            return SelectedAttachment != null && !IsParsing && !IsBusy && !IsSearching;
+            return SelectedAttachment != null && !SelectedAttachment.ScrapeBlocked && !IsParsing && !IsBusy && !IsSearching;
+        }
+
+        private bool CanExecuteReindexAttachment()
+        {
+            return SelectedAttachment != null && SelectedAttachment.ScrapeBlocked && !IsParsing && !IsBusy && !IsSearching;
+        }
+
+        private async Task ReindexSelectedAttachmentAsync()
+        {
+            if (SelectedAttachment == null)
+            {
+                return;
+            }
+
+            var projectId = GetCurrentJamaProjectId();
+            if (projectId <= 0)
+            {
+                StatusMessage = "❌ No project selected - cannot re-index attachment";
+                return;
+            }
+
+            try
+            {
+                IsBusy = true;
+                StatusMessage = $"🔄 Re-indexing {SelectedAttachment.DisplayName}...";
+                var success = await _mediator.ReindexAttachmentAsync(SelectedAttachment, projectId);
+
+                if (!success)
+                {
+                    StatusMessage = $"❌ Re-index failed for {SelectedAttachment.DisplayName}";
+                    return;
+                }
+
+                await ApplyAttachmentIndexValidationAsync(projectId, AvailableAttachments.ToList(), CancellationToken.None);
+                StatusMessage = $"✅ Re-index complete for {SelectedAttachment.DisplayName}";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsSearchAttachments] Re-index failed for attachment {AttachmentId}", SelectedAttachment.Id);
+                StatusMessage = $"❌ Re-index failed: {ex.Message}";
+            }
+            finally
+            {
+                IsBusy = false;
+                ParseSelectedAttachmentCommand?.NotifyCanExecuteChanged();
+                ReindexSelectedAttachmentCommand?.NotifyCanExecuteChanged();
+                UpdateWorkflowState();
+            }
         }
 
         private bool CanCancelParsing()
@@ -2064,6 +2136,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 _logger.LogInformation("[RequirementsSearchAttachments] Attachment scan completed for project {ProjectId}: {Success}, {Count} attachments", 
                     completedEvent.ProjectId, completedEvent.Success, completedEvent.AttachmentCount);
 
+                if (completedEvent.Success && completedEvent.Attachments.Count > 0)
+                {
+                    await ApplyAttachmentIndexValidationAsync(completedEvent.ProjectId, completedEvent.Attachments, CancellationToken.None);
+                }
+
                 if (completedEvent.Success && completedEvent.AttachmentCount > 0)
                 {
                     await Application.Current.Dispatcher.InvokeAsync(() =>
@@ -2089,6 +2166,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                         
                         // Update search results based on current filter
                         UpdateSearchResultsFromFilter();
+                        ReindexSelectedAttachmentCommand?.NotifyCanExecuteChanged();
+                        ParseSelectedAttachmentCommand?.NotifyCanExecuteChanged();
                         
                         // Update status
                         StatusMessage = $"✅ Found {completedEvent.AttachmentCount} attachments";
@@ -2155,6 +2234,51 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private bool CanExecuteOpenAttachment()
         {
             return !IsBusy && !IsParsing && SelectedAttachment != null;
+        }
+
+        private async Task ApplyAttachmentIndexValidationAsync(
+            int projectId,
+            IReadOnlyCollection<JamaAttachment> attachments,
+            CancellationToken cancellationToken)
+        {
+            if (attachments == null || attachments.Count == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                var validation = await _mediator.GetAttachmentIndexValidationAsync(projectId, attachments, cancellationToken);
+                var blockedCount = 0;
+
+                foreach (var attachment in attachments)
+                {
+                    if (!validation.TryGetValue(attachment.Id, out var result))
+                    {
+                        attachment.IndexValidationState = AttachmentIndexValidationState.Unknown;
+                        attachment.IndexValidationMessage = "Index validation unavailable";
+                        attachment.ScrapeBlocked = false;
+                        continue;
+                    }
+
+                    attachment.IndexValidationState = result.State;
+                    attachment.IndexValidationMessage = result.Message;
+                    attachment.ScrapeBlocked = result.ScrapeBlocked;
+                    if (attachment.ScrapeBlocked)
+                    {
+                        blockedCount++;
+                    }
+                }
+
+                if (blockedCount > 0)
+                {
+                    _logger.LogWarning("[RequirementsSearchAttachments] Index validation blocked scrape for {BlockedCount} attachments due to key mismatch", blockedCount);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[RequirementsSearchAttachments] Failed to validate attachment index state for project {ProjectId}", projectId);
+            }
         }
 
         /// <summary>

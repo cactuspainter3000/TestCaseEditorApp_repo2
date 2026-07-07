@@ -8197,11 +8197,26 @@ namespace TestCaseEditorApp.Services
         public int Item { get; set; }  // ID of the item this is attached to
         public int CreatedBy { get; set; }
         public string CreatedDate { get; set; } = "";
+
+        // Index validation metadata for scrape safety checks.
+        public AttachmentIndexValidationState IndexValidationState { get; set; } = AttachmentIndexValidationState.Unknown;
+        public string IndexValidationMessage { get; set; } = string.Empty;
+        public bool ScrapeBlocked { get; set; }
         
         // Computed properties for UI
-        public string DisplayName => !string.IsNullOrWhiteSpace(Name) ? Name : 
-                                   !string.IsNullOrWhiteSpace(FileName) ? FileName : 
-                                   $"Attachment {Id}";
+        public string DisplayName
+        {
+            get
+            {
+                var baseName = !string.IsNullOrWhiteSpace(Name)
+                    ? Name
+                    : !string.IsNullOrWhiteSpace(FileName)
+                        ? FileName
+                        : $"Attachment {Id}";
+
+                return ScrapeBlocked ? $"{baseName} [Re-index required]" : baseName;
+            }
+        }
         public string FileSizeDisplay => FormatFileSize(FileSize);
         public bool IsPdf => MimeType?.Contains("pdf", StringComparison.OrdinalIgnoreCase) ?? false;
         public bool IsWord => MimeType?.Contains("word", StringComparison.OrdinalIgnoreCase) ?? 

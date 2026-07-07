@@ -35,5 +35,21 @@ namespace TestCaseEditorApp.Services
         /// Check if the service is properly configured
         /// </summary>
         bool IsConfigured { get; }
+
+        /// <summary>
+        /// Validate index key state for attachments in a project.
+        /// </summary>
+        Task<Dictionary<int, AttachmentIndexValidationResult>> GetAttachmentIndexValidationAsync(
+            int projectId,
+            IReadOnlyCollection<JamaAttachment> attachments,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Rebuild the RAG index for a specific attachment without scraping requirements.
+        /// </summary>
+        Task<bool> ReindexAttachmentAsync(
+            JamaAttachment attachment,
+            int projectId,
+            CancellationToken cancellationToken = default);
     }
 }

@@ -184,6 +184,77 @@ namespace TestCaseEditorApp.Services
             return allRequirements;
         }
 
+        public async Task<Dictionary<int, AttachmentIndexValidationResult>> GetAttachmentIndexValidationAsync(
+            int projectId,
+            IReadOnlyCollection<JamaAttachment> attachments,
+            CancellationToken cancellationToken = default)
+        {
+            if (attachments == null || attachments.Count == 0)
+            {
+                return new Dictionary<int, AttachmentIndexValidationResult>();
+            }
+
+            if (_directRagService?.IsConfigured != true)
+            {
+                var unavailableResults = new Dictionary<int, AttachmentIndexValidationResult>();
+                foreach (var attachment in attachments)
+                {
+                    unavailableResults[attachment.Id] = new AttachmentIndexValidationResult
+                    {
+                        AttachmentId = attachment.Id,
+                        State = AttachmentIndexValidationState.Unknown,
+                        ScrapeBlocked = false,
+                        Message = "Index validation unavailable (DirectRAG not configured)"
+                    };
+                }
+
+                return unavailableResults;
+            }
+
+            return await _directRagService.ValidateAttachmentIndexesAsync(projectId, attachments, cancellationToken);
+        }
+
+        public async Task<bool> ReindexAttachmentAsync(
+            JamaAttachment attachment,
+            int projectId,
+            CancellationToken cancellationToken = default)
+        {
+            if (_directRagService?.IsConfigured != true)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn("[JamaDocumentParser] Reindex requested but DirectRAG is not configured");
+                return false;
+            }
+
+            try
+            {
+                var fileBytes = await _jamaService.DownloadAttachmentAsync(attachment.Id, cancellationToken);
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Reindex failed - could not download attachment {attachment.Id}");
+                    return false;
+                }
+
+                var documentContent = await ExtractAttachmentTextForIndexingAsync(attachment, fileBytes);
+                if (string.IsNullOrWhiteSpace(documentContent))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Reindex failed - no extractable text for attachment {attachment.Id}");
+                    return false;
+                }
+
+                // Preserve current isolation strategy: parse/index context is one attachment at a time.
+                await _directRagService.ClearProjectIndexAsync(projectId, cancellationToken);
+                var indexed = await _directRagService.IndexDocumentAsync(attachment, documentContent, projectId, cancellationToken);
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Reindex {(indexed ? "succeeded" : "failed")} for attachment {attachment.Id} ({attachment.FileName})");
+                return indexed;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Reindex error for attachment {attachment.Id}: {ex.Message}");
+                return false;
+            }
+        }
+
         /// <summary>
         /// Extract requirements using AnythingLLM (fallback method when DirectRag is unavailable)
         /// </summary>
@@ -283,6 +354,40 @@ namespace TestCaseEditorApp.Services
                 {
                     _llmService.StatusUpdated -= statusUpdateHandler;
                 }
+            }
+        }
+
+        private async Task<string> ExtractAttachmentTextForIndexingAsync(JamaAttachment attachment, byte[] fileBytes)
+        {
+            try
+            {
+                if (attachment.IsWord)
+                {
+                    return await ExtractWordTextAsync(fileBytes);
+                }
+
+                if (attachment.IsExcel)
+                {
+                    return await ExtractExcelTextAsync(fileBytes);
+                }
+
+                if (attachment.IsPdf)
+                {
+                    return await ExtractPdfTextAsync(fileBytes);
+                }
+
+                if (attachment.MimeType?.Contains("text") == true)
+                {
+                    return System.Text.Encoding.UTF8.GetString(fileBytes);
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Unsupported document type for reindex text extraction: {attachment.MimeType}");
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed text extraction during reindex for {attachment.FileName}: {ex.Message}");
+                return string.Empty;
             }
         }
 

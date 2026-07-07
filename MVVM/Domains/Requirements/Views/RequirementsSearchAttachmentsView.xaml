@@ -115,6 +115,18 @@
                         <ToolTip Content="Extract requirements from the selected attachment"/>
                     </Button.ToolTip>
                 </Button>
+
+                <Button Content="Re-index Attachment"
+                        Command="{Binding ReindexSelectedAttachmentCommand}"
+                        IsEnabled="{Binding ReindexSelectedAttachmentCommand.CanExecute}"
+                        Style="{StaticResource SideMenuPopupButtonStyle}"
+                        Margin="0,0,16,0"
+                        Padding="12,6"
+                        Visibility="{Binding SelectedAttachmentFilter.ScrapeBlocked, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Button.ToolTip>
+                        <ToolTip Content="Rebuild index when Jama metadata key mismatch is detected"/>
+                    </Button.ToolTip>
+                </Button>
                 
                 <Button Content="Open Attachment" 
                         Style="{StaticResource SideMenuPopupButtonStyle}"
