@@ -194,6 +194,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             OnPropertyChanged(nameof(CanScanForRequirements));
             UpdateWorkflowState();
 
+            ParseSelectedAttachmentCommand?.NotifyCanExecuteChanged();
             ReindexSelectedAttachmentCommand?.NotifyCanExecuteChanged();
         }
 
@@ -1924,7 +1925,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         private bool CanExecuteReindexAttachment()
         {
-            return SelectedAttachment != null && SelectedAttachment.ScrapeBlocked && !IsParsing && !IsBusy && !IsSearching;
+            return SelectedAttachment != null && SelectedAttachment.Id != 0 && !IsParsing && !IsBusy && !IsSearching;
         }
 
         private async Task ReindexSelectedAttachmentAsync()
@@ -2274,6 +2275,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 {
                     _logger.LogWarning("[RequirementsSearchAttachments] Index validation blocked scrape for {BlockedCount} attachments due to key mismatch", blockedCount);
                 }
+
+                ParseSelectedAttachmentCommand?.NotifyCanExecuteChanged();
+                ReindexSelectedAttachmentCommand?.NotifyCanExecuteChanged();
             }
             catch (Exception ex)
             {

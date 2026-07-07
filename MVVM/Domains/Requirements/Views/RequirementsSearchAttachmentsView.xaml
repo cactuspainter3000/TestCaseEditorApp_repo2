@@ -122,7 +122,7 @@
                         Style="{StaticResource SideMenuPopupButtonStyle}"
                         Margin="0,0,16,0"
                         Padding="12,6"
-                        Visibility="{Binding SelectedAttachmentFilter.ScrapeBlocked, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        Visibility="{Binding SelectedAttachmentFilter, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <Button.ToolTip>
                         <ToolTip Content="Rebuild index when Jama metadata key mismatch is detected"/>
                     </Button.ToolTip>
