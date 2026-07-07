@@ -106,6 +106,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// </summary>
         public ObservableCollection<ParagraphViewModel> SelectedParagraphVMs { get; } = new();
 
+        /// <summary>
+        /// Live preview of REQ_RC requirements that will be deleted with the current threshold.
+        /// </summary>
+        public ObservableCollection<string> DeletionPreviewItems { get; } = new();
+
         #endregion
 
         #region Content Presence Flags
@@ -129,6 +134,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// True if requirement has metadata for chips display
         /// </summary>
         public bool HasMeta => VisibleChips?.Any() == true;
+
+        public bool HasDeletionPreviewItems => DeletionPreviewItems.Count > 0;
+
+        public string DeletionPreviewStatus =>
+            $"{DeletionPreviewItems.Count} REQ_RC requirement(s) selected for deletion (ID > {DeleteItemSuffixThreshold})";
 
         #endregion
 
@@ -500,6 +510,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
             _mediator.Requirements.CollectionChanged += OnRequirementsCollectionUpdated;
             SynchronizeBatchSelections();
+            RefreshDeletionPreview();
             
             _logger.LogInformation("[UnifiedRequirementsMainVM] Event subscriptions completed");
         }
@@ -509,6 +520,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             OnPropertyChanged(nameof(Requirements));
             OnPropertyChanged(nameof(RequirementPositionDisplay));
             SynchronizeBatchSelections();
+            RefreshDeletionPreview();
             NotifyCommandsCanExecuteChanged();
         }
 
@@ -1051,16 +1063,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private void DeleteRequirementsAboveThreshold()
         {
             var threshold = DeleteItemSuffixThreshold;
-            var matches = _mediator.Requirements
-                .Where(r =>
-                    TryGetTrailingNumber(r.Item, out var itemSuffix) && itemSuffix > threshold)
-                .Distinct()
-                .ToList();
+            var matches = GetDeleteCandidates(threshold);
 
             if (matches.Count == 0)
             {
                 MessageBox.Show(
-                    $"No requirements found with trailing ID number greater than {threshold}.",
+                    $"No REQ_RC requirements found with trailing ID number greater than {threshold}.",
                     "Bulk Delete",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
@@ -1068,7 +1076,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
 
             var confirm = MessageBox.Show(
-                $"Delete {matches.Count} requirement(s) with trailing ID number greater than {threshold}?\n\nThis cannot be undone.",
+                $"Delete {matches.Count} REQ_RC requirement(s) with trailing ID number greater than {threshold}?\n\nThis cannot be undone.",
                 "Confirm Bulk Delete",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning,
@@ -1085,20 +1093,47 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             }
 
             _logger.LogInformation(
-                "[UnifiedRequirementsMainVM] Bulk deleted {Count} requirements with trailing ID number > {Threshold}",
+                "[UnifiedRequirementsMainVM] Bulk deleted {Count} REQ_RC requirements with trailing ID number > {Threshold}",
                 matches.Count,
                 threshold);
 
             OnPropertyChanged(nameof(RequirementPositionDisplay));
+            RefreshDeletionPreview();
             NotifyCommandsCanExecuteChanged();
         }
 
         partial void OnDeleteItemSuffixThresholdChanged(int value)
         {
+            RefreshDeletionPreview();
             NotifyCommandsCanExecuteChanged();
         }
 
-        private static bool TryGetTrailingNumber(string? text, out int value)
+        private List<Requirement> GetDeleteCandidates(int threshold)
+        {
+            return _mediator.Requirements
+                .Where(r => TryGetRequirementRcSuffix(r.Item, out var itemSuffix) && itemSuffix > threshold)
+                .Distinct()
+                .OrderBy(r => r.Item)
+                .ToList();
+        }
+
+        private void RefreshDeletionPreview()
+        {
+            var candidates = GetDeleteCandidates(DeleteItemSuffixThreshold);
+
+            DeletionPreviewItems.Clear();
+            foreach (var requirement in candidates)
+            {
+                var id = string.IsNullOrWhiteSpace(requirement.Item) ? "<no-item-id>" : requirement.Item;
+                var name = string.IsNullOrWhiteSpace(requirement.Name) ? "<no-name>" : requirement.Name;
+                DeletionPreviewItems.Add($"{id} - {name}");
+            }
+
+            OnPropertyChanged(nameof(HasDeletionPreviewItems));
+            OnPropertyChanged(nameof(DeletionPreviewStatus));
+        }
+
+        private static bool TryGetRequirementRcSuffix(string? text, out int value)
         {
             value = 0;
             if (string.IsNullOrWhiteSpace(text))
@@ -1106,9 +1141,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 return false;
             }
 
-            // Use only the trailing numeric suffix of the ID (e.g., MFD268C4B-REQ_RC-1931 -> 1931).
-            // This avoids matching unrelated numbers embedded earlier in the identifier.
-            var match = Regex.Match(text.Trim(), @"(?:^|[-_])(\d+)\s*$");
+            // Scope bulk deletion to requirement IDs in the REQ_RC family.
+            // Example: MFD268C4B-REQ_RC-1931 -> 1931.
+            var match = Regex.Match(text.Trim(), @"-REQ_RC-(\d+)\s*$", RegexOptions.IgnoreCase);
             if (!match.Success)
             {
                 return false;

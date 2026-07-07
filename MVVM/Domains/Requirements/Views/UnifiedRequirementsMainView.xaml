@@ -129,6 +129,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/> <!-- Tab navigation -->
+            <RowDefinition Height="Auto"/> <!-- Delete preview -->
             <RowDefinition Height="*"/>    <!-- Content area -->
             <RowDefinition Height="Auto"/> <!-- Action buttons -->
         </Grid.RowDefinitions>
@@ -276,8 +277,31 @@
             </StackPanel>
         </DockPanel>
 
+        <Border Grid.Row="1"
+                Margin="10,4,10,6"
+                Padding="8"
+                Background="#1E1E1E"
+                BorderBrush="#4F4F4F"
+                BorderThickness="1"
+                CornerRadius="4"
+                Visibility="{Binding HasDeletionPreviewItems, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel>
+                <TextBlock Text="{Binding DeletionPreviewStatus}"
+                           Foreground="#F2C078"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,6"/>
+                <ListBox ItemsSource="{Binding DeletionPreviewItems}"
+                         MaxHeight="140"
+                         Background="#252526"
+                         BorderBrush="#5A5A5C"
+                         BorderThickness="1"
+                         Foreground="#E0E0E0"
+                         FontSize="11"/>
+            </StackPanel>
+        </Border>
+
         <!-- Content Area -->
-        <Border Grid.Row="1" BorderBrush="#666666" BorderThickness="0,2,0,0" Margin="10,0">
+        <Border Grid.Row="2" BorderBrush="#666666" BorderThickness="0,2,0,0" Margin="10,0">
             <Grid Background="Transparent">
                 
                 <!-- Details View -->
