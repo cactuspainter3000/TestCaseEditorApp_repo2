@@ -84,6 +84,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private string batchQueueStatus = "Select requirements to batch analyze.";
 
+        [ObservableProperty]
+        private int deleteItemSuffixThreshold = 1930;
+
         // Analysis timer (from Jama path)
         private System.Timers.Timer? _analysisTimer;
         private DateTime _analysisStartTime;
@@ -227,6 +230,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         // Content Management Commands
         public ICommand AddRequirementCommand { get; private set; } = null!;
         public ICommand RemoveRequirementCommand { get; private set; } = null!;
+        public ICommand DeleteRequirementsAboveThresholdCommand { get; private set; } = null!;
 
         // Table Operations Commands
         public ICommand SelectAllTablesCommand { get; private set; } = null!;
@@ -431,6 +435,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Content Management
             AddRequirementCommand = new RelayCommand(AddRequirement);
             RemoveRequirementCommand = new RelayCommand(RemoveSelectedRequirement, () => CurrentRequirement != null);
+            DeleteRequirementsAboveThresholdCommand = new RelayCommand(DeleteRequirementsAboveThreshold, CanDeleteRequirementsAboveThreshold);
 
             // Table Operations
             SelectAllTablesCommand = new RelayCommand(SelectAllTables, () => HasTables);
@@ -1042,6 +1047,94 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _mediator.RemoveRequirement(CurrentRequirement);
         }
 
+        private void DeleteRequirementsAboveThreshold()
+        {
+            var threshold = DeleteItemSuffixThreshold;
+            var matches = _mediator.Requirements
+                .Where(r =>
+                    TryGetTrailingNumber(r.Item, out var itemSuffix) && itemSuffix > threshold ||
+                    TryGetTrailingNumber(r.GlobalId, out var globalSuffix) && globalSuffix > threshold)
+                .Distinct()
+                .ToList();
+
+            if (matches.Count == 0)
+            {
+                MessageBox.Show(
+                    $"No requirements found with trailing ID number greater than {threshold}.",
+                    "Bulk Delete",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            var confirm = MessageBox.Show(
+                $"Delete {matches.Count} requirement(s) with trailing ID number greater than {threshold}?\n\nThis cannot be undone.",
+                "Confirm Bulk Delete",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+
+            if (confirm != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            foreach (var requirement in matches)
+            {
+                _mediator.RemoveRequirement(requirement);
+            }
+
+            _logger.LogInformation(
+                "[UnifiedRequirementsMainVM] Bulk deleted {Count} requirements with trailing ID number > {Threshold}",
+                matches.Count,
+                threshold);
+
+            OnPropertyChanged(nameof(RequirementPositionDisplay));
+            NotifyCommandsCanExecuteChanged();
+        }
+
+        private bool CanDeleteRequirementsAboveThreshold()
+        {
+            var threshold = DeleteItemSuffixThreshold;
+            return _mediator.Requirements.Any(r =>
+                TryGetTrailingNumber(r.Item, out var itemSuffix) && itemSuffix > threshold ||
+                TryGetTrailingNumber(r.GlobalId, out var globalSuffix) && globalSuffix > threshold);
+        }
+
+        partial void OnDeleteItemSuffixThresholdChanged(int value)
+        {
+            NotifyCommandsCanExecuteChanged();
+        }
+
+        private static bool TryGetTrailingNumber(string? text, out int value)
+        {
+            value = 0;
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var end = text.Length - 1;
+            while (end >= 0 && char.IsWhiteSpace(text[end]))
+            {
+                end--;
+            }
+
+            if (end < 0 || !char.IsDigit(text[end]))
+            {
+                return false;
+            }
+
+            var start = end;
+            while (start >= 0 && char.IsDigit(text[start]))
+            {
+                start--;
+            }
+
+            var numberText = text.Substring(start + 1, end - start);
+            return int.TryParse(numberText, out value);
+        }
+
         // Table Operations
         private void SelectAllTables()
         {
@@ -1341,6 +1434,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private void NotifyCommandsCanExecuteChanged()
         {
             ((RelayCommand)RemoveRequirementCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)DeleteRequirementsAboveThresholdCommand).NotifyCanExecuteChanged();
             ((RelayCommand)SelectAllTablesCommand).NotifyCanExecuteChanged();
             ((RelayCommand)ClearAllTablesCommand).NotifyCanExecuteChanged();
             ((RelayCommand)SelectAllParagraphsCommand).NotifyCanExecuteChanged();

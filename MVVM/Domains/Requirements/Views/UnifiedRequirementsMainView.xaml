@@ -217,6 +217,28 @@
                            VerticalAlignment="Center"
                            Foreground="#BBBBBB"
                            FontSize="11"/>
+
+                <TextBlock Text="Delete IDs &gt;"
+                       Margin="14,0,4,0"
+                       VerticalAlignment="Center"
+                       Foreground="#BBBBBB"
+                       FontSize="11"/>
+
+                <TextBox Width="62"
+                     Height="24"
+                     Text="{Binding DeleteItemSuffixThreshold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     VerticalContentAlignment="Center"
+                     Background="#1E1E1E"
+                     Foreground="#DDDDDD"
+                     BorderBrush="#555555"
+                     BorderThickness="1"
+                     ToolTip="Trailing numeric ID threshold for bulk delete"/>
+
+                <Button Content="Delete Matching"
+                    Command="{Binding DeleteRequirementsAboveThresholdCommand}"
+                    Style="{DynamicResource SmallButtonStyle}"
+                    Margin="6,0,0,0"
+                    ToolTip="Delete all requirements whose trailing numeric item/global ID is greater than the threshold"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Background="Transparent">
