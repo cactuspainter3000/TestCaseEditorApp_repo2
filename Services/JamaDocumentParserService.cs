@@ -1844,6 +1844,7 @@ Extract all legitimate requirements:";
 
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var index = 1;
+            var rejectedCount = 0;
 
             var statements = statementRegex.Matches(normalizedContent).Cast<System.Text.RegularExpressions.Match>().ToList();
 
@@ -1852,6 +1853,12 @@ Extract all legitimate requirements:";
                 var text = System.Text.RegularExpressions.Regex.Replace(statement.Value, @"\s+", " ").Trim();
                 if (string.IsNullOrWhiteSpace(text) || text.Length < 20)
                 {
+                    continue;
+                }
+
+                if (!ShouldIncludeDeterministicClause(text))
+                {
+                    rejectedCount++;
                     continue;
                 }
 
@@ -1912,7 +1919,100 @@ Extract all legitimate requirements:";
                 index++;
             }
 
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[DirectRag] Deterministic clause screening kept {results.Count} of {statements.Count} candidates (rejected {rejectedCount}) for attachment {attachment.Id}");
+
             return results;
+        }
+
+        private static bool ShouldIncludeDeterministicClause(string clause)
+        {
+            if (string.IsNullOrWhiteSpace(clause))
+            {
+                return false;
+            }
+
+            var normalized = System.Text.RegularExpressions.Regex.Replace(clause, @"\s+", " ").Trim();
+            var lower = normalized.ToLowerInvariant();
+
+            if (normalized.Length < 35)
+            {
+                return false;
+            }
+
+            var startsWithWeakContinuation = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"^(and|or|but|then|when|where|while|unless|if|it|this|these|those|the\s+measurement|the\s+default\s+states)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (startsWithWeakContinuation)
+            {
+                return false;
+            }
+
+            var hasModalVerb = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"\b(shall|must|will|should)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (!hasModalVerb)
+            {
+                return false;
+            }
+
+            var lowerNoisePatterns = new[]
+            {
+                "contents of this document are proprietary",
+                "shall not be disclosed",
+                "purposes expressly authorized",
+                "copyright",
+                "all rights reserved",
+                "recommended power down procedure",
+                "recommended power up procedure",
+                "note:",
+                "table of contents",
+                "revision history"
+            };
+
+            if (lowerNoisePatterns.Any(pattern => lower.Contains(pattern)))
+            {
+                return false;
+            }
+
+            var badEndingPatterns = new[]
+            {
+                "(ex.",
+                "(e.g.",
+                "using ref ",
+                "mergeformat",
+                "_ref"
+            };
+
+            if (badEndingPatterns.Any(pattern => lower.Contains(pattern)))
+            {
+                return false;
+            }
+
+            var punctuationBalanceLooksBroken = normalized.Count(ch => ch == '[') != normalized.Count(ch => ch == ']') ||
+                                                normalized.Count(ch => ch == '(') > normalized.Count(ch => ch == ')');
+
+            if (punctuationBalanceLooksBroken)
+            {
+                return false;
+            }
+
+            var weakShouldClause = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"\bshould\s+be\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase) && normalized.Length < 55;
+
+            if (weakShouldClause)
+            {
+                return false;
+            }
+
+            var tokenCount = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+            return tokenCount >= 6;
         }
 
         private async Task WriteDeterministicTraceabilityReportAsync(
