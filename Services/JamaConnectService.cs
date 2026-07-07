@@ -1027,8 +1027,9 @@ namespace TestCaseEditorApp.Services
                         int pageNumber = 2;
                         int startIndex = 50;
                         bool hasMorePages = true;
+                        var totalResults = result?.Meta?.PageInfo?.TotalResults;
                         
-                        while (hasMorePages && pageNumber <= 10) // Safety limit of 10 pages (500 items)
+                        while (hasMorePages && pageNumber <= 200) // High safety cap; normal stop comes from pageInfo
                         {
                             var nextPageUrl = $"{_baseUrl}/rest/v1/items?project={projectId}{requirementItemTypeQuery}&maxResults=50&startAt={startIndex}&include=createdBy,modifiedBy,createdDate,modifiedDate";
                             TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Fetching page {pageNumber} with user metadata: startAt={startIndex}");
@@ -1065,12 +1066,28 @@ namespace TestCaseEditorApp.Services
                                 
                                 var pageItems = nextPageResult?.Data ?? new List<JamaItem>();
                                 allItems.AddRange(pageItems);
+
+                                var resultCount = nextPageResult?.Meta?.PageInfo?.ResultCount ?? pageItems.Count;
+                                var pageTotalResults = nextPageResult?.Meta?.PageInfo?.TotalResults;
+                                if (pageTotalResults.HasValue && pageTotalResults.Value > 0)
+                                {
+                                    totalResults = pageTotalResults.Value;
+                                }
                                 
                                 TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Page {pageNumber}: Retrieved {pageItems.Count} items (total: {allItems.Count})");
                                 
-                                // Continue if we got a full page
-                                hasMorePages = pageItems.Count == 50;
-                                startIndex += 50;
+                                // Prefer server pagination metadata; fallback to legacy page-size behavior if metadata is absent.
+                                if (totalResults.HasValue && totalResults.Value > 0)
+                                {
+                                    hasMorePages = startIndex + resultCount < totalResults.Value && resultCount > 0;
+                                    startIndex += Math.Max(resultCount, 0);
+                                }
+                                else
+                                {
+                                    hasMorePages = pageItems.Count == 50;
+                                    startIndex += 50;
+                                }
+
                                 pageNumber++;
                             }
                             else
@@ -7699,6 +7716,7 @@ namespace TestCaseEditorApp.Services
     public class JamaItemsResponse
     {
         public List<JamaItem> Data { get; set; } = new();
+        public JamaMeta? Meta { get; set; }
     }
 
     public class JamaItem
