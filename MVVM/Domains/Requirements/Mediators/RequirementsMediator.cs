@@ -754,10 +754,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             if (string.IsNullOrWhiteSpace(searchText)) return Array.Empty<Requirement>();
 
             var results = _requirements
-                .Where(r => 
-                    r.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true ||
-                    r.Description?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true ||
-                    r.GlobalId?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true)
+                .Where(r => r.Item?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true)
                 .ToList();
 
             _logger.LogDebug("Search for '{SearchText}' returned {Count} results", searchText, results.Count);

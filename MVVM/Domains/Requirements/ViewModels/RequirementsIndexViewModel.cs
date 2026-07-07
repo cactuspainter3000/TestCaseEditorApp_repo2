@@ -48,7 +48,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             PreviousRequirementCommand = new RelayCommand(ExecutePrev, CanExecutePrev);
             NextRequirementCommand = new RelayCommand(ExecuteNext, CanExecuteNext);
 
-            // Add search command (simple find-by-Item/Name)
+            // Add search command (simple find-by-Item)
             SearchCommand = new RelayCommand(ExecuteSearch, CanExecuteSearch);
 
             // Create a ListCollectionView over the backing collection so we can apply a custom sort.
@@ -288,10 +288,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             var q = SearchQuery?.Trim();
             if (string.IsNullOrEmpty(q)) return;
 
-            // Try to match Item or Name (case-insensitive)
+            // Match Item ID only (case-insensitive)
             var found = _requirements.FirstOrDefault(r =>
-                (!string.IsNullOrEmpty(r.Item) && r.Item.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0) ||
-                (!string.IsNullOrEmpty(r.Name) && r.Name.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0));
+                !string.IsNullOrEmpty(r.Item) && r.Item.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0);
 
             if (found != null)
             {
