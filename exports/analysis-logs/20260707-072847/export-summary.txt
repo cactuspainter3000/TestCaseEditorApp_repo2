@@ -1,0 +1,13 @@
+TestCaseEditorApp Analysis Log Export
+Created: 2026-07-07T07:28:47.4795215-05:00
+Source machine: USM246425
+Zip: C:\Users\e10653214\Desktop\TestCaseEditorApp-AnalysisLogs-20260707-072847.zip
+Repo folder: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\exports\analysis-logs\20260707-072847
+DetectedRoot: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp
+RootResolution: Found .git from candidate 'C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\'
+AppBaseDirectory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\
+CurrentDirectory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows
+
+TraceReportsIncluded: 0
+LatestTraceReport: (none)
+GitPushResult: recorded in export dialog (computed after commit/push step)
