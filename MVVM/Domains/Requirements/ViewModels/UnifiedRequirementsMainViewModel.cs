@@ -1053,8 +1053,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             var threshold = DeleteItemSuffixThreshold;
             var matches = _mediator.Requirements
                 .Where(r =>
-                    TryGetTrailingNumber(r.Item, out var itemSuffix) && itemSuffix > threshold ||
-                    TryGetTrailingNumber(r.GlobalId, out var globalSuffix) && globalSuffix > threshold)
+                    TryGetTrailingNumber(r.Item, out var itemSuffix) && itemSuffix > threshold)
                 .Distinct()
                 .ToList();
 
@@ -1107,7 +1106,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 return false;
             }
 
-            var match = Regex.Match(text, @"(\d+)(?!.*\d)");
+            // Use only the trailing numeric suffix of the ID (e.g., MFD268C4B-REQ_RC-1931 -> 1931).
+            // This avoids matching unrelated numbers embedded earlier in the identifier.
+            var match = Regex.Match(text.Trim(), @"(?:^|[-_])(\d+)\s*$");
             if (!match.Success)
             {
                 return false;
