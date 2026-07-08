@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
     {
         private readonly IRequirementAnalysisService _analysisService;
         private readonly ILogger<RequirementAnalysisEngine> _logger;
+        private readonly IncoseConsistentContentChecker _incoseChecker = new();
 
         public RequirementAnalysisEngine(
             IRequirementAnalysisService analysisService,
@@ -49,6 +51,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     return requirement.Analysis;
                 }
 
+                progressCallback?.Invoke("Running INCOSE structural check...");
+
+                // --- Deterministic INCOSE check (no LLM, instant) ---
+                var incoseResult = _incoseChecker.Check(requirement.Name ?? requirement.Description ?? string.Empty);
+                var incoseIssues = _incoseChecker.ToAnalysisIssues(incoseResult);
+
+                _logger.LogInformation("[AnalysisEngine] INCOSE check for {RequirementId}: Type={Type}, Passed={Passed}, Issues={IssueCount}",
+                    requirement.Item, incoseResult.RequirementType, incoseResult.Passed, incoseIssues.Count);
+
+                if (incoseIssues.Count > 0)
+                    progressCallback?.Invoke($"INCOSE structural issues found: {incoseIssues.Count}");
+
                 progressCallback?.Invoke("Analyzing requirement quality...");
 
                 // Delegate to the existing analysis service with streaming support for timeout enforcement
@@ -60,6 +74,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
 
                 if (analysis.IsAnalyzed)
                 {
+                    // Merge INCOSE issues into LLM analysis results (prepend so they appear first)
+                    if (incoseIssues.Count > 0)
+                    {
+                        analysis.Issues ??= new List<AnalysisIssue>();
+                        analysis.Issues.InsertRange(0, incoseIssues);
+                        _logger.LogInformation("[AnalysisEngine] Merged {IncoseCount} INCOSE issues into analysis for {RequirementId}",
+                            incoseIssues.Count, requirement.Item);
+                    }
+
+                    // Annotate freeform feedback with INCOSE classification
+                    var incoseSummary = $"[INCOSE Pattern: {incoseResult.RequirementType}]" +
+                        (incoseResult.Passed ? " Structural check passed." : $" Structural issues detected. Canonical form: {incoseResult.CanonicalFormSuggestion}");
+                    analysis.FreeformFeedback = string.IsNullOrEmpty(analysis.FreeformFeedback)
+                        ? incoseSummary
+                        : $"{incoseSummary}\n\n{analysis.FreeformFeedback}";
+
                     _logger.LogInformation("[AnalysisEngine] Analysis completed successfully for {RequirementId}. Original Quality: {OriginalScore}, Issues: {IssueCount}", 
                         requirement.Item, analysis.OriginalQualityScore, analysis.Issues?.Count ?? 0);
                     

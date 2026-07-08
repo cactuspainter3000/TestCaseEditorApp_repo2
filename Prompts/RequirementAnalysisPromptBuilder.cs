@@ -66,11 +66,22 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine("6. **Consistency & Traceability**");
             sb.AppendLine("   - Does the requirement ID and name match the content?");
             sb.AppendLine("   - Are units, terminology, and naming conventions consistent?");
+            sb.AppendLine("   - Does the requirement follow INCOSE canonical actor-shall-action structure?");
+            sb.AppendLine();
+            sb.AppendLine("INCOSE CANONICAL PATTERNS (use when evaluating Consistency and writing SuggestedEdit):");
+            sb.AppendLine("   General:           \"The <ACTOR> shall <ACTION>.\"");
+            sb.AppendLine("   Event-driven:      \"The <ACTOR> shall <ACTION> when <CONDITION/EVENT>.\"");
+            sb.AppendLine("   State-driven:      \"The <ACTOR> shall <ACTION> while <STATE/CONDITION>.\"");
+            sb.AppendLine("   Optional feature:  \"The <ACTOR> shall <ACTION> where <FEATURE CONDITION>.\"");
+            sb.AppendLine("   Timing constrained: Any of the above + \"within <TIME LIMIT>.\"");
+            sb.AppendLine("   Multi-conditional: Conditions combined with 'and'.");
+            sb.AppendLine("   When evaluating consistency: Check that 'when' is used for events, 'while' for states,");
+            sb.AppendLine("   'where' for optional features — not mixed. Every SuggestedEdit should conform to one of these patterns.");
             sb.AppendLine();
 
             // Critical instructions
             sb.AppendLine("====================================");
-            sb.AppendLine("🚨 CRITICAL ANTI-FABRICATION RULES:");
+            sb.AppendLine("CRITICAL ANTI-FABRICATION RULES:");
             sb.AppendLine("====================================");
             sb.AppendLine("YOU MUST NOT invent, assume, or add ANY technical details not explicitly present");
             sb.AppendLine("in the original requirement text or supplemental materials. This includes:");
