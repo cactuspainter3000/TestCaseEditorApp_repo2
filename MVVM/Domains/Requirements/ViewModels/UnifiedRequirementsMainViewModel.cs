@@ -235,9 +235,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public ICommand SelectAnalysisCommand { get; private set; } = null!;
         public ICommand SelectRequirementsScraperCommand { get; private set; } = null!;
 
-        // Temporary: Jama relationship probe shortcut
-        public ICommand RunJamaProbeCommand { get; private set; } = null!;
-
         // Content Management Commands
         public ICommand AddRequirementCommand { get; private set; } = null!;
         public ICommand RemoveRequirementCommand { get; private set; } = null!;
@@ -272,9 +269,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         // Requirement Navigation Commands (in-view replacement for removed workspace navigation)
         public ICommand PreviousRequirementCommand { get; private set; } = null!;
         public ICommand NextRequirementCommand { get; private set; } = null!;
-
-        // Diagnostics Commands
-        public IAsyncRelayCommand ExportAnalysisLogsCommand { get; private set; } = null!;
 
         public ObservableCollection<Requirement> Requirements => _mediator.Requirements;
 
@@ -399,49 +393,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             SelectAnalysisCommand = new RelayCommand(() => SelectedViewMode = RequirementViewMode.Analysis);
             SelectRequirementsScraperCommand = new RelayCommand(() => SelectedViewMode = RequirementViewMode.RequirementsScraper);
 
-            // Diagnostics Command
-            ExportAnalysisLogsCommand = new AsyncRelayCommand(ExportAnalysisLogsAsync);
 
-            // Temporary: delegate to UserSettingsViewModel probe command
-            RunJamaProbeCommand = new RelayCommand(() =>
-            {
-                AttachUserSettingsProbeBridge();
-
-                if (_userSettingsVm == null)
-                {
-                    JamaProbeStatus = "Jama probe unavailable: settings view model was not resolved.";
-                    _logger.LogWarning("[UnifiedRequirementsMainVM] Could not resolve UserSettingsViewModel for Jama probe command");
-                    return;
-                }
-
-                var configuredProjectId = (_userSettingsVm.JamaProjectId ?? string.Empty).Trim();
-                if (string.IsNullOrWhiteSpace(configuredProjectId))
-                {
-                    var currentProjectId = _mediator.CurrentProjectId;
-                    if (currentProjectId > 0)
-                    {
-                        _userSettingsVm.JamaProjectId = currentProjectId.ToString();
-                        _logger.LogInformation("[UnifiedRequirementsMainVM] Auto-populated Jama Project ID {ProjectId} from current workspace context before running probe", currentProjectId);
-                    }
-                }
-
-                if (_userSettingsVm.RunJamaRelationshipProbeCommand?.CanExecute(null) == true)
-                {
-                    _userSettingsVm.RunJamaRelationshipProbeCommand.Execute(null);
-                    JamaProbeStatus = string.IsNullOrWhiteSpace(_userSettingsVm.StatusMessage)
-                        ? "Jama probe command started."
-                        : _userSettingsVm.StatusMessage;
-                    _logger.LogInformation("[UnifiedRequirementsMainVM] Jama probe command triggered from Requirements view");
-                    return;
-                }
-
-                JamaProbeStatus = _userSettingsVm.IsBusy
-                    ? "Jama probe already running..."
-                    : "Jama probe command was blocked. Check Jama settings values.";
-                _logger.LogWarning("[UnifiedRequirementsMainVM] Jama probe command was not executable. IsBusy={IsBusy}, Status='{Status}'",
-                    _userSettingsVm.IsBusy,
-                    _userSettingsVm.StatusMessage);
-            });
 
             // Content Management
             AddRequirementCommand = new RelayCommand(AddRequirement);
@@ -1436,11 +1388,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _navigationMediator.NavigateToSection("startup");
         }
 
-        private async Task ExportAnalysisLogsAsync()
-        {
-            _logger.LogInformation("[UnifiedRequirementsMainVM] Exporting analysis logs from Requirements workspace");
-            await _workspaceDiagnosticsService.ExportAnalysisLogsAsync();
-        }
+
 
         private void UpdateAnalysisTimer()
         {

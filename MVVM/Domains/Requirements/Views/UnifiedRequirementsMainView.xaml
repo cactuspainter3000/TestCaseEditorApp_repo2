@@ -151,20 +151,6 @@
                     ToolTip="Navigate back to the main/startup page"
                     Style="{DynamicResource SmallButtonStyle}"
                     Margin="0,0,4,0"/>
-
-                <!-- Temporary: Jama probe shortcut button -->
-                <Button Content="🔍 Jama Probe"
-                    Command="{Binding RunJamaProbeCommand}"
-                    ToolTip="Run Jama relationship capability probe for the configured project"
-                    Style="{DynamicResource SmallButtonStyle}"
-                    Margin="0,0,4,0"/>
-
-                <!-- Export Analysis Logs -->
-                <Button Content="📊 Export Logs"
-                    Command="{Binding ExportAnalysisLogsCommand}"
-                    ToolTip="Export analysis logs as a zip file for diagnostics"
-                    Style="{DynamicResource SmallButtonStyle}"
-                    Margin="0,0,0,0"/>
             </StackPanel>
 
             <TextBlock DockPanel.Dock="Right"
