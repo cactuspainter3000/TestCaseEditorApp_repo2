@@ -241,6 +241,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- Info text -->
@@ -250,8 +251,16 @@
                                Margin="0,0,16,0"/>
                 </StackPanel>
 
-                <!-- Commit button -->
+                <!-- LLM Analysis button -->
                 <Button Grid.Column="1" 
+                        Command="{Binding AnalyzeAllWithLlmCommand}"
+                        Content="🤖 Analyze All with LLM"
+                        Padding="12,6"
+                        Margin="0,0,8,0"
+                        ToolTip="Run INCOSE + quality analysis on all requirements"/>
+
+                <!-- Commit button -->
+                <Button Grid.Column="2" 
                         Command="{Binding CommitStagedRequirementsCommand}"
                         Content="✅ Commit Staged Requirements"
                         Padding="12,6"

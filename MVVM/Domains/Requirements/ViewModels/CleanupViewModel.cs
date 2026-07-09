@@ -20,6 +20,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private readonly JamaConnectService _jamaService;
         private readonly IRequirementsMediator _mediator;
         private readonly ILogger<CleanupViewModel> _logger;
+        private readonly IRequirementAnalysisService? _analysisService;
 
         // ===== Properties =====
         [ObservableProperty]
@@ -47,12 +48,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             RequirementEditSessionService editSessionService,
             JamaConnectService jamaService,
             IRequirementsMediator mediator,
-            ILogger<CleanupViewModel> logger)
+            ILogger<CleanupViewModel> logger,
+            IRequirementAnalysisService? analysisService = null)
         {
             _editSessionService = editSessionService;
             _jamaService = jamaService;
             _mediator = mediator;
             _logger = logger;
+            _analysisService = analysisService;
 
             // Notification when selected requirement changes
             PropertyChanged += (_, e) =>
@@ -147,6 +150,65 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 StatusMessage = $"Error saving: {ex.Message}";
                 _logger.LogError(ex, "[CleanupViewModel] Failed to save");
+            }
+        }
+
+        /// <summary>
+        /// Analyze all requirements with LLM (INCOSE + quality scoring)
+        /// </summary>
+        [RelayCommand]
+        public async Task AnalyzeAllWithLlmAsync()
+        {
+            if (_analysisService == null)
+            {
+                StatusMessage = "⚠️  LLM analysis service not available";
+                _logger.LogWarning("[CleanupViewModel] LLM analysis service not registered");
+                return;
+            }
+
+            if (Requirements.Count == 0)
+            {
+                StatusMessage = "No requirements to analyze";
+                return;
+            }
+
+            try
+            {
+                IsLoading = true;
+                StatusMessage = $"Analyzing {Requirements.Count} requirement(s) with LLM...";
+
+                var requirementsToAnalyze = Requirements
+                    .Select(s => _editSessionService.ToRequirement(s))
+                    .ToList();
+
+                // Run LLM analysis on all requirements
+                int analyzed = 0;
+                foreach (var req in requirementsToAnalyze)
+                {
+                    try
+                    {
+                        await _analysisService.AnalyzeRequirementAsync(req);
+                        analyzed++;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "[CleanupViewModel] Analysis failed for {Name}", req.Name);
+                    }
+                }
+
+                // Save the workspace with analysis results
+                await _editSessionService.SaveWorkspaceAsync();
+                StatusMessage = $"✅ Analyzed {analyzed}/{Requirements.Count} requirements";
+                _logger.LogInformation("[CleanupViewModel] LLM analysis complete: {Analyzed}/{Total}", analyzed, Requirements.Count);
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"❌ Analysis error: {ex.Message}";
+                _logger.LogError(ex, "[CleanupViewModel] LLM analysis failed");
+            }
+            finally
+            {
+                IsLoading = false;
             }
         }
 

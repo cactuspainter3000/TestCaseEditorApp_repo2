@@ -144,7 +144,8 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 var jamaService = provider.GetRequiredService<JamaConnectService>();
                 var reqMediator = provider.GetRequiredService<IRequirementsMediator>();
                 var logger = provider.GetRequiredService<ILogger<CleanupViewModel>>();
-                return new CleanupViewModel(editSessionService, jamaService, reqMediator, logger);
+                var analysisService = provider.GetService<IRequirementAnalysisService>(); // Optional
+                return new CleanupViewModel(editSessionService, jamaService, reqMediator, logger, analysisService);
             });
 
             // Requirements Tab Selector (SINGLETON - manages workspace tab switching)
