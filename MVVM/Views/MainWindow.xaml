@@ -151,6 +151,11 @@
             <reqviews:RequirementsSearchAttachmentsView />
         </DataTemplate>
 
+        <!-- Cleanup: Requirement editor and staging interface -->
+        <DataTemplate DataType="{x:Type reqvm:CleanupViewModel}">
+            <reqviews:CleanupView />
+        </DataTemplate>
+
         <!-- Requirements uses shared NavigationViewModel -->
 
         <DataTemplate DataType="{x:Type vm:LLMLearningViewModel}">
