@@ -849,12 +849,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
 
             try
             {
-                Application.Current.Dispatcher.Invoke(() =>
+                // CRITICAL FIX: Do sorting/filtering on background thread, NOT on UI thread
+                // This prevents the UI from blocking while 818+ requirements are sorted
+                var sortedRequirements = await Task.Run(() =>
+                {
+                    var sorted = filteredRequirements.OrderBy(r => r, new RequirementNaturalComparer()).ToList();
+                    _logger.LogInformation("📊 RequirementsMediator: Sorted {Count} requirements on background thread", sorted.Count);
+                    return sorted;
+                });
+
+                // NOW invoke to UI thread only for collection updates
+                await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
                     // Check if data is already loaded and current - avoid unnecessary reload!
-                    var sortedRequirements = filteredRequirements.OrderBy(r => r, new RequirementNaturalComparer()).ToList();
-                    
-                    // If we already have the same requirements loaded, preserve current navigation state
                     if (_requirements.Count == sortedRequirements.Count && 
                         _requirements.SequenceEqual(sortedRequirements, new RequirementEqualityComparer()))
                     {
@@ -891,7 +898,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     }
                     else
                     {
-                        _logger.LogInformation("📊 RequirementsMediator: Reloading requirements data (count changed or different data)");
+                        _logger.LogInformation("📊 RequirementsMediator: Reloading requirements data on UI thread (count changed or different data)");
                         
                         // Preserve current requirement if possible
                         var previousCurrentRequirement = CurrentRequirement;
@@ -945,7 +952,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     _logger.LogInformation("Loaded {Count} requirements from project", _requirements.Count);
                 });
 
-                await Task.CompletedTask;
                 return true;
             }
             catch (Exception ex)
