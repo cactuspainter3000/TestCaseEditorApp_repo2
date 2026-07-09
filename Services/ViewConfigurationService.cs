@@ -215,76 +215,34 @@ namespace TestCaseEditorApp.Services
 
         private ViewConfiguration CreateRequirementsConfiguration(object? context)
         {
-            System.Diagnostics.Debug.WriteLine("[ViewConfigurationService] *** CreateRequirementsConfiguration called! ***");
-            try {
-                System.IO.File.AppendAllText("debug_requirements.log", 
-                    $"{DateTime.Now}: ViewConfigurationService: CreateRequirementsConfiguration called\n");
-            } catch { /* ignore */ }
-            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating Requirements configuration with independent Requirements domain architecture");
+            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating Requirements configuration with tab selector");
             
-            // Requirements domain is self-contained and uses its own ViewModels
-            try {
-                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: About to resolve UnifiedRequirementsMainViewModel\n");
-            } catch { /* ignore */ }
-            var unifiedMainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsMainViewModel>();
-            try {
-                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: UnifiedRequirementsMainViewModel resolved: {unifiedMainVM != null}\n");
-            } catch { /* ignore */ }
-            
-            try {
-                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: About to resolve Requirements_HeaderViewModel\n");
-            } catch { /* ignore */ }
+            // Get the Requirements Tab Selector which manages switching between Main/Cleanup/Attachments
+            var tabSelector = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsTabSelectorViewModel>();
             var requirementsHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
-            try {
-                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: Requirements_HeaderViewModel resolved: {requirementsHeaderVM != null}\n");
-            } catch { /* ignore */ }
-            
-            try {
-                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: About to resolve Requirements_NavigationViewModel\n");
-            } catch { /* ignore */ }
             var requirementsNavigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
-            try {
-                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: Requirements_NavigationViewModel resolved: {requirementsNavigationVM != null}\n");
-            } catch { /* ignore */ }
             
-            
-            System.Diagnostics.Debug.WriteLine($"[ViewConfigurationService] *** Retrieved ViewModels: Main={unifiedMainVM != null}, Header={requirementsHeaderVM != null}, Navigation={requirementsNavigationVM != null} ***");
-            try {
-                System.IO.File.AppendAllText("debug_requirements.log", 
-                    $"{DateTime.Now}: ViewConfigurationService: Retrieved ViewModels - Main={unifiedMainVM != null}, Header={requirementsHeaderVM != null}, Navigation={requirementsNavigationVM != null}\\n");
-            } catch { /* ignore */ }
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] Retrieved UnifiedRequirementsMainViewModel instance {unifiedMainVM?.GetHashCode()} for workspace");
-            
-            // Fail-fast validation (AI Guide requirement)
-            try {
-                if (unifiedMainVM == null) 
-                {
-                    System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: ERROR: UnifiedRequirementsMainViewModel is NULL!\\n");
-                    throw new InvalidOperationException("UnifiedRequirementsMainViewModel not registered in DI container");
-                }
-                if (requirementsHeaderVM == null) {
-                    System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: ERROR: Requirements_HeaderViewModel is NULL!\\n");
-                    throw new InvalidOperationException("Requirements_HeaderViewModel not registered in DI container");
-                }
-                if (requirementsNavigationVM == null) {
-                    System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: ERROR: Requirements_NavigationViewModel is NULL!\\n");
-                    throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
-                }
-            } catch (Exception ex) {
-                System.IO.File.AppendAllText("debug_requirements.log", $"{DateTime.Now}: EXCEPTION in validation: {ex.Message}\\n");
-                throw;
+            // Fail-fast validation
+            if (tabSelector == null) 
+            {
+                throw new InvalidOperationException("RequirementsTabSelectorViewModel not registered in DI container");
+            }
+            if (requirementsHeaderVM == null) 
+            {
+                throw new InvalidOperationException("Requirements_HeaderViewModel not registered in DI container");
+            }
+            if (requirementsNavigationVM == null) 
+            {
+                throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
             }
 
-            System.Diagnostics.Debug.WriteLine("[ViewConfigurationService] *** Requirements ViewConfiguration created and returned! ***");
-            try {
-                System.IO.File.AppendAllText("debug_requirements.log", 
-                    $"{DateTime.Now}: ViewConfigurationService: Requirements ViewConfiguration created\\n");
-            } catch { /* ignore */ }
+            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] Retrieved RequirementsTabSelectorViewModel for workspace");
+            
             return new ViewConfiguration(
                 sectionName: "Requirements",
                 titleViewModel: null, // Requirements domain handles its own title internally
                 headerViewModel: requirementsHeaderVM, // Requirements-specific header  
-                contentViewModel: unifiedMainVM, // Unified ViewModel → DataTemplate renders appropriate Requirements view
+                contentViewModel: tabSelector, // Tab Selector → DataTemplate renders RequirementsTabSelectorView
                 navigationViewModel: requirementsNavigationVM, // Requirements navigation for left panel
                 notificationViewModel: null,
                 context: context

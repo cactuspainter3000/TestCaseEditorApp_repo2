@@ -147,6 +147,16 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 return new CleanupViewModel(editSessionService, jamaService, reqMediator, logger);
             });
 
+            // Requirements Tab Selector (SINGLETON - manages workspace tab switching)
+            services.AddSingleton<RequirementsTabSelectorViewModel>(provider =>
+            {
+                var mainVM = provider.GetRequiredService<UnifiedRequirementsMainViewModel>();
+                var cleanupVM = provider.GetRequiredService<CleanupViewModel>();
+                var attachmentsVM = provider.GetRequiredService<RequirementsSearchAttachmentsViewModel>();
+                var logger = provider.GetRequiredService<ILogger<RequirementsTabSelectorViewModel>>();
+                return new RequirementsTabSelectorViewModel(mainVM, cleanupVM, attachmentsVM, logger);
+            });
+
             // Document Scraper (TRANSIENT - per-use instance)
             services.AddTransient<DocumentScraperViewModel>();
 

@@ -1,0 +1,60 @@
+<UserControl x:Class="TestCaseEditorApp.MVVM.Domains.Requirements.Views.RequirementsTabSelectorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             Background="{StaticResource Brush.Background.Menu}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- Tab bar -->
+            <RowDefinition Height="*"/>
+            <!-- Content area -->
+        </Grid.RowDefinitions>
+
+        <!-- Tab bar -->
+        <Border Grid.Row="0" Background="{StaticResource Brush.Background.Header}" 
+                BorderBrush="{StaticResource Brush.Border.Light}" BorderThickness="0,0,0,1"
+                Padding="0">
+            <StackPanel Orientation="Horizontal" Margin="0">
+                <!-- Main tab -->
+                <ToggleButton Style="{StaticResource SubtleTabToggleButton}"
+                              IsChecked="{Binding SelectedTab, Converter={StaticResource EnumToBoolConverter}, ConverterParameter=Main}"
+                              Command="{Binding SelectMainTabCommand}"
+                              ToolTip="View all requirements">
+                    <Grid Background="Transparent">
+                        <TextBlock Text="📋 Requirements" VerticalAlignment="Center" Margin="8,0"
+                                   Foreground="{StaticResource Brush.Accent.Primary}"/>
+                    </Grid>
+                </ToggleButton>
+
+                <!-- Cleanup tab -->
+                <ToggleButton Style="{StaticResource SubtleTabToggleButton}"
+                              IsChecked="{Binding SelectedTab, Converter={StaticResource EnumToBoolConverter}, ConverterParameter=Cleanup}"
+                              Command="{Binding SelectCleanupTabCommand}"
+                              ToolTip="Edit and stage requirements for commit">
+                    <Grid Background="Transparent">
+                        <TextBlock Text="✏️ Cleanup" VerticalAlignment="Center" Margin="8,0"
+                                   Foreground="{StaticResource Brush.Accent.Primary}"/>
+                    </Grid>
+                </ToggleButton>
+
+                <!-- Attachments tab -->
+                <ToggleButton Style="{StaticResource SubtleTabToggleButton}"
+                              IsChecked="{Binding SelectedTab, Converter={StaticResource EnumToBoolConverter}, ConverterParameter=Attachments}"
+                              Command="{Binding SelectAttachmentsTabCommand}"
+                              ToolTip="Search requirements in Jama attachments">
+                    <Grid Background="Transparent">
+                        <TextBlock Text="📎 Attachments" VerticalAlignment="Center" Margin="8,0"
+                                   Foreground="{StaticResource Brush.Accent.Primary}"/>
+                    </Grid>
+                </ToggleButton>
+            </StackPanel>
+        </Border>
+
+        <!-- Content area -->
+        <ContentControl Grid.Row="1" Content="{Binding CurrentContentViewModel}"/>
+    </Grid>
+</UserControl>

@@ -156,6 +156,11 @@
             <reqviews:CleanupView />
         </DataTemplate>
 
+        <!-- Requirements Tab Selector: workspace tabs for Main/Cleanup/Attachments -->
+        <DataTemplate DataType="{x:Type reqvm:RequirementsTabSelectorViewModel}">
+            <reqviews:RequirementsTabSelectorView />
+        </DataTemplate>
+
         <!-- Requirements uses shared NavigationViewModel -->
 
         <DataTemplate DataType="{x:Type vm:LLMLearningViewModel}">

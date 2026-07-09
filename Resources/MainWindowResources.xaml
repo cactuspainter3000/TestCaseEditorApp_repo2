@@ -92,6 +92,7 @@
 
     <!-- Converters -->
     <conv:BadgeToVisibilityConverter x:Key="BadgeToVisibilityConverter"/>
+    <conv:EnumToBoolConverter x:Key="EnumToBoolConverter"/>
 
     <Style x:Key="MenuPopupTextBoxStyle" TargetType="TextBox">
         <Setter Property="Foreground" Value="White"/>
