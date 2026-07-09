@@ -148,15 +148,16 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 return new CleanupViewModel(editSessionService, jamaService, reqMediator, logger, analysisService);
             });
 
-            // Requirements Tab Selector (SINGLETON - manages workspace tab switching)
+            // Requirements Tab Selector (SINGLETON - manages workspace tab switching with LAZY LOADING)
+            // ViewModels are created on-demand when tabs are selected to avoid UI freeze on workspace load
             services.AddSingleton<RequirementsTabSelectorViewModel>(provider =>
             {
-                var mainVM = provider.GetRequiredService<UnifiedRequirementsMainViewModel>();
-                var cleanupVM = provider.GetRequiredService<CleanupViewModel>();
-                var attachmentsVM = provider.GetRequiredService<RequirementsSearchAttachmentsViewModel>();
-                var utilitiesVM = provider.GetRequiredService<RequirementsUtilitiesViewModel>();
+                var mainVMFactory = new Func<UnifiedRequirementsMainViewModel>(() => provider.GetRequiredService<UnifiedRequirementsMainViewModel>());
+                var cleanupVMFactory = new Func<CleanupViewModel>(() => provider.GetRequiredService<CleanupViewModel>());
+                var attachmentsVMFactory = new Func<RequirementsSearchAttachmentsViewModel>(() => provider.GetRequiredService<RequirementsSearchAttachmentsViewModel>());
+                var utilitiesVMFactory = new Func<RequirementsUtilitiesViewModel>(() => provider.GetRequiredService<RequirementsUtilitiesViewModel>());
                 var logger = provider.GetRequiredService<ILogger<RequirementsTabSelectorViewModel>>();
-                return new RequirementsTabSelectorViewModel(mainVM, cleanupVM, attachmentsVM, utilitiesVM, logger);
+                return new RequirementsTabSelectorViewModel(mainVMFactory, cleanupVMFactory, attachmentsVMFactory, utilitiesVMFactory, logger);
             });
 
             // Requirements Utilities (SINGLETON - utilities dashboard)

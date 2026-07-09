@@ -9,14 +9,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
     /// <summary>
     /// Tab selector for Requirements domain workspaces.
     /// Allows user to switch between Main requirements view, Cleanup editor, and Attachments search.
+    /// LAZY LOADING: ViewModels are created on-demand when tabs are selected to avoid UI freeze on startup.
     /// </summary>
     public partial class RequirementsTabSelectorViewModel : ObservableObject
     {
-        private readonly UnifiedRequirementsMainViewModel _mainViewModel;
-        private readonly CleanupViewModel _cleanupViewModel;
-        private readonly RequirementsSearchAttachmentsViewModel _attachmentsViewModel;
-        private readonly RequirementsUtilitiesViewModel _utilitiesViewModel;
+        // Factories for lazy instantiation
+        private readonly Func<UnifiedRequirementsMainViewModel> _mainViewModelFactory;
+        private readonly Func<CleanupViewModel> _cleanupViewModelFactory;
+        private readonly Func<RequirementsSearchAttachmentsViewModel> _attachmentsViewModelFactory;
+        private readonly Func<RequirementsUtilitiesViewModel> _utilitiesViewModelFactory;
         private readonly ILogger<RequirementsTabSelectorViewModel> _logger;
+
+        // Cached instances (lazy-loaded)
+        private UnifiedRequirementsMainViewModel? _mainViewModel;
+        private CleanupViewModel? _cleanupViewModel;
+        private RequirementsSearchAttachmentsViewModel? _attachmentsViewModel;
+        private RequirementsUtilitiesViewModel? _utilitiesViewModel;
 
         public enum WorkspaceTab
         {
@@ -33,20 +41,27 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private object? currentContentViewModel;
 
         public RequirementsTabSelectorViewModel(
-            UnifiedRequirementsMainViewModel mainViewModel,
-            CleanupViewModel cleanupViewModel,
-            RequirementsSearchAttachmentsViewModel attachmentsViewModel,
-            RequirementsUtilitiesViewModel utilitiesViewModel,
+            Func<UnifiedRequirementsMainViewModel> mainViewModelFactory,
+            Func<CleanupViewModel> cleanupViewModelFactory,
+            Func<RequirementsSearchAttachmentsViewModel> attachmentsViewModelFactory,
+            Func<RequirementsUtilitiesViewModel> utilitiesViewModelFactory,
             ILogger<RequirementsTabSelectorViewModel> logger)
         {
-            _mainViewModel = mainViewModel ?? throw new ArgumentNullException(nameof(mainViewModel));
-            _cleanupViewModel = cleanupViewModel ?? throw new ArgumentNullException(nameof(cleanupViewModel));
-            _attachmentsViewModel = attachmentsViewModel ?? throw new ArgumentNullException(nameof(attachmentsViewModel));
-            _utilitiesViewModel = utilitiesViewModel ?? throw new ArgumentNullException(nameof(utilitiesViewModel));
+            _mainViewModelFactory = mainViewModelFactory ?? throw new ArgumentNullException(nameof(mainViewModelFactory));
+            _cleanupViewModelFactory = cleanupViewModelFactory ?? throw new ArgumentNullException(nameof(cleanupViewModelFactory));
+            _attachmentsViewModelFactory = attachmentsViewModelFactory ?? throw new ArgumentNullException(nameof(attachmentsViewModelFactory));
+            _utilitiesViewModelFactory = utilitiesViewModelFactory ?? throw new ArgumentNullException(nameof(utilitiesViewModelFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-            // Set initial content
-            CurrentContentViewModel = _mainViewModel;
+            // Initialize Main tab asynchronously to avoid UI freeze
+            // Use Dispatcher to ensure this happens on the UI thread after constructor returns
+            if (System.Windows.Application.Current?.Dispatcher != null)
+            {
+                System.Windows.Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, () =>
+                {
+                    UpdateContentViewModel();
+                });
+            }
 
             // Watch for tab selection changes
             PropertyChanged += (_, e) =>
@@ -56,6 +71,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     UpdateContentViewModel();
                 }
             };
+
+            _logger.LogInformation("[RequirementsTabSelectorViewModel] Lazy-loading tab selector ready");
         }
 
         /// <summary>
@@ -95,20 +112,60 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         }
 
         /// <summary>
-        /// Update the content ViewModel based on current tab selection
+        /// Update the content ViewModel based on current tab selection, creating ViewModels on-demand
         /// </summary>
         private void UpdateContentViewModel()
         {
             CurrentContentViewModel = SelectedTab switch
             {
-                WorkspaceTab.Main => _mainViewModel,
-                WorkspaceTab.Cleanup => _cleanupViewModel,
-                WorkspaceTab.Attachments => _attachmentsViewModel,
-                WorkspaceTab.Utilities => _utilitiesViewModel,
-                _ => _mainViewModel
+                WorkspaceTab.Main => GetOrCreateMainViewModel(),
+                WorkspaceTab.Cleanup => GetOrCreateCleanupViewModel(),
+                WorkspaceTab.Attachments => GetOrCreateAttachmentsViewModel(),
+                WorkspaceTab.Utilities => GetOrCreateUtilitiesViewModel(),
+                _ => GetOrCreateMainViewModel()
             };
 
             _logger.LogInformation("[RequirementsTabSelectorViewModel] Switched to tab: {Tab}", SelectedTab);
+        }
+
+        private UnifiedRequirementsMainViewModel GetOrCreateMainViewModel()
+        {
+            if (_mainViewModel == null)
+            {
+                _logger.LogInformation("[RequirementsTabSelectorViewModel] Creating Main ViewModel (lazy)");
+                _mainViewModel = _mainViewModelFactory();
+            }
+            return _mainViewModel;
+        }
+
+        private CleanupViewModel GetOrCreateCleanupViewModel()
+        {
+            if (_cleanupViewModel == null)
+            {
+                _logger.LogInformation("[RequirementsTabSelectorViewModel] Creating Cleanup ViewModel (lazy)");
+                _cleanupViewModel = _cleanupViewModelFactory();
+            }
+            return _cleanupViewModel;
+        }
+
+        private RequirementsSearchAttachmentsViewModel GetOrCreateAttachmentsViewModel()
+        {
+            if (_attachmentsViewModel == null)
+            {
+                _logger.LogInformation("[RequirementsTabSelectorViewModel] Creating Attachments ViewModel (lazy)");
+                _attachmentsViewModel = _attachmentsViewModelFactory();
+            }
+            return _attachmentsViewModel;
+        }
+
+        private RequirementsUtilitiesViewModel GetOrCreateUtilitiesViewModel()
+        {
+            if (_utilitiesViewModel == null)
+            {
+                _logger.LogInformation("[RequirementsTabSelectorViewModel] Creating Utilities ViewModel (lazy)");
+                _utilitiesViewModel = _utilitiesViewModelFactory();
+            }
+            return _utilitiesViewModel;
         }
 
         /// <summary>
