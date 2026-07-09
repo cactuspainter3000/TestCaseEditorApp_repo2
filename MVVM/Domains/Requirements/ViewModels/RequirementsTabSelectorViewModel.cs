@@ -28,6 +28,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         public enum WorkspaceTab
         {
+            None,
             Main,
             Cleanup,
             Attachments,
@@ -35,7 +36,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         }
 
         [ObservableProperty]
-        private WorkspaceTab selectedTab = WorkspaceTab.Main;
+        private WorkspaceTab selectedTab = WorkspaceTab.None;
 
         [ObservableProperty]
         private object? currentContentViewModel;
@@ -112,11 +113,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             CurrentContentViewModel = SelectedTab switch
             {
+                WorkspaceTab.None => null,
                 WorkspaceTab.Main => GetOrCreateMainViewModel(),
                 WorkspaceTab.Cleanup => GetOrCreateCleanupViewModel(),
                 WorkspaceTab.Attachments => GetOrCreateAttachmentsViewModel(),
                 WorkspaceTab.Utilities => GetOrCreateUtilitiesViewModel(),
-                _ => GetOrCreateMainViewModel()
+                _ => null
             };
 
             _logger.LogInformation("[RequirementsTabSelectorViewModel] Switched to tab: {Tab}", SelectedTab);
