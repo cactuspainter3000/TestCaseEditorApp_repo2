@@ -83,6 +83,65 @@
                 <!-- Separator -->
                 <Separator Margin="0,12" Background="{StaticResource Brush.Border.Subtle}"/>
 
+                <!-- Delete Requirements section -->
+                <TextBlock Text="Bulk Delete" FontSize="12" FontWeight="Bold" 
+                           Foreground="{StaticResource Brush.Accent.Primary}"
+                           Margin="0,12,0,8"/>
+
+                <TextBlock Text="Delete IDs >"
+                       Margin="0,0,0,4"
+                       VerticalAlignment="Center"
+                       Foreground="#BBBBBB"
+                       FontSize="11"/>
+
+                <TextBox Width="80"
+                     Height="24"
+                     Text="{Binding DeleteItemSuffixThreshold, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     VerticalContentAlignment="Center"
+                     Background="#1E1E1E"
+                     Foreground="#DDDDDD"
+                     BorderBrush="#555555"
+                     BorderThickness="1"
+                     ToolTip="Trailing numeric ID threshold for bulk delete"
+                     Margin="0,0,0,8"/>
+
+                <Button Command="{Binding DeleteRequirementsAboveThresholdCommand}"
+                        Content="🗑️ Delete Matching"
+                        Padding="12,8"
+                        Margin="0,0,0,8"
+                        Background="#8B0000"
+                        Foreground="White"
+                        ToolTip="Delete all requirements whose trailing numeric item/global ID is greater than the threshold"/>
+
+                <!-- Deletion preview -->
+                <TextBlock Text="Preview" FontSize="11" FontWeight="Bold" 
+                           Foreground="#BBBBBB"
+                           Margin="0,8,0,4"/>
+                
+                <TextBlock Text="{Binding DeletionPreviewStatus}" 
+                           FontSize="10"
+                           Foreground="#AFAFAF"
+                           TextWrapping="Wrap"
+                           Margin="0,0,0,4"/>
+
+                <ListBox ItemsSource="{Binding DeletionPreviewItems}" 
+                         Height="80"
+                         Background="#1E1E1E"
+                         BorderBrush="#555555"
+                         BorderThickness="1"
+                         FontSize="10"
+                         Foreground="#DDDDDD"
+                         Margin="0,0,0,8">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" Margin="4,2"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Separator -->
+                <Separator Margin="0,12" Background="{StaticResource Brush.Border.Subtle}"/>
+
                 <!-- Loading indicator -->
                 <StackPanel Orientation="Horizontal" 
                            Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"

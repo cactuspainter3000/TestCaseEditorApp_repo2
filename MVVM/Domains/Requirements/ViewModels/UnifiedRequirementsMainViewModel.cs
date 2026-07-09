@@ -85,9 +85,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private string batchQueueStatus = "Select requirements to batch analyze.";
 
-        [ObservableProperty]
-        private int deleteItemSuffixThreshold = 1930;
-
         // Analysis timer (from Jama path)
         private System.Timers.Timer? _analysisTimer;
         private DateTime _analysisStartTime;
@@ -105,11 +102,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// Paragraphs associated with selected requirement  
         /// </summary>
         public ObservableCollection<ParagraphViewModel> SelectedParagraphVMs { get; } = new();
-
-        /// <summary>
-        /// Live preview of REQ_RC requirements that will be deleted with the current threshold.
-        /// </summary>
-        public ObservableCollection<string> DeletionPreviewItems { get; } = new();
 
         #endregion
 
@@ -134,11 +126,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// True if requirement has metadata for chips display
         /// </summary>
         public bool HasMeta => VisibleChips?.Any() == true;
-
-        public bool HasDeletionPreviewItems => DeletionPreviewItems.Count > 0;
-
-        public string DeletionPreviewStatus =>
-            $"{DeletionPreviewItems.Count} REQ_RC requirement(s) selected for deletion (ID > {DeleteItemSuffixThreshold})";
 
         #endregion
 
@@ -398,7 +385,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             // Content Management
             AddRequirementCommand = new RelayCommand(AddRequirement);
             RemoveRequirementCommand = new RelayCommand(RemoveSelectedRequirement, () => CurrentRequirement != null);
-            DeleteRequirementsAboveThresholdCommand = new RelayCommand(DeleteRequirementsAboveThreshold);
 
             // Table Operations
             SelectAllTablesCommand = new RelayCommand(SelectAllTables, () => HasTables);
@@ -462,7 +448,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
             _mediator.Requirements.CollectionChanged += OnRequirementsCollectionUpdated;
             SynchronizeBatchSelections();
-            RefreshDeletionPreview();
             
             _logger.LogInformation("[UnifiedRequirementsMainVM] Event subscriptions completed");
         }
@@ -472,7 +457,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             OnPropertyChanged(nameof(Requirements));
             OnPropertyChanged(nameof(RequirementPositionDisplay));
             SynchronizeBatchSelections();
-            RefreshDeletionPreview();
             NotifyCommandsCanExecuteChanged();
         }
 
@@ -1010,98 +994,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             
             // Use mediator to remove requirement
             _mediator.RemoveRequirement(CurrentRequirement);
-        }
-
-        private void DeleteRequirementsAboveThreshold()
-        {
-            var threshold = DeleteItemSuffixThreshold;
-            var matches = GetDeleteCandidates(threshold);
-
-            if (matches.Count == 0)
-            {
-                MessageBox.Show(
-                    $"No REQ_RC requirements found with trailing ID number greater than {threshold}.",
-                    "Bulk Delete",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-                return;
-            }
-
-            var confirm = MessageBox.Show(
-                $"Delete {matches.Count} REQ_RC requirement(s) with trailing ID number greater than {threshold}?\n\nThis cannot be undone.",
-                "Confirm Bulk Delete",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning,
-                MessageBoxResult.No);
-
-            if (confirm != MessageBoxResult.Yes)
-            {
-                return;
-            }
-
-            foreach (var requirement in matches)
-            {
-                _mediator.RemoveRequirement(requirement);
-            }
-
-            _logger.LogInformation(
-                "[UnifiedRequirementsMainVM] Bulk deleted {Count} REQ_RC requirements with trailing ID number > {Threshold}",
-                matches.Count,
-                threshold);
-
-            OnPropertyChanged(nameof(RequirementPositionDisplay));
-            RefreshDeletionPreview();
-            NotifyCommandsCanExecuteChanged();
-        }
-
-        partial void OnDeleteItemSuffixThresholdChanged(int value)
-        {
-            RefreshDeletionPreview();
-            NotifyCommandsCanExecuteChanged();
-        }
-
-        private List<Requirement> GetDeleteCandidates(int threshold)
-        {
-            return _mediator.Requirements
-                .Where(r => TryGetRequirementRcSuffix(r.Item, out var itemSuffix) && itemSuffix > threshold)
-                .Distinct()
-                .OrderBy(r => r.Item)
-                .ToList();
-        }
-
-        private void RefreshDeletionPreview()
-        {
-            var candidates = GetDeleteCandidates(DeleteItemSuffixThreshold);
-
-            DeletionPreviewItems.Clear();
-            foreach (var requirement in candidates)
-            {
-                var id = string.IsNullOrWhiteSpace(requirement.Item) ? "<no-item-id>" : requirement.Item;
-                var name = string.IsNullOrWhiteSpace(requirement.Name) ? "<no-name>" : requirement.Name;
-                DeletionPreviewItems.Add($"{id} - {name}");
-            }
-
-            OnPropertyChanged(nameof(HasDeletionPreviewItems));
-            OnPropertyChanged(nameof(DeletionPreviewStatus));
-        }
-
-        private static bool TryGetRequirementRcSuffix(string? text, out int value)
-        {
-            value = 0;
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                return false;
-            }
-
-            // Scope bulk deletion to requirement IDs in the REQ_RC family.
-            // Example: MFD268C4B-REQ_RC-1931 -> 1931.
-            var match = Regex.Match(text.Trim(), @"-REQ_RC-(\d+)\s*$", RegexOptions.IgnoreCase);
-            if (!match.Success)
-            {
-                return false;
-            }
-
-            return int.TryParse(match.Groups[1].Value, out value);
         }
 
         // Table Operations

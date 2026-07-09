@@ -2,9 +2,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Windows;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Models;
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 {
@@ -26,6 +31,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         [ObservableProperty]
         private string logOutput = "";
+
+        [ObservableProperty]
+        private int deleteItemSuffixThreshold = 1930;
+
+        /// <summary>
+        /// Live preview of REQ_RC requirements that will be deleted with the current threshold.
+        /// </summary>
+        public ObservableCollection<string> DeletionPreviewItems { get; } = new();
+
+        public bool HasDeletionPreviewItems => DeletionPreviewItems.Count > 0;
+
+        public string DeletionPreviewStatus =>
+            $"{DeletionPreviewItems.Count} REQ_RC requirement(s) selected for deletion (ID > {DeleteItemSuffixThreshold})";
 
         public RequirementsUtilitiesViewModel(
             IRequirementsMediator mediator,
@@ -209,6 +227,101 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         {
             LogOutput = "";
             StatusMessage = "Logs cleared";
+        }
+
+        /// <summary>
+        /// Delete all requirements above the specified threshold
+        /// </summary>
+        [RelayCommand]
+        public void DeleteRequirementsAboveThreshold()
+        {
+            var threshold = DeleteItemSuffixThreshold;
+            var matches = GetDeleteCandidates(threshold);
+
+            if (matches.Count == 0)
+            {
+                MessageBox.Show(
+                    $"No REQ_RC requirements found with trailing ID number greater than {threshold}.",
+                    "Bulk Delete",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            var confirm = MessageBox.Show(
+                $"Delete {matches.Count} REQ_RC requirement(s) with trailing ID number greater than {threshold}?\n\nThis cannot be undone.",
+                "Confirm Bulk Delete",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+
+            if (confirm != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            foreach (var requirement in matches)
+            {
+                _mediator.RemoveRequirement(requirement);
+            }
+
+            StatusMessage = $"✅ Deleted {matches.Count} requirement(s)";
+            LogOutput += $"[Delete]\nDeleted {matches.Count} REQ_RC requirement(s) with ID > {threshold}\n";
+            _logger.LogInformation(
+                "[RequirementsUtilitiesViewModel] Bulk deleted {Count} REQ_RC requirements with trailing ID number > {Threshold}",
+                matches.Count,
+                threshold);
+
+            RefreshDeletionPreview();
+        }
+
+        partial void OnDeleteItemSuffixThresholdChanged(int value)
+        {
+            RefreshDeletionPreview();
+        }
+
+        private List<Requirement> GetDeleteCandidates(int threshold)
+        {
+            return _mediator.Requirements
+                .Where(r => TryGetRequirementRcSuffix(r.Item, out var itemSuffix) && itemSuffix > threshold)
+                .Distinct()
+                .OrderBy(r => r.Item)
+                .ToList();
+        }
+
+        private void RefreshDeletionPreview()
+        {
+            var candidates = GetDeleteCandidates(DeleteItemSuffixThreshold);
+
+            DeletionPreviewItems.Clear();
+            foreach (var requirement in candidates)
+            {
+                var id = string.IsNullOrWhiteSpace(requirement.Item) ? "<no-item-id>" : requirement.Item;
+                var name = string.IsNullOrWhiteSpace(requirement.Name) ? "<no-name>" : requirement.Name;
+                DeletionPreviewItems.Add($"{id} - {name}");
+            }
+
+            OnPropertyChanged(nameof(HasDeletionPreviewItems));
+            OnPropertyChanged(nameof(DeletionPreviewStatus));
+        }
+
+        private static bool TryGetRequirementRcSuffix(string? text, out int value)
+        {
+            value = 0;
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            // Scope bulk deletion to requirement IDs in the REQ_RC family.
+            // Example: MFD268C4B-REQ_RC-1931 -> 1931.
+            var match = Regex.Match(text.Trim(), @"-REQ_RC-(\d+)\s*$", RegexOptions.IgnoreCase);
+            if (!match.Success)
+            {
+                return false;
+            }
+
+            return int.TryParse(match.Groups[1].Value, out value);
         }
     }
 }
