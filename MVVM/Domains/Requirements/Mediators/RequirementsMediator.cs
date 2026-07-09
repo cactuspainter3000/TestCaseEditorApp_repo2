@@ -1535,7 +1535,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     }
 
                     progressCallback?.Invoke($"💾 Saving {extractedRequirements.Count} extracted requirements to Jama...");
-                    var preferredParentContainerId = attachment.Item > 0 ? attachment.Item : (int?)null;
+                    
+                    // Check for test container override (e.g., JAMA_TEST_CONTAINER_ID=19853308)
+                    var testContainerIdEnv = Environment.GetEnvironmentVariable("JAMA_TEST_CONTAINER_ID");
+                    var preferredParentContainerId = !string.IsNullOrWhiteSpace(testContainerIdEnv) && int.TryParse(testContainerIdEnv, out var testContainerId)
+                        ? testContainerId
+                        : (attachment.Item > 0 ? attachment.Item : (int?)null);
+                    
+                    if (!string.IsNullOrWhiteSpace(testContainerIdEnv) && int.TryParse(testContainerIdEnv, out _))
+                    {
+                        _logger.LogInformation("[RequirementsMediator] Using test container override: JAMA_TEST_CONTAINER_ID={TestContainerId}", testContainerIdEnv);
+                        progressCallback?.Invoke($"🧪 Using test container: {preferredParentContainerId}");
+                    }
+                    
                     var (savedCount, failedCount) = await _jamaConnectService.ImportRequirementsToJamaAsync(
                         projectId,
                         extractedRequirements,
