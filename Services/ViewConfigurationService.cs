@@ -219,31 +219,25 @@ namespace TestCaseEditorApp.Services
             
             // Get the Requirements Tab Selector which manages switching between Main/Cleanup/Attachments
             var tabSelector = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsTabSelectorViewModel>();
-            var requirementsHeaderVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_HeaderViewModel>();
-            var requirementsNavigationVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.Requirements_NavigationViewModel>();
             
-            // Fail-fast validation
+            // CRITICAL FIX: DO NOT create header/navigation ViewModels here - they subscribe to mediator events 
+            // that fire for 818+ cached requirements, blocking the UI for 5+ minutes.
+            // The TabSelector manages everything; header/navigation are only needed when user selects a tab.
+            
+            // Fail-fast validation for TabSelector only
             if (tabSelector == null) 
             {
                 throw new InvalidOperationException("RequirementsTabSelectorViewModel not registered in DI container");
-            }
-            if (requirementsHeaderVM == null) 
-            {
-                throw new InvalidOperationException("Requirements_HeaderViewModel not registered in DI container");
-            }
-            if (requirementsNavigationVM == null) 
-            {
-                throw new InvalidOperationException("Requirements_NavigationViewModel not registered in DI container");
             }
 
             TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] Retrieved RequirementsTabSelectorViewModel for workspace");
             
             return new ViewConfiguration(
                 sectionName: "Requirements",
-                titleViewModel: null, // Requirements domain handles its own title internally
-                headerViewModel: requirementsHeaderVM, // Requirements-specific header  
-                contentViewModel: tabSelector, // Tab Selector → DataTemplate renders RequirementsTabSelectorView
-                navigationViewModel: requirementsNavigationVM, // Requirements navigation for left panel
+                titleViewModel: null,
+                headerViewModel: null,  // Lazy-loaded when needed (when a tab is selected)
+                contentViewModel: tabSelector,
+                navigationViewModel: null,  // Lazy-loaded when needed
                 notificationViewModel: null,
                 context: context
             );
