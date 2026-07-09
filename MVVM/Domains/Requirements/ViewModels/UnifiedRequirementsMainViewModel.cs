@@ -225,7 +225,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         // Content Management Commands
         public ICommand AddRequirementCommand { get; private set; } = null!;
         public ICommand RemoveRequirementCommand { get; private set; } = null!;
-        public ICommand DeleteRequirementsAboveThresholdCommand { get; private set; } = null!;
 
         // Table Operations Commands
         public ICommand SelectAllTablesCommand { get; private set; } = null!;
