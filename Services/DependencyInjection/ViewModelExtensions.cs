@@ -17,6 +17,8 @@ using TestCaseEditorApp.MVVM.Domains.Startup.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.Shared.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.Dashboard.ViewModels;
+using TestCaseEditorApp.MVVM.Services.Theme;
 using Microsoft.Extensions.Logging;
 
 namespace TestCaseEditorApp.Services.DependencyInjection
@@ -40,6 +42,16 @@ namespace TestCaseEditorApp.Services.DependencyInjection
 
             // Title ViewModel (SINGLETON - maintains application title state)
             services.AddSingleton<TitleViewModel>();
+
+            // Dashboard ViewModel (SINGLETON - landing page for the app)
+            services.AddSingleton<DashboardViewModel>(provider =>
+            {
+                var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
+                var openProjectMediator = provider.GetRequiredService<IOpenProjectMediator>();
+                var themeService = provider.GetRequiredService<ThemeService>();
+                var logger = provider.GetRequiredService<ILogger<DashboardViewModel>>();
+                return new DashboardViewModel(newProjectMediator, openProjectMediator, themeService, logger);
+            });
 
             // Side Menu ViewModel (SINGLETON - maintains navigation state and recent files)
             services.AddSingleton<SideMenuViewModel>(provider =>

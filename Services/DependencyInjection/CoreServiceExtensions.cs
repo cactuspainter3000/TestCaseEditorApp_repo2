@@ -4,6 +4,7 @@ using System.Runtime.Versioning;
 using TestCaseEditorApp.MVVM.Extensions;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services.Prompts;
+using TestCaseEditorApp.MVVM.Services.Theme;
 
 namespace TestCaseEditorApp.Services.DependencyInjection
 {
@@ -57,6 +58,9 @@ namespace TestCaseEditorApp.Services.DependencyInjection
             services.AddSingleton<ExtensionManager>();
             services.AddSingleton<PerformanceMonitoringService>();
             services.AddSingleton<EventReplayService>();
+
+            // Theme management (SINGLETON - app-wide theme state)
+            services.AddSingleton<ThemeService>();
 
             // Domain coordinator (SINGLETON - cross-domain event routing)
             services.AddSingleton<IDomainCoordinator>(provider =>
