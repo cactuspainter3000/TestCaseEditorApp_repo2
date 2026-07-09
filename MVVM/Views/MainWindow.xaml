@@ -161,6 +161,11 @@
             <reqviews:RequirementsTabSelectorView />
         </DataTemplate>
 
+        <!-- Requirements Utilities: troubleshooting and management tools -->
+        <DataTemplate DataType="{x:Type reqvm:RequirementsUtilitiesViewModel}">
+            <reqviews:RequirementsUtilitiesView />
+        </DataTemplate>
+
         <!-- Requirements uses shared NavigationViewModel -->
 
         <DataTemplate DataType="{x:Type vm:LLMLearningViewModel}">

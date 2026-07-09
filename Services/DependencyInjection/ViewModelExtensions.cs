@@ -154,8 +154,18 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 var mainVM = provider.GetRequiredService<UnifiedRequirementsMainViewModel>();
                 var cleanupVM = provider.GetRequiredService<CleanupViewModel>();
                 var attachmentsVM = provider.GetRequiredService<RequirementsSearchAttachmentsViewModel>();
+                var utilitiesVM = provider.GetRequiredService<RequirementsUtilitiesViewModel>();
                 var logger = provider.GetRequiredService<ILogger<RequirementsTabSelectorViewModel>>();
-                return new RequirementsTabSelectorViewModel(mainVM, cleanupVM, attachmentsVM, logger);
+                return new RequirementsTabSelectorViewModel(mainVM, cleanupVM, attachmentsVM, utilitiesVM, logger);
+            });
+
+            // Requirements Utilities (SINGLETON - utilities dashboard)
+            services.AddSingleton<RequirementsUtilitiesViewModel>(provider =>
+            {
+                var reqMediator = provider.GetRequiredService<IRequirementsMediator>();
+                var jamaService = provider.GetRequiredService<JamaConnectService>();
+                var logger = provider.GetRequiredService<ILogger<RequirementsUtilitiesViewModel>>();
+                return new RequirementsUtilitiesViewModel(reqMediator, jamaService, logger);
             });
 
             // Document Scraper (TRANSIENT - per-use instance)

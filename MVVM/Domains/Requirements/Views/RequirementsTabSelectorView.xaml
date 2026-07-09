@@ -51,6 +51,17 @@
                                    Foreground="{StaticResource Brush.Accent.Primary}"/>
                     </Grid>
                 </ToggleButton>
+
+                <!-- Utilities tab -->
+                <ToggleButton Style="{StaticResource SubtleTabToggleButton}"
+                              IsChecked="{Binding SelectedTab, Converter={StaticResource EnumToBoolConverter}, ConverterParameter=Utilities}"
+                              Command="{Binding SelectUtilitiesTabCommand}"
+                              ToolTip="Utilities and diagnostics">
+                    <Grid Background="Transparent">
+                        <TextBlock Text="🔧 Utilities" VerticalAlignment="Center" Margin="8,0"
+                                   Foreground="{StaticResource Brush.Accent.Primary}"/>
+                    </Grid>
+                </ToggleButton>
             </StackPanel>
         </Border>
 

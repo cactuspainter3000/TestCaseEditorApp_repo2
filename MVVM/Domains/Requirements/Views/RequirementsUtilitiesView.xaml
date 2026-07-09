@@ -1,0 +1,136 @@
+<UserControl x:Class="TestCaseEditorApp.MVVM.Domains.Requirements.Views.RequirementsUtilitiesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
+             mc:Ignorable="d"
+             Background="{StaticResource Brush.Background.Menu}">
+
+    <UserControl.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- Status bar -->
+            <RowDefinition Height="*"/>
+            <!-- Content -->
+        </Grid.RowDefinitions>
+
+        <!-- Status bar -->
+        <Border Grid.Row="0" Background="{StaticResource Brush.Background.Header}" Padding="8">
+            <TextBlock Text="{Binding StatusMessage}" 
+                       Foreground="{StaticResource Brush.Accent.Primary}"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- Content area -->
+        <Grid Grid.Row="1" Margin="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300" MinWidth="200"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left panel: Utility buttons -->
+            <StackPanel Grid.Column="0" Orientation="Vertical" Margin="0,0,16,0">
+                <TextBlock Text="Utilities" FontSize="16" FontWeight="Bold" 
+                           Foreground="{StaticResource Brush.Accent.Primary}"
+                           Margin="0,0,0,12"/>
+
+                <!-- Probe Jama button -->
+                <Button Command="{Binding ProbeJamaCommand}"
+                        Content="🔍 Probe Jama Connection"
+                        Padding="12,8"
+                        Margin="0,0,0,8"
+                        ToolTip="Test Jama API connectivity and configuration"
+                        IsEnabled="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=NOT}"/>
+
+                <!-- Export Logs button -->
+                <Button Command="{Binding ExportLogsCommand}"
+                        Content="📋 Export Logs"
+                        Padding="12,8"
+                        Margin="0,0,0,8"
+                        ToolTip="Save application logs to Desktop"
+                        IsEnabled="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=NOT}"/>
+
+                <!-- Diagnostics button -->
+                <Button Command="{Binding ShowDiagnosticsCommand}"
+                        Content="🔧 Diagnostics"
+                        Padding="12,8"
+                        Margin="0,0,0,8"
+                        ToolTip="Show system and application information"
+                        IsEnabled="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=NOT}"/>
+
+                <!-- Clear Workspace button -->
+                <Button Command="{Binding ClearWorkspaceCommand}"
+                        Content="🗑️  Clear Workspace"
+                        Padding="12,8"
+                        Margin="0,0,0,8"
+                        Background="#8B0000"
+                        Foreground="White"
+                        ToolTip="Clear all edits and workspace data (cannot be undone)"
+                        IsEnabled="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=NOT}"/>
+
+                <!-- Clear Logs button -->
+                <Button Command="{Binding ClearLogsCommand}"
+                        Content="📝 Clear Output"
+                        Padding="12,8"
+                        Margin="0,0,0,16"
+                        ToolTip="Clear the log output display"/>
+
+                <!-- Separator -->
+                <Separator Margin="0,12" Background="{StaticResource Brush.Border.Light}"/>
+
+                <!-- Loading indicator -->
+                <StackPanel Orientation="Horizontal" 
+                           Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
+                           Margin="0,12,0,0">
+                    <TextBlock Text="Working..." Foreground="#FFA500" FontWeight="Bold"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Right panel: Log output -->
+            <Border Grid.Column="1" 
+                    Background="{StaticResource Brush.Background.Header}"
+                    BorderBrush="{StaticResource Brush.Border.Light}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="Output Log" FontSize="12" FontWeight="Bold"
+                               Foreground="{StaticResource Brush.Accent.Primary}"
+                               Margin="0,0,0,8"/>
+
+                    <TextBox Grid.Row="1"
+                             Text="{Binding LogOutput, Mode=OneWay}"
+                             IsReadOnly="True"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"
+                             Padding="6,4"
+                             Foreground="#00AA00"
+                             Background="#1E1E1E"
+                             FontFamily="Courier New"
+                             FontSize="11"/>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Loading overlay -->
+        <Border Grid.RowSpan="2" 
+                Background="#80000000" 
+                Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
+                HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Vertical">
+                <TextBlock Text="Processing..." Foreground="White" FontSize="16" HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

@@ -15,13 +15,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private readonly UnifiedRequirementsMainViewModel _mainViewModel;
         private readonly CleanupViewModel _cleanupViewModel;
         private readonly RequirementsSearchAttachmentsViewModel _attachmentsViewModel;
+        private readonly RequirementsUtilitiesViewModel _utilitiesViewModel;
         private readonly ILogger<RequirementsTabSelectorViewModel> _logger;
 
         public enum WorkspaceTab
         {
             Main,
             Cleanup,
-            Attachments
+            Attachments,
+            Utilities
         }
 
         [ObservableProperty]
@@ -34,11 +36,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             UnifiedRequirementsMainViewModel mainViewModel,
             CleanupViewModel cleanupViewModel,
             RequirementsSearchAttachmentsViewModel attachmentsViewModel,
+            RequirementsUtilitiesViewModel utilitiesViewModel,
             ILogger<RequirementsTabSelectorViewModel> logger)
         {
             _mainViewModel = mainViewModel ?? throw new ArgumentNullException(nameof(mainViewModel));
             _cleanupViewModel = cleanupViewModel ?? throw new ArgumentNullException(nameof(cleanupViewModel));
             _attachmentsViewModel = attachmentsViewModel ?? throw new ArgumentNullException(nameof(attachmentsViewModel));
+            _utilitiesViewModel = utilitiesViewModel ?? throw new ArgumentNullException(nameof(utilitiesViewModel));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             // Set initial content
@@ -82,6 +86,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         }
 
         /// <summary>
+        /// Select the Utilities tab
+        /// </summary>
+        [RelayCommand]
+        public void SelectUtilitiesTab()
+        {
+            SelectedTab = WorkspaceTab.Utilities;
+        }
+
+        /// <summary>
         /// Update the content ViewModel based on current tab selection
         /// </summary>
         private void UpdateContentViewModel()
@@ -91,6 +104,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 WorkspaceTab.Main => _mainViewModel,
                 WorkspaceTab.Cleanup => _cleanupViewModel,
                 WorkspaceTab.Attachments => _attachmentsViewModel,
+                WorkspaceTab.Utilities => _utilitiesViewModel,
                 _ => _mainViewModel
             };
 
