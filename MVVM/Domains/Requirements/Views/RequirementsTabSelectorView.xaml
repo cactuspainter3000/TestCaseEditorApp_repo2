@@ -16,7 +16,7 @@
 
         <!-- Tab bar -->
         <Border Grid.Row="0" Background="{StaticResource Brush.Background.Header}" 
-                BorderBrush="{StaticResource Brush.Border.Light}" BorderThickness="0,0,0,1"
+                BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="0,0,0,1"
                 Padding="0">
             <StackPanel Orientation="Horizontal" Margin="0">
                 <!-- Main tab -->
