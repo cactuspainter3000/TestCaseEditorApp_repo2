@@ -4,6 +4,7 @@ using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
 using TestCaseEditorApp.MVVM.Domains.Startup.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
@@ -134,6 +135,16 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 var logger = provider.GetRequiredService<ILogger<RequirementsSearchAttachmentsViewModel>>();
                 var ollamaProcessManager = provider.GetService<IOllamaProcessManager>();
                 return new RequirementsSearchAttachmentsViewModel(reqMediator, workspaceContext, logger, ollamaProcessManager);
+            });
+
+            // Cleanup ViewModel (SINGLETON - maintains requirement editing workspace state)
+            services.AddSingleton<CleanupViewModel>(provider =>
+            {
+                var editSessionService = provider.GetRequiredService<RequirementEditSessionService>();
+                var jamaService = provider.GetRequiredService<JamaConnectService>();
+                var reqMediator = provider.GetRequiredService<IRequirementsMediator>();
+                var logger = provider.GetRequiredService<ILogger<CleanupViewModel>>();
+                return new CleanupViewModel(editSessionService, jamaService, reqMediator, logger);
             });
 
             // Document Scraper (TRANSIENT - per-use instance)

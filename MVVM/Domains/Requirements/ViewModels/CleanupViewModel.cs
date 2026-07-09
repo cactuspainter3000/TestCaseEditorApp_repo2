@@ -124,6 +124,33 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         }
 
         /// <summary>
+        /// Save current requirement changes
+        /// </summary>
+        [RelayCommand]
+        public async Task SaveAsync()
+        {
+            if (CurrentRequirement == null)
+            {
+                StatusMessage = "No requirement selected";
+                return;
+            }
+
+            try
+            {
+                var editedBy = System.Environment.UserName;
+                await _editSessionService.AutoSaveAsync(CurrentRequirement, editedBy);
+                UpdateCounters();
+                StatusMessage = $"Saved {CurrentRequirement.DisplayName}";
+                _logger.LogInformation("[CleanupViewModel] Saved requirement: {Name}", CurrentRequirement.DisplayName);
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error saving: {ex.Message}";
+                _logger.LogError(ex, "[CleanupViewModel] Failed to save");
+            }
+        }
+
+        /// <summary>
         /// Handle when a requirement is edited (name/description changed)
         /// </summary>
         [RelayCommand]

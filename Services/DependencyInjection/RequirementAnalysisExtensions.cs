@@ -27,6 +27,9 @@ namespace TestCaseEditorApp.Services.DependencyInjection
             // Smart requirement importer with fallback logic (SINGLETON)
             services.AddSingleton<SmartRequirementImporter>();
 
+            // Requirement Edit Session Service - manages edit workspace and persistence (SINGLETON)
+            services.AddSingleton<RequirementEditSessionService>();
+
             // Prompt building and response parsing (SINGLETON - template definitions)
             services.AddSingleton<RequirementAnalysisPromptBuilder>();
             services.AddSingleton<ResponseParserManager>();
