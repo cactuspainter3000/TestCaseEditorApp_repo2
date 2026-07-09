@@ -53,15 +53,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _utilitiesViewModelFactory = utilitiesViewModelFactory ?? throw new ArgumentNullException(nameof(utilitiesViewModelFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-            // Initialize Main tab asynchronously to avoid UI freeze
-            // Use Dispatcher to ensure this happens on the UI thread after constructor returns
-            if (System.Windows.Application.Current?.Dispatcher != null)
-            {
-                System.Windows.Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, () =>
-                {
-                    UpdateContentViewModel();
-                });
-            }
+            // Start with no content loaded to avoid UI freeze
+            // ViewModels are created on-demand when user selects a tab
+            CurrentContentViewModel = null;
 
             // Watch for tab selection changes
             PropertyChanged += (_, e) =>
@@ -72,7 +66,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 }
             };
 
-            _logger.LogInformation("[RequirementsTabSelectorViewModel] Lazy-loading tab selector ready");
+            _logger.LogInformation("[RequirementsTabSelectorViewModel] Lazy-loading tab selector ready (no content until tab selected)");
         }
 
         /// <summary>
