@@ -75,7 +75,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- Left pane: Requirements list -->
-            <Border Grid.Column="0" BorderBrush="{StaticResource Brush.Border.Light}" BorderThickness="0,0,1,0">
+            <Border Grid.Column="0" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="0,0,1,0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -148,7 +148,7 @@
 
             <!-- Splitter -->
             <GridSplitter Grid.Column="1" Width="4" VerticalAlignment="Stretch" HorizontalAlignment="Center"
-                          Background="{StaticResource Brush.Border.Light}"/>
+                          Background="{StaticResource Brush.Border.Subtle}"/>
 
             <!-- Right pane: Detail editor -->
             <Border Grid.Column="2" Margin="8">
@@ -236,7 +236,7 @@
         </Grid>
 
         <!-- Bottom action bar -->
-        <Border Grid.Row="2" Background="{StaticResource Brush.Background.Header}" Padding="8" BorderBrush="{StaticResource Brush.Border.Light}" BorderThickness="0,1,0,0">
+        <Border Grid.Row="2" Background="{StaticResource Brush.Background.Header}" Padding="8" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="0,1,0,0">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>

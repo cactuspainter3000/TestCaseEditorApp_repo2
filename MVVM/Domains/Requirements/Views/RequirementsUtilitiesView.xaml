@@ -81,7 +81,7 @@
                         ToolTip="Clear the log output display"/>
 
                 <!-- Separator -->
-                <Separator Margin="0,12" Background="{StaticResource Brush.Border.Light}"/>
+                <Separator Margin="0,12" Background="{StaticResource Brush.Border.Subtle}"/>
 
                 <!-- Loading indicator -->
                 <StackPanel Orientation="Horizontal" 
@@ -94,7 +94,7 @@
             <!-- Right panel: Log output -->
             <Border Grid.Column="1" 
                     Background="{StaticResource Brush.Background.Header}"
-                    BorderBrush="{StaticResource Brush.Border.Light}"
+                    BorderBrush="{StaticResource Brush.Border.Subtle}"
                     BorderThickness="1"
                     CornerRadius="4"
                     Padding="8">
