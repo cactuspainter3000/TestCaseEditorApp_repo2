@@ -30,7 +30,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$ProbeScriptVersion = "seed-item-fast-path-v1"
+$ProbeScriptVersion = "seed-item-fast-path-v2"
 
 Add-Type -AssemblyName System.Net.Http
 
@@ -516,6 +516,7 @@ function Get-RequirementFieldInventory {
         FieldRows = New-Object System.Collections.Generic.List[object]
         PicklistSummaries = New-Object System.Collections.Generic.List[object]
         RelationshipFieldSnapshots = New-Object System.Collections.Generic.List[object]
+        RawSeedFieldSnapshots = New-Object System.Collections.Generic.List[object]
     }
 
     function Get-DataArray {
@@ -691,6 +692,38 @@ function Get-RequirementFieldInventory {
         }
     }
 
+    function Add-RawSeedFieldSnapshots {
+        param(
+            [object]$SeedItemData,
+            [System.Collections.Generic.List[object]]$Snapshots
+        )
+
+        if ($null -eq $SeedItemData -or -not ($SeedItemData.PSObject.Properties.Name -contains "fields") -or $null -eq $SeedItemData.fields) {
+            return
+        }
+
+        foreach ($fieldProp in $SeedItemData.fields.PSObject.Properties) {
+            $sample = ""
+            if ($null -eq $fieldProp.Value) {
+                $sample = "<null>"
+            } elseif ($fieldProp.Value -is [System.Array]) {
+                $sample = ($fieldProp.Value | ForEach-Object { [string]$_ }) -join '; '
+            } else {
+                $sample = [string]$fieldProp.Value
+            }
+
+            if ($sample.Length -gt 240) {
+                $sample = $sample.Substring(0, 240) + "..."
+            }
+
+            $Snapshots.Add([PSCustomObject]@{
+                FieldName = [string]$fieldProp.Name
+                ValueShape = Get-ValueShape -Value $fieldProp.Value
+                Sample = $sample
+            })
+        }
+    }
+
     if ($SeedItemId -gt 0) {
         try {
             Write-ProbeStep "Resolving seed item type from item $SeedItemId"
@@ -699,6 +732,7 @@ function Get-RequirementFieldInventory {
                 $seedItemData = $seedItem.data
                 $seedItemTypeId = [int]$seedItem.data.itemType
                 Add-RelationshipFieldSnapshots -SeedItemData $seedItemData -Snapshots $result.RelationshipFieldSnapshots
+                Add-RawSeedFieldSnapshots -SeedItemData $seedItemData -Snapshots $result.RawSeedFieldSnapshots
             }
         } catch {
             Write-ProbeStep "Could not resolve seed item type: $($_.Exception.Message)"
@@ -1232,6 +1266,24 @@ if ($requirementFieldInventory.RelationshipFieldSnapshots.Count -gt 0) {
     }
 } else {
     [void]$report.AppendLine("- No relationship-, trace-, or link-named fields were detected on the seed item payload.")
+}
+
+[void]$report.AppendLine("")
+[void]$report.AppendLine("## Seed Item Raw Field Snapshot")
+[void]$report.AppendLine("")
+if ($requirementFieldInventory.RawSeedFieldSnapshots.Count -gt 0) {
+    [void]$report.AppendLine("- Raw field count on seed item payload: $($requirementFieldInventory.RawSeedFieldSnapshots.Count)")
+    [void]$report.AppendLine("")
+    [void]$report.AppendLine("| FieldName | ValueShape | Sample |")
+    [void]$report.AppendLine("|---|---|---|")
+    foreach ($snapshot in ($requirementFieldInventory.RawSeedFieldSnapshots | Sort-Object FieldName)) {
+        $fieldName = ([string]$snapshot.FieldName).Replace("|", "/")
+        $valueShape = ([string]$snapshot.ValueShape).Replace("|", "/")
+        $sample = ([string]$snapshot.Sample).Replace("|", "/")
+        [void]$report.AppendLine("| $fieldName | $valueShape | $sample |")
+    }
+} else {
+    [void]$report.AppendLine("- Raw field snapshot unavailable (seed item fields were not returned on this probe run).")
 }
 
 [void]$report.AppendLine("")
