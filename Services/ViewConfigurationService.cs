@@ -60,6 +60,9 @@ namespace TestCaseEditorApp.Services
             
             return sectionName?.ToLowerInvariant() switch
             {
+                // Dashboard (landing page) - NEW DEFAULT
+                "dashboard" => CreateDashboardConfiguration(context),
+                
                 // Startup domain - works correctly
                 "startup" => CreateStartupConfiguration(context),
                 
@@ -131,6 +134,27 @@ namespace TestCaseEditorApp.Services
                 headerViewModel: headerVM,
                 contentViewModel: mainVM,
                 navigationViewModel: navVM,
+                notificationViewModel: null,
+                context: context
+            );
+        }
+
+        private ViewConfiguration CreateDashboardConfiguration(object? context)
+        {
+            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating Dashboard configuration (landing page)");
+            
+            // Dashboard is a simple landing page - minimal workspace setup
+            // Just show the Dashboard ViewModel in the main content area
+            var dashboardVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Dashboard.ViewModels.DashboardViewModel>();
+            
+            if (dashboardVM == null) throw new InvalidOperationException("DashboardViewModel not resolved from DI container");
+            
+            return new ViewConfiguration(
+                sectionName: "Dashboard",
+                titleViewModel: null,           // Dashboard has its own title
+                headerViewModel: null,           // Dashboard is minimal UI
+                contentViewModel: dashboardVM,   // Main content is the Dashboard
+                navigationViewModel: null,       // No navigation sidebar for Dashboard
                 notificationViewModel: null,
                 context: context
             );
@@ -537,9 +561,9 @@ namespace TestCaseEditorApp.Services
 
         private ViewConfiguration CreateDefaultConfiguration(object? context)
         {
-            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] CreateDefaultConfiguration called - falling back to startup configuration");
-            // Use startup configuration as default for initial app state
-            return CreateStartupConfiguration(context);
+            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] CreateDefaultConfiguration called - using Dashboard as default landing page");
+            // Use Dashboard configuration as default for initial app state (landing page)
+            return CreateDashboardConfiguration(context);
         }
 
         #endregion

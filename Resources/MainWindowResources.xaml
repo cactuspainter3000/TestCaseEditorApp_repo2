@@ -1,12 +1,14 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:vm="clr-namespace:TestCaseEditorApp.MVVM.ViewModels"
+                    xmlns:dashvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dashboard.ViewModels"
                     xmlns:tcgmodevm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels"
                     xmlns:tccvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels"
                     xmlns:npvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels"
                     xmlns:opvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels"
                     xmlns:tdvvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels"
                     xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
+                    xmlns:dashviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dashboard.Views"
                     xmlns:tcgmodeviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.Views"
                     xmlns:tccviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Views"
                     xmlns:npviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.Views"
@@ -17,6 +19,11 @@
 
     <DataTemplate DataType="{x:Type vm:WorkspaceHeaderViewModel}">
         <views:WorkspaceHeaderView />
+    </DataTemplate>
+
+    <!-- Dashboard (Landing Page) -->
+    <DataTemplate DataType="{x:Type dashvm:DashboardViewModel}">
+        <dashviews:DashboardView />
     </DataTemplate>
     
     <!-- TestCaseGeneration Domain - Main workspace view -->
