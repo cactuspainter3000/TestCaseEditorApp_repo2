@@ -21,6 +21,9 @@ param(
     [string]$ManualSourceDocumentKey = $env:JAMA_MANUAL_SOURCE_KEY,
 
     [Parameter(Mandatory = $false)]
+    [switch]$AttemptCreateManualRelationship = $(if ($env:JAMA_ATTEMPT_CREATE_RELATIONSHIP -match '^(1|true|yes)$') { $true } else { $false }),
+
+    [Parameter(Mandatory = $false)]
     [string]$ReportPath = "jama-relationship-capability-report.md"
 )
 
@@ -304,6 +307,91 @@ function Get-ItemRelationships {
     }
 
     return $all
+}
+
+function Get-RelationshipTypeId {
+    param(
+        [string]$BaseUrl,
+        [int]$ProjectId,
+        [hashtable]$Headers
+    )
+
+    $endpoints = @(
+        "$BaseUrl/rest/v1/relationshiptypes?project=$ProjectId&maxResults=50",
+        "$BaseUrl/rest/v1/relationshiptypes",
+        "$BaseUrl/rest/v1/projects/$ProjectId/relationshiptypes"
+    )
+
+    $priorityNames = @('derived from', 'derives', 'traceability', 'traces to', 'satisfies', 'related')
+
+    foreach ($url in $endpoints) {
+        try {
+            $resp = Invoke-RestMethod -Uri $url -Method Get -Headers $Headers -TimeoutSec 15
+            $data = @()
+            if ($resp -is [System.Array]) {
+                $data = @($resp)
+            } elseif ($resp.data) {
+                $data = @($resp.data)
+            }
+
+            if ($data.Count -eq 0) {
+                continue
+            }
+
+            foreach ($preferred in $priorityNames) {
+                foreach ($rel in $data) {
+                    $name = if ($rel.PSObject.Properties.Name -contains 'name') { [string]$rel.name } else { '' }
+                    if (-not [string]::IsNullOrWhiteSpace($name) -and $name.IndexOf($preferred, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                        return [PSCustomObject]@{ Id = [int]$rel.id; Name = $name; Endpoint = $url }
+                    }
+                }
+            }
+
+            foreach ($rel in $data) {
+                if ($rel.PSObject.Properties.Name -contains 'id' -and [int]$rel.id -gt 0) {
+                    $name = if ($rel.PSObject.Properties.Name -contains 'name') { [string]$rel.name } else { '' }
+                    return [PSCustomObject]@{ Id = [int]$rel.id; Name = $name; Endpoint = $url }
+                }
+            }
+        } catch {
+            continue
+        }
+    }
+
+    return $null
+}
+
+function Try-CreateRelationship {
+    param(
+        [string]$BaseUrl,
+        [hashtable]$Headers,
+        [int]$FromItemId,
+        [int]$ToItemId,
+        [int]$RelationshipTypeId
+    )
+
+    $payload = @{
+        fromItem = $FromItemId
+        toItem = $ToItemId
+        relationshipType = $RelationshipTypeId
+    } | ConvertTo-Json
+
+    try {
+        $resp = Invoke-WebRequest -Uri "$BaseUrl/rest/v1/relationships" -Method Post -Headers $Headers -ContentType 'application/json' -Body $payload -TimeoutSec 20
+        return [PSCustomObject]@{ Success = $true; Status = [int]$resp.StatusCode; Notes = '' }
+    } catch {
+        $status = 'ERR'
+        if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+            $status = [int]$_.Exception.Response.StatusCode
+        }
+
+        $message = $_.Exception.Message
+        if ($message -match 'already exists|duplicate') {
+            return [PSCustomObject]@{ Success = $true; Status = $status; Notes = $message }
+        }
+
+        return [PSCustomObject]@{ Success = $false; Status = $status; Notes = $message }
+    }
 }
 
 function Get-InterpretationSummary {
@@ -944,6 +1032,11 @@ $manualTraceCheck = [ordered]@{
     SourceItemId = $null
     RelationshipFound = $false
     RelationshipCountOnRequirement = 0
+    AttemptedCreate = $false
+    CreatedRelationship = $false
+    CreationDirection = ''
+    RelationshipTypeId = $null
+    RelationshipTypeName = ''
     Notes = ""
 }
 
@@ -990,6 +1083,47 @@ if (-not [string]::IsNullOrWhiteSpace($ManualRequirementDocumentKey) -and -not [
 
         if (-not $manualTraceCheck.RelationshipFound) {
             $manualTraceCheck.Notes = "Both items were resolved, but no direct relationship between them was found via upstream/downstream relationship endpoints for requirement item."
+
+            if ($AttemptCreateManualRelationship) {
+                $manualTraceCheck.AttemptedCreate = $true
+                Write-ProbeStep "Attempting manual relationship creation for resolved item pair"
+                $relationshipType = Get-RelationshipTypeId -BaseUrl $BaseUrl -ProjectId $ProjectId -Headers $apiHeaders
+                if ($null -eq $relationshipType) {
+                    $manualTraceCheck.Notes += " Could not resolve a relationship type ID for the project."
+                } else {
+                    $manualTraceCheck.RelationshipTypeId = $relationshipType.Id
+                    $manualTraceCheck.RelationshipTypeName = $relationshipType.Name
+
+                    $createResult = Try-CreateRelationship -BaseUrl $BaseUrl -Headers $apiHeaders -FromItemId ([int]$srcItem.id) -ToItemId ([int]$reqItem.id) -RelationshipTypeId ([int]$relationshipType.Id)
+                    $manualTraceCheck.CreationDirection = "$($srcItem.id) -> $($reqItem.id)"
+                    if (-not $createResult.Success) {
+                        $reverseResult = Try-CreateRelationship -BaseUrl $BaseUrl -Headers $apiHeaders -FromItemId ([int]$reqItem.id) -ToItemId ([int]$srcItem.id) -RelationshipTypeId ([int]$relationshipType.Id)
+                        $manualTraceCheck.CreationDirection = "$($reqItem.id) -> $($srcItem.id)"
+                        $createResult = $reverseResult
+                    }
+
+                    $manualTraceCheck.CreatedRelationship = [bool]$createResult.Success
+                    if (-not $createResult.Success) {
+                        $manualTraceCheck.Notes += " Create attempt failed: $($createResult.Notes)"
+                    } else {
+                        $reqRelationships = Get-ItemRelationships -BaseUrl $BaseUrl -ItemId ([int]$reqItem.id) -Headers $apiHeaders
+                        $manualTraceCheck.RelationshipCountOnRequirement = $reqRelationships.Count
+                        foreach ($rel in $reqRelationships) {
+                            $fromId = if ($rel.PSObject.Properties.Name -contains 'fromItem') { $rel.fromItem } else { $null }
+                            $toId = if ($rel.PSObject.Properties.Name -contains 'toItem') { $rel.toItem } else { $null }
+                            if (($fromId -eq $reqItem.id -and $toId -eq $srcItem.id) -or ($fromId -eq $srcItem.id -and $toId -eq $reqItem.id)) {
+                                $manualTraceCheck.RelationshipFound = $true
+                                $manualTraceCheck.Notes = "Relationship create succeeded and was verified through item-scoped relationship endpoints."
+                                break
+                            }
+                        }
+
+                        if (-not $manualTraceCheck.RelationshipFound) {
+                            $manualTraceCheck.Notes += " Create call succeeded but the relationship was not observed on immediate re-read."
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -1110,11 +1244,18 @@ if ($manualTraceCheck.Enabled) {
     [void]$report.AppendLine("- Source Item ID: $(if ($manualTraceCheck.SourceItemId) { $manualTraceCheck.SourceItemId } else { 'not found' })")
     [void]$report.AppendLine("- Relationship Found Between Items: $($manualTraceCheck.RelationshipFound)")
     [void]$report.AppendLine("- Requirement Relationship Count (upstream + downstream): $($manualTraceCheck.RelationshipCountOnRequirement)")
+    [void]$report.AppendLine("- Attempted Relationship Create: $($manualTraceCheck.AttemptedCreate)")
+    if ($manualTraceCheck.AttemptedCreate) {
+        [void]$report.AppendLine("- Relationship Type ID: $(if ($manualTraceCheck.RelationshipTypeId) { $manualTraceCheck.RelationshipTypeId } else { 'not resolved' })")
+        [void]$report.AppendLine("- Relationship Type Name: $(if ($manualTraceCheck.RelationshipTypeName) { $manualTraceCheck.RelationshipTypeName } else { 'n/a' })")
+        [void]$report.AppendLine("- Created Relationship: $($manualTraceCheck.CreatedRelationship)")
+        [void]$report.AppendLine("- Create Direction Attempted: $(if ([string]::IsNullOrWhiteSpace($manualTraceCheck.CreationDirection)) { 'n/a' } else { $manualTraceCheck.CreationDirection })")
+    }
     if (-not [string]::IsNullOrWhiteSpace($manualTraceCheck.Notes)) {
         [void]$report.AppendLine("- Notes: $($manualTraceCheck.Notes)")
     }
 } else {
-    [void]$report.AppendLine("- Manual trace validation skipped. Provide both ManualRequirementDocumentKey and ManualSourceDocumentKey (or env vars JAMA_MANUAL_REQ_KEY and JAMA_MANUAL_SOURCE_KEY).")
+    [void]$report.AppendLine("- Manual trace validation skipped. Provide both ManualRequirementDocumentKey and ManualSourceDocumentKey (or env vars JAMA_MANUAL_REQ_KEY and JAMA_MANUAL_SOURCE_KEY). Set AttemptCreateManualRelationship or env JAMA_ATTEMPT_CREATE_RELATIONSHIP=true to test create+verify.")
 }
 
 $reportText = $report.ToString()
