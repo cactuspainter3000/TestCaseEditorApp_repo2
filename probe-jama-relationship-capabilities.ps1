@@ -510,11 +510,67 @@ function Get-RequirementFieldInventory {
 
     $candidateTypes = New-Object System.Collections.Generic.List[object]
     $seedItemTypeId = $null
+    $seedItemData = $null
+
+    function Get-ValueShape {
+        param([object]$Value)
+
+        if ($null -eq $Value) {
+            return "null"
+        }
+
+        if ($Value -is [string]) {
+            return "string"
+        }
+
+        if ($Value -is [bool]) {
+            return "boolean"
+        }
+
+        if ($Value -is [int] -or $Value -is [long] -or $Value -is [double] -or $Value -is [decimal]) {
+            return "number"
+        }
+
+        if ($Value -is [System.Array]) {
+            return "array"
+        }
+
+        return "object"
+    }
+
+    function Add-InferredSeedItemFields {
+        param(
+            [object]$SeedItemData,
+            [int]$ItemTypeId,
+            [string]$ItemTypeName,
+            [System.Collections.Generic.List[object]]$FieldRows
+        )
+
+        if ($null -eq $SeedItemData -or -not ($SeedItemData.PSObject.Properties.Name -contains "fields") -or $null -eq $SeedItemData.fields) {
+            return $false
+        }
+
+        foreach ($fieldProp in $SeedItemData.fields.PSObject.Properties) {
+            $FieldRows.Add([PSCustomObject]@{
+                ItemTypeId = $ItemTypeId
+                ItemTypeName = $ItemTypeName
+                FieldKey = [string]$fieldProp.Name
+                FieldLabel = [string]$fieldProp.Name
+                FieldType = Get-ValueShape -Value $fieldProp.Value
+                Required = ""
+                Notes = "inferred from seed item payload"
+            })
+        }
+
+        return $FieldRows.Count -gt 0
+    }
+
     if ($SeedItemId -gt 0) {
         try {
             Write-ProbeStep "Resolving seed item type from item $SeedItemId"
             $seedItem = Invoke-RestMethod -Uri "$BaseUrl/rest/v1/items/$SeedItemId" -Method Get -Headers $Headers -TimeoutSec 8
             if ($seedItem -and $seedItem.data -and $seedItem.data.itemType) {
+                $seedItemData = $seedItem.data
                 $seedItemTypeId = [int]$seedItem.data.itemType
             }
         } catch {
@@ -595,15 +651,23 @@ function Get-RequirementFieldInventory {
 
         $typeResult = Get-FirstSuccessfulResponse -Urls $fieldEndpointCandidates -Label "item type fields" -Headers $Headers -TimeoutSec 5
         if (-not $typeResult.Success) {
-            $result.FieldRows.Add([PSCustomObject]@{
-                ItemTypeId = $typeId
-                ItemTypeName = $typeName
-                FieldKey = "<error>"
-                FieldLabel = "Failed to load field schema"
-                FieldType = ""
-                Required = ""
-                Notes = "Attempts: $($typeResult.Attempts -join ' | ')"
-            })
+            $inferred = $false
+            if ($seedItemTypeId -eq $typeId -and $null -ne $seedItemData) {
+                Write-ProbeStep "Item type field endpoints unavailable; inferring fields from seed item payload"
+                $inferred = Add-InferredSeedItemFields -SeedItemData $seedItemData -ItemTypeId $typeId -ItemTypeName $typeName -FieldRows $result.FieldRows
+            }
+
+            if (-not $inferred) {
+                $result.FieldRows.Add([PSCustomObject]@{
+                    ItemTypeId = $typeId
+                    ItemTypeName = $typeName
+                    FieldKey = "<error>"
+                    FieldLabel = "Failed to load field schema"
+                    FieldType = ""
+                    Required = ""
+                    Notes = "Attempts: $($typeResult.Attempts -join ' | ')"
+                })
+            }
             continue
         }
 
