@@ -591,8 +591,6 @@ function Get-RequirementFieldInventory {
         $fieldEndpointCandidates = @(
             "$BaseUrl/rest/v1/itemtypes/${typeId}/fields",
             "$BaseUrl/rest/latest/itemtypes/${typeId}/fields",
-            "$BaseUrl/rest/v1/itemtypes/${typeId}?include=fields",
-            "$BaseUrl/rest/latest/itemtypes/${typeId}?include=fields",
             "$BaseUrl/rest/v1/itemtypes/${typeId}",
             "$BaseUrl/rest/latest/itemtypes/${typeId}"
         )
