@@ -427,19 +427,100 @@ function Get-RequirementFieldInventory {
         PicklistSummaries = New-Object System.Collections.Generic.List[object]
     }
 
-    $itemTypesResponse = $null
-    try {
-        Write-ProbeStep "Discovering item type catalog"
-        $itemTypesResponse = Invoke-RestMethod -Uri "$BaseUrl/rest/v1/itemtypes?maxResults=500" -Method Get -Headers $Headers -TimeoutSec 30
-    } catch {
-        $result.Notes = "Failed to query /rest/v1/itemtypes: $($_.Exception.Message)"
+    function Get-DataArray {
+        param([object]$Response)
+
+        if ($null -eq $Response) {
+            return @()
+        }
+
+        if ($Response -is [System.Array]) {
+            return @($Response)
+        }
+
+        if ($Response.PSObject.Properties.Name -contains "data") {
+            $dataValue = $Response.data
+            if ($dataValue -is [System.Array]) {
+                return @($dataValue)
+            }
+
+            if ($null -ne $dataValue) {
+                return @($dataValue)
+            }
+        }
+
+        return @($Response)
+    }
+
+    function Get-FirstSuccessfulResponse {
+        param(
+            [string[]]$Urls,
+            [hashtable]$Headers,
+            [int]$TimeoutSec = 30
+        )
+
+        $attempts = New-Object System.Collections.Generic.List[string]
+        foreach ($url in $Urls) {
+            try {
+                $resp = Invoke-WebRequest -Uri $url -Method Get -Headers $Headers -TimeoutSec $TimeoutSec
+                $attempts.Add("$url -> $([int]$resp.StatusCode)")
+                if ($resp.StatusCode -ge 200 -and $resp.StatusCode -lt 300) {
+                    $parsed = $null
+                    if (-not [string]::IsNullOrWhiteSpace($resp.Content)) {
+                        try {
+                            $parsed = $resp.Content | ConvertFrom-Json
+                        } catch {
+                            $parsed = $null
+                        }
+                    }
+
+                    return [PSCustomObject]@{
+                        Success = $true
+                        Url = $url
+                        Response = $parsed
+                        Attempts = @($attempts)
+                        Notes = ""
+                    }
+                }
+            } catch {
+                $statusText = "ERR"
+                $statusCode = $null
+                if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+                    $statusCode = [int]$_.Exception.Response.StatusCode
+                    $statusText = [string]$statusCode
+                }
+
+                $attempts.Add("$url -> $statusText")
+            }
+        }
+
+        return [PSCustomObject]@{
+            Success = $false
+            Url = ""
+            Response = $null
+            Attempts = @($attempts)
+            Notes = "No successful endpoint."
+        }
+    }
+
+    Write-ProbeStep "Discovering item type catalog"
+    $itemTypeCatalogCandidates = @(
+        "$BaseUrl/rest/v1/itemtypes?project=$ProjectId&maxResults=500",
+        "$BaseUrl/rest/v1/itemtypes?project=$ProjectId",
+        "$BaseUrl/rest/v1/itemtypes?maxResults=500",
+        "$BaseUrl/rest/v1/itemtypes",
+        "$BaseUrl/rest/latest/itemtypes?project=$ProjectId&maxResults=500",
+        "$BaseUrl/rest/latest/itemtypes?project=$ProjectId",
+        "$BaseUrl/rest/latest/itemtypes"
+    )
+
+    $itemTypeCatalogResult = Get-FirstSuccessfulResponse -Urls $itemTypeCatalogCandidates -Headers $Headers -TimeoutSec 30
+    if (-not $itemTypeCatalogResult.Success) {
+        $result.Notes = "Failed to query item types. Attempts: $($itemTypeCatalogResult.Attempts -join ' | ')"
         return [PSCustomObject]$result
     }
 
-    $itemTypes = @()
-    if ($itemTypesResponse -and $itemTypesResponse.data) {
-        $itemTypes = @($itemTypesResponse.data)
-    }
+    $itemTypes = Get-DataArray -Response $itemTypeCatalogResult.Response
 
     $candidateTypes = New-Object System.Collections.Generic.List[object]
     foreach ($t in $itemTypes) {
@@ -499,10 +580,17 @@ function Get-RequirementFieldInventory {
         })
 
         Write-ProbeStep "Discovering fields for item type $typeId ($typeName)"
-        $typeResponse = $null
-        try {
-            $typeResponse = Invoke-RestMethod -Uri "$BaseUrl/rest/v1/itemtypes/$typeId" -Method Get -Headers $Headers -TimeoutSec 30
-        } catch {
+        $fieldEndpointCandidates = @(
+            "$BaseUrl/rest/v1/itemtypes/$typeId/fields",
+            "$BaseUrl/rest/latest/itemtypes/$typeId/fields",
+            "$BaseUrl/rest/v1/itemtypes/$typeId?include=fields",
+            "$BaseUrl/rest/latest/itemtypes/$typeId?include=fields",
+            "$BaseUrl/rest/v1/itemtypes/$typeId",
+            "$BaseUrl/rest/latest/itemtypes/$typeId"
+        )
+
+        $typeResult = Get-FirstSuccessfulResponse -Urls $fieldEndpointCandidates -Headers $Headers -TimeoutSec 30
+        if (-not $typeResult.Success) {
             $result.FieldRows.Add([PSCustomObject]@{
                 ItemTypeId = $typeId
                 ItemTypeName = $typeName
@@ -510,20 +598,40 @@ function Get-RequirementFieldInventory {
                 FieldLabel = "Failed to load field schema"
                 FieldType = ""
                 Required = ""
-                Notes = $_.Exception.Message
+                Notes = "Attempts: $($typeResult.Attempts -join ' | ')"
             })
             continue
         }
 
         $fieldObjects = @()
-        if ($typeResponse -and $typeResponse.data -and $typeResponse.data.fields) {
-            $fieldContainer = $typeResponse.data.fields
-            if ($fieldContainer -is [System.Array]) {
-                $fieldObjects = @($fieldContainer)
-            } else {
-                foreach ($p in $fieldContainer.PSObject.Properties) {
-                    if ($null -ne $p.Value) {
-                        $fieldObjects += $p.Value
+        $typeResponse = $typeResult.Response
+        if ($typeResponse) {
+            if ($typeResponse.PSObject.Properties.Name -contains "data") {
+                if ($typeResponse.data -is [System.Array]) {
+                    $fieldObjects = @($typeResponse.data)
+                } elseif ($typeResponse.data -and $typeResponse.data.PSObject.Properties.Name -contains "fields") {
+                    $fieldContainer = $typeResponse.data.fields
+                    if ($fieldContainer -is [System.Array]) {
+                        $fieldObjects = @($fieldContainer)
+                    } else {
+                        foreach ($p in $fieldContainer.PSObject.Properties) {
+                            if ($null -ne $p.Value) {
+                                $fieldObjects += $p.Value
+                            }
+                        }
+                    }
+                }
+            }
+
+            if ($fieldObjects.Count -eq 0 -and ($typeResponse.PSObject.Properties.Name -contains "fields")) {
+                $fieldContainer = $typeResponse.fields
+                if ($fieldContainer -is [System.Array]) {
+                    $fieldObjects = @($fieldContainer)
+                } else {
+                    foreach ($p in $fieldContainer.PSObject.Properties) {
+                        if ($null -ne $p.Value) {
+                            $fieldObjects += $p.Value
+                        }
                     }
                 }
             }
@@ -570,8 +678,16 @@ function Get-RequirementFieldInventory {
     }
 
     foreach ($pid in $picklistIds) {
-        try {
-            $picklistResp = Invoke-RestMethod -Uri "$BaseUrl/rest/v1/picklistoptions/$pid?maxResults=500" -Method Get -Headers $Headers -TimeoutSec 30
+        $picklistCandidates = @(
+            "$BaseUrl/rest/v1/picklists/$pid/options",
+            "$BaseUrl/rest/latest/picklists/$pid/options",
+            "$BaseUrl/rest/v1/picklistoptions/$pid?maxResults=500",
+            "$BaseUrl/rest/latest/picklistoptions/$pid?maxResults=500"
+        )
+
+        $picklistResult = Get-FirstSuccessfulResponse -Urls $picklistCandidates -Headers $Headers -TimeoutSec 30
+        if ($picklistResult.Success) {
+            $picklistResp = $picklistResult.Response
             $optionCount = 0
             if ($picklistResp -and $picklistResp.data) {
                 if ($picklistResp.data -is [System.Array]) {
@@ -579,6 +695,8 @@ function Get-RequirementFieldInventory {
                 } else {
                     $optionCount = 1
                 }
+            } elseif ($picklistResp -is [System.Array]) {
+                $optionCount = $picklistResp.Count
             }
 
             $result.PicklistSummaries.Add([PSCustomObject]@{
@@ -586,11 +704,11 @@ function Get-RequirementFieldInventory {
                 OptionCount = $optionCount
                 Notes = ""
             })
-        } catch {
+        } else {
             $result.PicklistSummaries.Add([PSCustomObject]@{
                 PicklistId = $pid
                 OptionCount = ""
-                Notes = $_.Exception.Message
+                Notes = "Attempts: $($picklistResult.Attempts -join ' | ')"
             })
         }
     }
