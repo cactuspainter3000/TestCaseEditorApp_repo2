@@ -411,6 +411,198 @@ function Find-ApiDocsPaths {
     return $null
 }
 
+function Get-RequirementFieldInventory {
+    param(
+        [string]$BaseUrl,
+        [hashtable]$Headers,
+        [int]$ProjectId,
+        [int]$SeedItemId
+    )
+
+    $result = [ordered]@{
+        Success = $false
+        Notes = ""
+        RequirementItemTypes = New-Object System.Collections.Generic.List[object]
+        FieldRows = New-Object System.Collections.Generic.List[object]
+        PicklistSummaries = New-Object System.Collections.Generic.List[object]
+    }
+
+    $itemTypesResponse = $null
+    try {
+        Write-ProbeStep "Discovering item type catalog"
+        $itemTypesResponse = Invoke-RestMethod -Uri "$BaseUrl/rest/v1/itemtypes?maxResults=500" -Method Get -Headers $Headers -TimeoutSec 30
+    } catch {
+        $result.Notes = "Failed to query /rest/v1/itemtypes: $($_.Exception.Message)"
+        return [PSCustomObject]$result
+    }
+
+    $itemTypes = @()
+    if ($itemTypesResponse -and $itemTypesResponse.data) {
+        $itemTypes = @($itemTypesResponse.data)
+    }
+
+    $candidateTypes = New-Object System.Collections.Generic.List[object]
+    foreach ($t in $itemTypes) {
+        $name = ""
+        $typeKey = ""
+        if ($t.PSObject.Properties.Name -contains "name") { $name = [string]$t.name }
+        if ($t.PSObject.Properties.Name -contains "typeKey") { $typeKey = [string]$t.typeKey }
+
+        if ($name -match "requirement" -or $typeKey -match "requirement") {
+            $candidateTypes.Add($t)
+        }
+    }
+
+    if ($candidateTypes.Count -eq 0 -and $SeedItemId -gt 0) {
+        try {
+            Write-ProbeStep "No requirement-named item type found, deriving from seed item"
+            $seedItem = Invoke-RestMethod -Uri "$BaseUrl/rest/v1/items/$SeedItemId" -Method Get -Headers $Headers -TimeoutSec 30
+            if ($seedItem -and $seedItem.data -and $seedItem.data.itemType) {
+                $seedItemTypeId = [int]$seedItem.data.itemType
+                foreach ($t in $itemTypes) {
+                    if ($t.id -eq $seedItemTypeId) {
+                        $candidateTypes.Add($t)
+                        break
+                    }
+                }
+
+                if ($candidateTypes.Count -eq 0) {
+                    $candidateTypes.Add([PSCustomObject]@{ id = $seedItemTypeId; name = "Seed item type"; typeKey = "" })
+                }
+            }
+        } catch {
+            $result.Notes = "Could not derive item type from seed item: $($_.Exception.Message)"
+        }
+    }
+
+    if ($candidateTypes.Count -eq 0) {
+        if ([string]::IsNullOrWhiteSpace($result.Notes)) {
+            $result.Notes = "No requirement-like item types were identified."
+        }
+
+        return [PSCustomObject]$result
+    }
+
+    $picklistIds = New-Object 'System.Collections.Generic.HashSet[int]'
+
+    foreach ($candidate in $candidateTypes) {
+        $typeId = [int]$candidate.id
+        $typeName = ""
+        $typeKey = ""
+        if ($candidate.PSObject.Properties.Name -contains "name") { $typeName = [string]$candidate.name }
+        if ($candidate.PSObject.Properties.Name -contains "typeKey") { $typeKey = [string]$candidate.typeKey }
+
+        $result.RequirementItemTypes.Add([PSCustomObject]@{
+            Id = $typeId
+            Name = $typeName
+            TypeKey = $typeKey
+        })
+
+        Write-ProbeStep "Discovering fields for item type $typeId ($typeName)"
+        $typeResponse = $null
+        try {
+            $typeResponse = Invoke-RestMethod -Uri "$BaseUrl/rest/v1/itemtypes/$typeId" -Method Get -Headers $Headers -TimeoutSec 30
+        } catch {
+            $result.FieldRows.Add([PSCustomObject]@{
+                ItemTypeId = $typeId
+                ItemTypeName = $typeName
+                FieldKey = "<error>"
+                FieldLabel = "Failed to load field schema"
+                FieldType = ""
+                Required = ""
+                Notes = $_.Exception.Message
+            })
+            continue
+        }
+
+        $fieldObjects = @()
+        if ($typeResponse -and $typeResponse.data -and $typeResponse.data.fields) {
+            $fieldContainer = $typeResponse.data.fields
+            if ($fieldContainer -is [System.Array]) {
+                $fieldObjects = @($fieldContainer)
+            } else {
+                foreach ($p in $fieldContainer.PSObject.Properties) {
+                    if ($null -ne $p.Value) {
+                        $fieldObjects += $p.Value
+                    }
+                }
+            }
+        }
+
+        foreach ($f in $fieldObjects) {
+            $fieldKey = ""
+            $fieldLabel = ""
+            $fieldType = ""
+            $required = ""
+
+            if ($f.PSObject.Properties.Name -contains "fieldName") { $fieldKey = [string]$f.fieldName }
+            elseif ($f.PSObject.Properties.Name -contains "name") { $fieldKey = [string]$f.name }
+            elseif ($f.PSObject.Properties.Name -contains "key") { $fieldKey = [string]$f.key }
+
+            if ($f.PSObject.Properties.Name -contains "label") { $fieldLabel = [string]$f.label }
+            elseif ($f.PSObject.Properties.Name -contains "display") { $fieldLabel = [string]$f.display }
+            elseif ($f.PSObject.Properties.Name -contains "name") { $fieldLabel = [string]$f.name }
+
+            if ($f.PSObject.Properties.Name -contains "fieldType") { $fieldType = [string]$f.fieldType }
+            elseif ($f.PSObject.Properties.Name -contains "dataType") { $fieldType = [string]$f.dataType }
+            elseif ($f.PSObject.Properties.Name -contains "type") { $fieldType = [string]$f.type }
+
+            if ($f.PSObject.Properties.Name -contains "required") { $required = [string]$f.required }
+            elseif ($f.PSObject.Properties.Name -contains "isRequired") { $required = [string]$f.isRequired }
+
+            $notes = ""
+            if ($fieldKey -match '^PL\$(\d+)$') {
+                $picklistId = [int]$Matches[1]
+                $null = $picklistIds.Add($picklistId)
+                $notes = "picklist"
+            }
+
+            $result.FieldRows.Add([PSCustomObject]@{
+                ItemTypeId = $typeId
+                ItemTypeName = $typeName
+                FieldKey = $fieldKey
+                FieldLabel = $fieldLabel
+                FieldType = $fieldType
+                Required = $required
+                Notes = $notes
+            })
+        }
+    }
+
+    foreach ($pid in $picklistIds) {
+        try {
+            $picklistResp = Invoke-RestMethod -Uri "$BaseUrl/rest/v1/picklistoptions/$pid?maxResults=500" -Method Get -Headers $Headers -TimeoutSec 30
+            $optionCount = 0
+            if ($picklistResp -and $picklistResp.data) {
+                if ($picklistResp.data -is [System.Array]) {
+                    $optionCount = $picklistResp.data.Count
+                } else {
+                    $optionCount = 1
+                }
+            }
+
+            $result.PicklistSummaries.Add([PSCustomObject]@{
+                PicklistId = $pid
+                OptionCount = $optionCount
+                Notes = ""
+            })
+        } catch {
+            $result.PicklistSummaries.Add([PSCustomObject]@{
+                PicklistId = $pid
+                OptionCount = ""
+                Notes = $_.Exception.Message
+            })
+        }
+    }
+
+    $result.Success = $result.RequirementItemTypes.Count -gt 0
+    if (-not $result.Success -and [string]::IsNullOrWhiteSpace($result.Notes)) {
+        $result.Notes = "No requirement item types resolved."
+    }
+
+    return [PSCustomObject]$result
+}
+
 Write-Host "=== Jama Relationship Capability Probe ===" -ForegroundColor Cyan
 Write-Host "Base URL: $BaseUrl" -ForegroundColor Gray
 Write-Host "Project: $ProjectId" -ForegroundColor Gray
@@ -512,6 +704,9 @@ foreach ($p in $swaggerFindings) {
         $attachmentRelationshipPaths += $p
     }
 }
+
+Write-ProbeStep "Discovering requirement field schema"
+$requirementFieldInventory = Get-RequirementFieldInventory -BaseUrl $BaseUrl -Headers $apiHeaders -ProjectId $ProjectId -SeedItemId $(if ($SeedItemId) { $SeedItemId } else { 0 })
 
 $manualTraceCheck = [ordered]@{
     Enabled = $false
@@ -615,6 +810,50 @@ if ($swaggerDiscovery) {
 $interpretationSummary = Get-InterpretationSummary -Results $results -HasSeedItem ([bool]($SeedItemId -and $SeedItemId -gt 0)) -HasAttachmentId ([bool]$attachmentId)
 foreach ($line in $interpretationSummary) {
     [void]$report.AppendLine("- $line")
+}
+
+[void]$report.AppendLine("")
+[void]$report.AppendLine("## Requirement Field Schema Discovery")
+[void]$report.AppendLine("")
+if ($requirementFieldInventory.Success) {
+    [void]$report.AppendLine("- Requirement item types discovered: $($requirementFieldInventory.RequirementItemTypes.Count)")
+    foreach ($t in $requirementFieldInventory.RequirementItemTypes) {
+        [void]$report.AppendLine("  - ItemTypeId=$($t.Id), Name='$($t.Name)', TypeKey='$($t.TypeKey)'")
+    }
+
+    [void]$report.AppendLine("")
+    [void]$report.AppendLine("### Requirement Field Rows")
+    [void]$report.AppendLine("")
+    [void]$report.AppendLine("| ItemTypeId | ItemTypeName | FieldKey | FieldLabel | FieldType | Required | Notes |")
+    [void]$report.AppendLine("|---:|---|---|---|---|---|---|")
+    foreach ($row in $requirementFieldInventory.FieldRows) {
+        $itemTypeName = if ($null -eq $row.ItemTypeName) { "" } else { ([string]$row.ItemTypeName).Replace("|", "/") }
+        $fieldKey = if ($null -eq $row.FieldKey) { "" } else { ([string]$row.FieldKey).Replace("|", "/") }
+        $fieldLabel = if ($null -eq $row.FieldLabel) { "" } else { ([string]$row.FieldLabel).Replace("|", "/") }
+        $fieldType = if ($null -eq $row.FieldType) { "" } else { ([string]$row.FieldType).Replace("|", "/") }
+        $required = if ($null -eq $row.Required) { "" } else { ([string]$row.Required).Replace("|", "/") }
+        $notes = if ($null -eq $row.Notes) { "" } else { ([string]$row.Notes).Replace("|", "/") }
+        [void]$report.AppendLine("| $($row.ItemTypeId) | $itemTypeName | $fieldKey | $fieldLabel | $fieldType | $required | $notes |")
+    }
+
+    [void]$report.AppendLine("")
+    [void]$report.AppendLine("### Picklist Resolution")
+    [void]$report.AppendLine("")
+    if ($requirementFieldInventory.PicklistSummaries.Count -gt 0) {
+        [void]$report.AppendLine("| PicklistId | OptionCount | Notes |")
+        [void]$report.AppendLine("|---:|---:|---|")
+        foreach ($p in $requirementFieldInventory.PicklistSummaries) {
+            $notes = if ($null -eq $p.Notes) { "" } else { ([string]$p.Notes).Replace("|", "/") }
+            [void]$report.AppendLine("| $($p.PicklistId) | $($p.OptionCount) | $notes |")
+        }
+    } else {
+        [void]$report.AppendLine("- No picklist-backed requirement fields were detected during this probe.")
+    }
+} else {
+    [void]$report.AppendLine("- Field schema discovery did not complete successfully.")
+    if (-not [string]::IsNullOrWhiteSpace($requirementFieldInventory.Notes)) {
+        [void]$report.AppendLine("- Notes: $($requirementFieldInventory.Notes)")
+    }
 }
 
 [void]$report.AppendLine("")
