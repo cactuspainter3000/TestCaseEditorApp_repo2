@@ -90,11 +90,11 @@ namespace TestCaseEditorApp.Services
         {
             _coordinator = coordinator;
             
-            // Set initial startup configuration through SectionChangeRequested 
+            // Set initial landing page (Dashboard) as startup configuration
             // This will trigger both navigation AND view configuration properly
             if (_coordinator?.NavigationMediator is INavigationMediator navMediator)
             {
-                navMediator.Publish(new NavigationEvents.SectionChangeRequested("startup", null));
+                navMediator.Publish(new NavigationEvents.SectionChangeRequested("dashboard", null));
             }
             
             // Subscribe to project events to automatically update titles
@@ -160,6 +160,7 @@ namespace TestCaseEditorApp.Services
             // Map section codes to proper display names
             string sectionName = _currentSection.ToLower() switch
             {
+                "dashboard" => "Test Case Editor App",
                 "project" => "Test Case Generator",
                 "testcase" => "Test Case Generator", 
                 "requirements" => "Test Case Generator",
@@ -167,7 +168,7 @@ namespace TestCaseEditorApp.Services
                 "testflow" => "Test Case Generator",
                 "import" => "Test Case Generator",
                 "startup" => "Systems ATE APP",
-                _ => "Systems ATE APP"  // Default to startup instead of Test Case Generator
+                _ => "Test Case Editor App"  // Default to dashboard app title
             };
             
             // Simple format: Section - ProjectName (if available)
