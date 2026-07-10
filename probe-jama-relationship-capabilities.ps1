@@ -506,23 +506,6 @@ function Get-RequirementFieldInventory {
         }
     }
 
-    Write-ProbeStep "Discovering item type catalog"
-    $itemTypeCatalogCandidates = @(
-        "$BaseUrl/rest/v1/itemtypes?project=$ProjectId&maxResults=500",
-        "$BaseUrl/rest/v1/itemtypes?maxResults=200",
-        "$BaseUrl/rest/v1/itemtypes",
-        "$BaseUrl/rest/latest/itemtypes?project=$ProjectId&maxResults=200",
-        "$BaseUrl/rest/latest/itemtypes"
-    )
-
-    $itemTypeCatalogResult = Get-FirstSuccessfulResponse -Urls $itemTypeCatalogCandidates -Label "item type catalog" -Headers $Headers -TimeoutSec 8
-    if (-not $itemTypeCatalogResult.Success) {
-        $result.Notes = "Failed to query item types. Attempts: $($itemTypeCatalogResult.Attempts -join ' | ')"
-        return [PSCustomObject]$result
-    }
-
-    $itemTypes = Get-DataArray -Response $itemTypeCatalogResult.Response
-
     $candidateTypes = New-Object System.Collections.Generic.List[object]
     $seedItemTypeId = $null
     if ($SeedItemId -gt 0) {
@@ -538,47 +521,44 @@ function Get-RequirementFieldInventory {
     }
 
     if ($seedItemTypeId) {
+        Write-ProbeStep "Using seed-derived item type id $seedItemTypeId as primary field schema target"
+        $candidateTypes.Add([PSCustomObject]@{
+            id = $seedItemTypeId
+            name = ""
+            typeKey = ""
+        })
+    }
+
+    if ($candidateTypes.Count -eq 0) {
+        Write-ProbeStep "Discovering item type catalog (fallback path)"
+        $itemTypeCatalogCandidates = @(
+            "$BaseUrl/rest/v1/itemtypes?project=$ProjectId&maxResults=50",
+            "$BaseUrl/rest/v1/itemtypes?maxResults=50",
+            "$BaseUrl/rest/v1/itemtypes",
+            "$BaseUrl/rest/latest/itemtypes?project=$ProjectId&maxResults=50",
+            "$BaseUrl/rest/latest/itemtypes"
+        )
+
+        $itemTypeCatalogResult = Get-FirstSuccessfulResponse -Urls $itemTypeCatalogCandidates -Label "item type catalog" -Headers $Headers -TimeoutSec 5
+        if (-not $itemTypeCatalogResult.Success) {
+            $result.Notes = "Failed to query item types. Attempts: $($itemTypeCatalogResult.Attempts -join ' | ')"
+            return [PSCustomObject]$result
+        }
+
+        $itemTypes = Get-DataArray -Response $itemTypeCatalogResult.Response
         foreach ($t in $itemTypes) {
-            if ($t.id -eq $seedItemTypeId) {
-                $candidateTypes.Add($t)
-                break
-            }
-        }
-    }
+            $name = ""
+            $typeKey = ""
+            if ($t.PSObject.Properties.Name -contains "name") { $name = [string]$t.name }
+            if ($t.PSObject.Properties.Name -contains "typeKey") { $typeKey = [string]$t.typeKey }
 
-    foreach ($t in $itemTypes) {
-        $name = ""
-        $typeKey = ""
-        if ($t.PSObject.Properties.Name -contains "name") { $name = [string]$t.name }
-        if ($t.PSObject.Properties.Name -contains "typeKey") { $typeKey = [string]$t.typeKey }
-
-        if ($name -match "requirement" -or $typeKey -match "requirement") {
-            if (-not (@($candidateTypes | Where-Object { $_.id -eq $t.id }).Count -gt 0)) {
+            if ($name -match "requirement" -or $typeKey -match "requirement") {
                 $candidateTypes.Add($t)
             }
 
-            # Keep probe latency bounded for UI-driven runs.
-            if ($candidateTypes.Count -ge 3) {
+            if ($candidateTypes.Count -ge 2) {
                 break
             }
-        }
-    }
-
-    if ($candidateTypes.Count -eq 0 -and $seedItemTypeId) {
-        try {
-            Write-ProbeStep "No requirement-named item type found, using seed item type"
-            foreach ($t in $itemTypes) {
-                if ($t.id -eq $seedItemTypeId) {
-                    $candidateTypes.Add($t)
-                    break
-                }
-            }
-
-            if ($candidateTypes.Count -eq 0) {
-                $candidateTypes.Add([PSCustomObject]@{ id = $seedItemTypeId; name = "Seed item type"; typeKey = "" })
-            }
-        } catch {
-            $result.Notes = "Could not derive item type from seed item: $($_.Exception.Message)"
         }
     }
 
