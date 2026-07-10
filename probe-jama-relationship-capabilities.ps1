@@ -427,6 +427,7 @@ function Get-RequirementFieldInventory {
         RequirementItemTypes = New-Object System.Collections.Generic.List[object]
         FieldRows = New-Object System.Collections.Generic.List[object]
         PicklistSummaries = New-Object System.Collections.Generic.List[object]
+        RelationshipFieldSnapshots = New-Object System.Collections.Generic.List[object]
     }
 
     function Get-DataArray {
@@ -565,6 +566,43 @@ function Get-RequirementFieldInventory {
         return $FieldRows.Count -gt 0
     }
 
+    function Add-RelationshipFieldSnapshots {
+        param(
+            [object]$SeedItemData,
+            [System.Collections.Generic.List[object]]$Snapshots
+        )
+
+        if ($null -eq $SeedItemData -or -not ($SeedItemData.PSObject.Properties.Name -contains "fields") -or $null -eq $SeedItemData.fields) {
+            return
+        }
+
+        foreach ($fieldProp in $SeedItemData.fields.PSObject.Properties) {
+            $fieldName = [string]$fieldProp.Name
+            if ($fieldName -notmatch 'relationship|trace|link') {
+                continue
+            }
+
+            $valueText = ""
+            if ($null -eq $fieldProp.Value) {
+                $valueText = "<null>"
+            } elseif ($fieldProp.Value -is [System.Array]) {
+                $valueText = ($fieldProp.Value | ForEach-Object { [string]$_ }) -join '; '
+            } else {
+                $valueText = [string]$fieldProp.Value
+            }
+
+            if ($valueText.Length -gt 240) {
+                $valueText = $valueText.Substring(0, 240) + "..."
+            }
+
+            $Snapshots.Add([PSCustomObject]@{
+                FieldName = $fieldName
+                ValueShape = Get-ValueShape -Value $fieldProp.Value
+                Sample = $valueText
+            })
+        }
+    }
+
     if ($SeedItemId -gt 0) {
         try {
             Write-ProbeStep "Resolving seed item type from item $SeedItemId"
@@ -572,6 +610,7 @@ function Get-RequirementFieldInventory {
             if ($seedItem -and $seedItem.data -and $seedItem.data.itemType) {
                 $seedItemData = $seedItem.data
                 $seedItemTypeId = [int]$seedItem.data.itemType
+                Add-RelationshipFieldSnapshots -SeedItemData $seedItemData -Snapshots $result.RelationshipFieldSnapshots
             }
         } catch {
             Write-ProbeStep "Could not resolve seed item type: $($_.Exception.Message)"
@@ -1041,6 +1080,22 @@ if ($requirementFieldInventory.Success) {
     if (-not [string]::IsNullOrWhiteSpace($requirementFieldInventory.Notes)) {
         [void]$report.AppendLine("- Notes: $($requirementFieldInventory.Notes)")
     }
+}
+
+[void]$report.AppendLine("")
+[void]$report.AppendLine("## Seed Item Relationship Field Snapshot")
+[void]$report.AppendLine("")
+if ($requirementFieldInventory.RelationshipFieldSnapshots.Count -gt 0) {
+    [void]$report.AppendLine("| FieldName | ValueShape | Sample |")
+    [void]$report.AppendLine("|---|---|---|")
+    foreach ($snapshot in $requirementFieldInventory.RelationshipFieldSnapshots) {
+        $fieldName = ([string]$snapshot.FieldName).Replace("|", "/")
+        $valueShape = ([string]$snapshot.ValueShape).Replace("|", "/")
+        $sample = ([string]$snapshot.Sample).Replace("|", "/")
+        [void]$report.AppendLine("| $fieldName | $valueShape | $sample |")
+    }
+} else {
+    [void]$report.AppendLine("- No relationship-, trace-, or link-named fields were detected on the seed item payload.")
 }
 
 [void]$report.AppendLine("")
