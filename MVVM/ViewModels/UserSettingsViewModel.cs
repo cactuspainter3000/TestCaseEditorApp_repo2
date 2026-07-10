@@ -14,6 +14,7 @@ using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.Services;
+using TestCaseEditorApp.MVVM.Services.Theme;
 using System.Diagnostics.CodeAnalysis;
 using System.Windows;
 
@@ -23,6 +24,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
     {
         private static readonly TimeSpan JamaRelationshipProbeTimeout = TimeSpan.FromMinutes(3);
         private readonly IUserSettingsService _userSettingsService;
+        private readonly ThemeService _themeService;
         private AppUserSettings _lastSavedSettings = AppUserSettings.Empty();
         private bool _isLoadingSettings;
 
@@ -36,6 +38,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             nameof(AnythingLlmApiKey),
             nameof(SelectedChatModel),
             nameof(SelectedEmbeddingModel),
+            nameof(SelectedThemeName),
             nameof(EnableRequirementsAnalysisSnapshot)
         };
 
@@ -67,6 +70,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private string _selectedEmbeddingModel = "nomic-embed-text:latest";
 
         [ObservableProperty]
+        private string _selectedThemeName = "Dark Orange";
+
+        [ObservableProperty]
         private bool _enableRequirementsAnalysisSnapshot;
 
         [ObservableProperty]
@@ -94,14 +100,25 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         private string _lastJamaProbeReport = "No Jama relationship probe report yet. Run the probe button to generate one.";
 
         public ObservableCollection<string> OllamaModels { get; } = new();
+        public ObservableCollection<string> AvailableThemeNames { get; } = new();
         
         public Func<Task<(bool Success, List<string> Issues)>>? ValidationCallback { get; set; }
 
         public event EventHandler<bool>? RequestClose;
 
-        public UserSettingsViewModel(IUserSettingsService userSettingsService)
+        public UserSettingsViewModel(IUserSettingsService userSettingsService, ThemeService themeService)
         {
             _userSettingsService = userSettingsService ?? throw new ArgumentNullException(nameof(userSettingsService));
+            _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
+
+            foreach (var theme in _themeService.GetAvailableThemes())
+            {
+                if (!string.IsNullOrWhiteSpace(theme.Name))
+                {
+                    AvailableThemeNames.Add(theme.Name);
+                }
+            }
+
             PropertyChanged += OnViewModelPropertyChanged;
             LoadFromStoredSettings();
             _ = RefreshOllamaModelsAsync();
@@ -1098,9 +1115,15 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             AnythingLlmApiKey = settings.AnythingLlmApiKey;
             SelectedChatModel = settings.OllamaChatModel;
             SelectedEmbeddingModel = settings.OllamaEmbeddingModel;
+            SelectedThemeName = string.IsNullOrWhiteSpace(settings.ThemeName) ? "Dark Orange" : settings.ThemeName;
             EnableRequirementsAnalysisSnapshot = settings.EnableRequirementsAnalysisSnapshot;
             SetLastSavedSettings(settings);
             _isLoadingSettings = false;
+
+            if (AvailableThemeNames.Contains(SelectedThemeName))
+            {
+                _themeService.SetTheme(SelectedThemeName);
+            }
 
             if (string.IsNullOrWhiteSpace(StatusMessage))
             {
@@ -1174,6 +1197,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 AnythingLlmApiKey = (AnythingLlmApiKey ?? string.Empty).Trim(),
                 OllamaChatModel = (SelectedChatModel ?? string.Empty).Trim(),
                 OllamaEmbeddingModel = (SelectedEmbeddingModel ?? string.Empty).Trim(),
+                ThemeName = (SelectedThemeName ?? "Dark Orange").Trim(),
                 EnableRequirementsAnalysisSnapshot = EnableRequirementsAnalysisSnapshot
             };
         }
@@ -1190,6 +1214,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 AnythingLlmApiKey = (settings.AnythingLlmApiKey ?? string.Empty).Trim(),
                 OllamaChatModel = (settings.OllamaChatModel ?? string.Empty).Trim(),
                 OllamaEmbeddingModel = (settings.OllamaEmbeddingModel ?? string.Empty).Trim(),
+                ThemeName = (settings.ThemeName ?? "Dark Orange").Trim(),
                 EnableRequirementsAnalysisSnapshot = settings.EnableRequirementsAnalysisSnapshot
             };
 
@@ -1213,7 +1238,21 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 !string.Equals(current.AnythingLlmApiKey, _lastSavedSettings.AnythingLlmApiKey, StringComparison.Ordinal) ||
                 !string.Equals(current.OllamaChatModel, _lastSavedSettings.OllamaChatModel, StringComparison.Ordinal) ||
                 !string.Equals(current.OllamaEmbeddingModel, _lastSavedSettings.OllamaEmbeddingModel, StringComparison.Ordinal) ||
+                !string.Equals(current.ThemeName, _lastSavedSettings.ThemeName, StringComparison.Ordinal) ||
                 current.EnableRequirementsAnalysisSnapshot != _lastSavedSettings.EnableRequirementsAnalysisSnapshot;
+        }
+
+        partial void OnSelectedThemeNameChanged(string value)
+        {
+            if (_isLoadingSettings || string.IsNullOrWhiteSpace(value))
+            {
+                return;
+            }
+
+            if (AvailableThemeNames.Contains(value))
+            {
+                _themeService.SetTheme(value);
+            }
         }
 
         private static string? FindProbeScriptPath()
@@ -1278,7 +1317,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 0 => "Configure Jama connection settings.",
                 1 => "Configure AnythingLLM endpoint and API key.",
                 2 => "Select and refresh Ollama model preferences.",
-                3 => "Enable or disable requirements analysis snapshot logging.",
+                3 => "Choose your application theme.",
+                4 => "Enable or disable requirements analysis snapshot logging.",
                 _ => "Configure application settings."
             };
         }

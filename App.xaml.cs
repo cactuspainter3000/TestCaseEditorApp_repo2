@@ -32,6 +32,7 @@ using TestCaseEditorApp.Services.Templates;
 using TestCaseEditorApp.MVVM.Extensions;
 using TestCaseEditorApp.Prompts;
 using TestCaseEditorApp.Services.DependencyInjection;
+using TestCaseEditorApp.MVVM.Services.Theme;
 
 namespace TestCaseEditorApp
 {
@@ -136,6 +137,12 @@ namespace TestCaseEditorApp
                 var userSettingsService = _host.Services.GetRequiredService<IUserSettingsService>();
                 var startupSettings = userSettingsService.LoadSettings();
                 userSettingsService.ApplySettingsToEnvironment(startupSettings);
+
+                var themeService = _host.Services.GetRequiredService<ThemeService>();
+                if (!string.IsNullOrWhiteSpace(startupSettings.ThemeName))
+                {
+                    themeService.SetTheme(startupSettings.ThemeName);
+                }
 #pragma warning restore CA1416
                 
                 // Ensure Ollama is running and healthy before any LLM operations

@@ -45,10 +45,9 @@ namespace TestCaseEditorApp.Services.DependencyInjection
             services.AddSingleton<DashboardViewModel>(provider =>
             {
                 var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
-                var openProjectMediator = provider.GetRequiredService<IOpenProjectMediator>();
-                var themeService = provider.GetRequiredService<ThemeService>();
+                var navigationMediator = provider.GetRequiredService<INavigationMediator>();
                 var logger = provider.GetRequiredService<ILogger<DashboardViewModel>>();
-                return new DashboardViewModel(newProjectMediator, openProjectMediator, themeService, logger);
+                return new DashboardViewModel(newProjectMediator, navigationMediator, logger);
             });
 
             // Side Menu ViewModel (SINGLETON - maintains navigation state and recent files)

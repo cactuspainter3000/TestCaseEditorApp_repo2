@@ -31,6 +31,7 @@ namespace TestCaseEditorApp.Services
                     settings.AnythingLlmApiKey = DecryptString(ReadString(key, "AnythingLlmApiKeyEnc"));
                     settings.OllamaChatModel = ReadString(key, "OllamaChatModel", "phi4-mini:latest");
                     settings.OllamaEmbeddingModel = ReadString(key, "OllamaEmbeddingModel", "nomic-embed-text:latest");
+                    settings.ThemeName = ReadString(key, "ThemeName", "Dark Orange");
                     settings.EnableRequirementsAnalysisSnapshot = ReadBool(key, "EnableRequirementsAnalysisSnapshot", false);
 
                     Logging.Log.Info($"[UserSettings] Loaded OllamaChatModel: {settings.OllamaChatModel}, OllamaEmbeddingModel: {settings.OllamaEmbeddingModel}");
@@ -57,6 +58,7 @@ namespace TestCaseEditorApp.Services
                 settings.AnythingLlmBaseUrl = FirstNonEmpty(settings.AnythingLlmBaseUrl, Environment.GetEnvironmentVariable("ANYTHINGLLM_ENDPOINT"), "http://localhost:3001");
                 settings.OllamaChatModel = FirstNonEmpty(settings.OllamaChatModel, Environment.GetEnvironmentVariable("OLLAMA_MODEL"), "phi4-mini:latest");
                 settings.OllamaEmbeddingModel = FirstNonEmpty(settings.OllamaEmbeddingModel, Environment.GetEnvironmentVariable("OLLAMA_EMBEDDING_MODEL"), "nomic-embed-text:latest");
+                settings.ThemeName = FirstNonEmpty(settings.ThemeName, "Dark Orange");
             }
             catch (Exception ex)
             {
@@ -87,6 +89,7 @@ namespace TestCaseEditorApp.Services
             key.SetValue("AnythingLlmApiKeyEnc", EncryptString((settings.AnythingLlmApiKey ?? string.Empty).Trim()));
             key.SetValue("OllamaChatModel", FirstNonEmpty(settings.OllamaChatModel, "phi4-mini:latest"));
             key.SetValue("OllamaEmbeddingModel", FirstNonEmpty(settings.OllamaEmbeddingModel, "nomic-embed-text:latest"));
+            key.SetValue("ThemeName", FirstNonEmpty(settings.ThemeName, "Dark Orange"));
             key.SetValue("EnableRequirementsAnalysisSnapshot", settings.EnableRequirementsAnalysisSnapshot ? 1 : 0);
 
             using var legacyKey = Registry.CurrentUser.CreateSubKey(LegacyAnythingLlmRegistryPath);

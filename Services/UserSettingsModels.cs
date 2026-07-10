@@ -14,6 +14,7 @@ namespace TestCaseEditorApp.Services
 
         public string OllamaChatModel { get; set; } = "phi4-mini:latest";
         public string OllamaEmbeddingModel { get; set; } = "nomic-embed-text:latest";
+        public string ThemeName { get; set; } = "Dark Orange";
 
         /// <summary>
         /// Enable requirements analysis snapshot logging for diagnostics.
