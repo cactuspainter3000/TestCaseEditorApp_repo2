@@ -876,7 +876,10 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         $"[JAMA RELATIONSHIP PROBE TIMEOUT]{Environment.NewLine}" +
                         $"Timestamp: {DateTime.Now:O}{Environment.NewLine}" +
                         $"Project ID: {projectId}{Environment.NewLine}" +
-                        $"Timeout: {JamaRelationshipProbeTimeout.TotalMinutes:0} minutes{Environment.NewLine}{Environment.NewLine}" +
+                        $"Timeout: {JamaRelationshipProbeTimeout.TotalMinutes:0} minutes{Environment.NewLine}" +
+                        $"Script Path: {scriptPath}{Environment.NewLine}" +
+                        $"Working Directory: {workingDirectory}{Environment.NewLine}" +
+                        $"Report Path: {reportPath}{Environment.NewLine}{Environment.NewLine}" +
                         $"Standard Output:{Environment.NewLine}{timeoutOutput}{Environment.NewLine}{Environment.NewLine}" +
                         $"Standard Error:{Environment.NewLine}{timeoutError}";
 
@@ -911,6 +914,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                         $"[JAMA RELATIONSHIP PROBE SUCCESS]{Environment.NewLine}" +
                         $"Timestamp: {DateTime.Now:O}{Environment.NewLine}" +
                         $"Project ID: {projectId}{Environment.NewLine}" +
+                        $"Script Path: {scriptPath}{Environment.NewLine}" +
                         $"Report: {reportPath}{Environment.NewLine}{Environment.NewLine}" +
                         $"Standard Output:{Environment.NewLine}{standardOutputText}";
 
@@ -933,6 +937,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                     $"Timestamp: {DateTime.Now:O}{Environment.NewLine}" +
                     $"Project ID: {projectId}{Environment.NewLine}" +
                     $"Exit Code: {exitCode}{Environment.NewLine}" +
+                    $"Script Path: {scriptPath}{Environment.NewLine}" +
                     $"Report Path: {reportPath}{Environment.NewLine}" +
                     $"Report Exists: {reportExists}{Environment.NewLine}{Environment.NewLine}" +
                     $"Standard Output:{Environment.NewLine}{standardOutputText}{Environment.NewLine}{Environment.NewLine}" +

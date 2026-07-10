@@ -27,6 +27,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+$ProbeScriptVersion = "seed-item-fast-path-v1"
+
 Add-Type -AssemblyName System.Net.Http
 
 function Write-ProbeStep {
@@ -728,6 +730,7 @@ function Get-RequirementFieldInventory {
 }
 
 Write-Host "=== Jama Relationship Capability Probe ===" -ForegroundColor Cyan
+Write-Host "Probe Script Version: $ProbeScriptVersion" -ForegroundColor Gray
 Write-Host "Base URL: $BaseUrl" -ForegroundColor Gray
 Write-Host "Project: $ProjectId" -ForegroundColor Gray
 
