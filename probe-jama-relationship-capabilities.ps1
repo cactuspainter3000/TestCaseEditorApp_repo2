@@ -850,9 +850,9 @@ if (-not $PSBoundParameters.ContainsKey("SeedItemId") -or $SeedItemId -le 0) {
 }
 
 $results = New-Object System.Collections.Generic.List[object]
-$relationshipProbeLastId = 2147483647
-$relationshipProbeMaxResults = 1
-$relationshipProbeTimeoutSec = 10
+$relationshipProbeLastId = 0
+$relationshipProbeMaxResults = 5
+$relationshipProbeTimeoutSec = 5
 $relationshipReadTimedOut = $false
 
 $baseEndpoints = @(
@@ -880,13 +880,11 @@ if ($SeedItemId -and $SeedItemId -gt 0) {
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?fromItem=$SeedItemId&maxResults=20" -Headers $apiHeaders))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?toItem=$SeedItemId&maxResults=20" -Headers $apiHeaders))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?item=$SeedItemId&maxResults=20" -Headers $apiHeaders))
-    if (-not $relationshipReadTimedOut) {
-        $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?project=$ProjectId&fromItem=$SeedItemId&lastId=$relationshipProbeLastId&maxResults=$relationshipProbeMaxResults" -Headers $apiHeaders -TimeoutSec $relationshipProbeTimeoutSec))
-        $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?project=$ProjectId&toItem=$SeedItemId&lastId=$relationshipProbeLastId&maxResults=$relationshipProbeMaxResults" -Headers $apiHeaders -TimeoutSec $relationshipProbeTimeoutSec))
-        $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?project=$ProjectId&item=$SeedItemId&lastId=$relationshipProbeLastId&maxResults=$relationshipProbeMaxResults" -Headers $apiHeaders -TimeoutSec $relationshipProbeTimeoutSec))
-    }
-    else {
-        Write-ProbeStep "Skipping project+lastId item-filtered relationship probes because the baseline project+lastId query timed out."
+    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?project=$ProjectId&fromItem=$SeedItemId&lastId=$relationshipProbeLastId&maxResults=$relationshipProbeMaxResults" -Headers $apiHeaders -TimeoutSec $relationshipProbeTimeoutSec))
+    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?project=$ProjectId&toItem=$SeedItemId&lastId=$relationshipProbeLastId&maxResults=$relationshipProbeMaxResults" -Headers $apiHeaders -TimeoutSec $relationshipProbeTimeoutSec))
+    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/relationships?project=$ProjectId&item=$SeedItemId&lastId=$relationshipProbeLastId&maxResults=$relationshipProbeMaxResults" -Headers $apiHeaders -TimeoutSec $relationshipProbeTimeoutSec))
+    if ($relationshipReadTimedOut) {
+        Write-ProbeStep "Baseline project+lastId relationship query timed out, but item-filtered project queries were still attempted with lastId=$relationshipProbeLastId."
     }
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/abstractitems/$SeedItemId/upstreamrelationships?maxResults=20" -Headers $apiHeaders))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/abstractitems/$SeedItemId/downstreamrelationships?maxResults=20" -Headers $apiHeaders))
