@@ -36,7 +36,12 @@ namespace TestCaseEditorApp.Services.DependencyInjection
         public static IServiceCollection AddViewModels(this IServiceCollection services)
         {
             // Settings ViewModel (TRANSIENT - dialog instance)
-            services.AddTransient<UserSettingsViewModel>();
+            services.AddTransient<UserSettingsViewModel>(provider =>
+            {
+                var userSettingsService = provider.GetRequiredService<IUserSettingsService>();
+                var themeService = provider.GetRequiredService<ThemeService>();
+                return new UserSettingsViewModel(userSettingsService, themeService);
+            });
 
             // Title ViewModel (SINGLETON - maintains application title state)
             services.AddSingleton<TitleViewModel>();
@@ -45,9 +50,11 @@ namespace TestCaseEditorApp.Services.DependencyInjection
             services.AddSingleton<DashboardViewModel>(provider =>
             {
                 var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
+                var openProjectMediator = provider.GetRequiredService<IOpenProjectMediator>();
+                var recentFilesService = provider.GetRequiredService<RecentFilesService>();
                 var navigationMediator = provider.GetRequiredService<INavigationMediator>();
                 var logger = provider.GetRequiredService<ILogger<DashboardViewModel>>();
-                return new DashboardViewModel(newProjectMediator, navigationMediator, logger);
+                return new DashboardViewModel(newProjectMediator, openProjectMediator, recentFilesService, navigationMediator, logger);
             });
 
             // Side Menu ViewModel (SINGLETON - maintains navigation state and recent files)

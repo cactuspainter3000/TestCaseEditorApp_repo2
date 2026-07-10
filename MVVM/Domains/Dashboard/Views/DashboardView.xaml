@@ -7,7 +7,7 @@
              Background="#1E1E1E"
              Foreground="#DDDDDD">
     <Grid>
-        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="500">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="760">
             <!-- Title -->
             <TextBlock Text="Test Case Editor App"
                        FontSize="32"
@@ -58,20 +58,108 @@
             </Grid>
 
             <!-- Separator -->
-            <Rectangle Height="1" Fill="#555555" Margin="0,40,0,40"/>
+            <Rectangle Height="1" Fill="#555555" Margin="0,28,0,16"/>
+
+            <TextBlock Text="Recent Workshops"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="#FF8C00"
+                       Margin="0,0,0,8"/>
+
+            <Border BorderBrush="#555555"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Background="#252525"
+                    Padding="8"
+                    MinWidth="700"
+                    MaxHeight="200">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <ListBox Grid.Row="0"
+                             ItemsSource="{Binding RecentProjects}"
+                             SelectedItem="{Binding SelectedRecentProject, Mode=TwoWay}"
+                             Background="#1E1E1E"
+                             BorderBrush="#3F3F3F"
+                             Foreground="#DDDDDD"
+                             MinHeight="120">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="4,2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="180"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding ProjectName}"
+                                               Foreground="White"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"/>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding LastModifiedText}"
+                                               Foreground="#9A9A9A"
+                                               FontSize="11"
+                                               HorizontalAlignment="Right"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <TextBlock Grid.Row="0"
+                               Text="No recent workshops found yet. Use Browse to open one."
+                               Foreground="#888888"
+                               FontStyle="Italic"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasRecentProjects}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                        <Button Content="Open Selected Project"
+                                Command="{Binding OpenSelectedProjectCommand}"
+                                Padding="14,8"
+                                Margin="0,0,10,0"
+                                Background="#FF8C00"
+                                Foreground="White"
+                                FontWeight="SemiBold"
+                                IsEnabled="{Binding HasSelectedRecentProject}"/>
+
+                        <Button Content="Browse..."
+                                Command="{Binding OpenWorkshopCommand}"
+                                Padding="14,8"
+                                Background="#555555"
+                                Foreground="White"
+                                BorderBrush="#777777"
+                                BorderThickness="1"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
 
             <TextBlock Text="Theme settings are now available in Settings (gear icon in the title bar)."
                        FontSize="12"
                        Foreground="#BBBBBB"
                        TextWrapping="Wrap"
-                       TextAlignment="Center"/>
+                       TextAlignment="Center"
+                       Margin="0,12,0,0"/>
 
             <!-- Status Message -->
             <TextBlock Text="{Binding StatusMessage}"
                        FontSize="11"
                        Foreground="#AFAFAF"
                        TextAlignment="Center"
-                       Margin="0,40,0,0"
+                       Margin="0,20,0,0"
                        TextWrapping="Wrap"/>
 
             <!-- Loading Indicator -->
