@@ -589,12 +589,12 @@ function Get-RequirementFieldInventory {
 
         Write-ProbeStep "Discovering fields for item type $typeId ($typeName)"
         $fieldEndpointCandidates = @(
-            "$BaseUrl/rest/v1/itemtypes/$typeId/fields",
-            "$BaseUrl/rest/latest/itemtypes/$typeId/fields",
-            "$BaseUrl/rest/v1/itemtypes/$typeId?include=fields",
-            "$BaseUrl/rest/latest/itemtypes/$typeId?include=fields",
-            "$BaseUrl/rest/v1/itemtypes/$typeId",
-            "$BaseUrl/rest/latest/itemtypes/$typeId"
+            "$BaseUrl/rest/v1/itemtypes/${typeId}/fields",
+            "$BaseUrl/rest/latest/itemtypes/${typeId}/fields",
+            "$BaseUrl/rest/v1/itemtypes/${typeId}?include=fields",
+            "$BaseUrl/rest/latest/itemtypes/${typeId}?include=fields",
+            "$BaseUrl/rest/v1/itemtypes/${typeId}",
+            "$BaseUrl/rest/latest/itemtypes/${typeId}"
         )
 
         $typeResult = Get-FirstSuccessfulResponse -Urls $fieldEndpointCandidates -Label "item type fields" -Headers $Headers -TimeoutSec 8
