@@ -139,6 +139,10 @@
             <reqviews:RequirementsTabSelectorView />
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type reqvm:UnifiedRequirementsHubViewModel}">
+            <reqviews:UnifiedRequirementsHubView />
+        </DataTemplate>
+
         <!-- Requirements Utilities: troubleshooting and management tools -->
         <DataTemplate DataType="{x:Type reqvm:RequirementsUtilitiesViewModel}">
             <reqviews:RequirementsUtilitiesView />

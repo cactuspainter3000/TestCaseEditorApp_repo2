@@ -86,9 +86,9 @@ namespace TestCaseEditorApp.Services.DependencyInjection
             // Workshop shell ViewModel (SINGLETON - composes requirements and test case areas)
             services.AddSingleton<WorkshopShellViewModel>(provider =>
             {
-                var requirementsTabSelector = provider.GetRequiredService<RequirementsTabSelectorViewModel>();
+                var requirementsHub = provider.GetRequiredService<UnifiedRequirementsHubViewModel>();
                 var testCaseGenerator = provider.GetRequiredService<LLMTestCaseGeneratorViewModel>();
-                return new WorkshopShellViewModel(requirementsTabSelector, testCaseGenerator);
+                return new WorkshopShellViewModel(requirementsHub, testCaseGenerator);
             });
 
             // Main ViewModel (TRANSIENT - matches existing app lifecycle)
@@ -184,6 +184,13 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 var utilitiesVMFactory = new Func<RequirementsUtilitiesViewModel>(() => provider.GetRequiredService<RequirementsUtilitiesViewModel>());
                 var logger = provider.GetRequiredService<ILogger<RequirementsTabSelectorViewModel>>();
                 return new RequirementsTabSelectorViewModel(mainVMFactory, cleanupVMFactory, attachmentsVMFactory, utilitiesVMFactory, logger);
+            });
+
+            // Unified Requirements Hub (SINGLETON - consolidated requirements workspace shell)
+            services.AddSingleton<UnifiedRequirementsHubViewModel>(provider =>
+            {
+                var tabSelector = provider.GetRequiredService<RequirementsTabSelectorViewModel>();
+                return new UnifiedRequirementsHubViewModel(tabSelector);
             });
 
             // Requirements Utilities (SINGLETON - utilities dashboard)

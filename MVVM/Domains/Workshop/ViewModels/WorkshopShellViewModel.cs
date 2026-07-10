@@ -1,8 +1,8 @@
 using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 {
@@ -14,7 +14,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             TestCases
         }
 
-        private readonly RequirementsTabSelectorViewModel _requirementsTabSelector;
+        private readonly UnifiedRequirementsHubViewModel _requirementsHub;
         private readonly LLMTestCaseGeneratorViewModel _testCaseGenerator;
 
         [ObservableProperty]
@@ -24,10 +24,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private object? currentAreaViewModel;
 
         public WorkshopShellViewModel(
-            RequirementsTabSelectorViewModel requirementsTabSelector,
+            UnifiedRequirementsHubViewModel requirementsHub,
             LLMTestCaseGeneratorViewModel testCaseGenerator)
         {
-            _requirementsTabSelector = requirementsTabSelector ?? throw new ArgumentNullException(nameof(requirementsTabSelector));
+            _requirementsHub = requirementsHub ?? throw new ArgumentNullException(nameof(requirementsHub));
             _testCaseGenerator = testCaseGenerator ?? throw new ArgumentNullException(nameof(testCaseGenerator));
 
             // Initial activation keeps the requirements shell visible without forcing heavy tab content creation.
@@ -57,12 +57,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             SelectedArea = WorkshopArea.Requirements;
 
             // Load main requirements tab on explicit user action, not at initial open.
-            if (loadMainTabIfNeeded && _requirementsTabSelector.SelectedTab == RequirementsTabSelectorViewModel.WorkspaceTab.None)
+            if (loadMainTabIfNeeded)
             {
-                _requirementsTabSelector.SelectMainTabCommand.Execute(null);
+                _requirementsHub.EnsureMainTabSelected();
             }
 
-            CurrentAreaViewModel = _requirementsTabSelector;
+            CurrentAreaViewModel = _requirementsHub;
             OnPropertyChanged(nameof(IsRequirementsSelected));
             OnPropertyChanged(nameof(IsTestCasesSelected));
         }

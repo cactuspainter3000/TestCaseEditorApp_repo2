@@ -6,6 +6,7 @@
                     xmlns:tccvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels"
                     xmlns:npvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels"
                     xmlns:opvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels"
+                    xmlns:reqvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels"
                     xmlns:wkvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels"
                     xmlns:tdvvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels"
                     xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
@@ -14,6 +15,7 @@
                     xmlns:tccviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Views"
                     xmlns:npviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.Views"
                     xmlns:opviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.Views"
+                    xmlns:reqviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Requirements.Views"
                     xmlns:wkviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Workshop.Views"
                     xmlns:tdvviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Views"
                     xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
@@ -54,6 +56,11 @@
     <!-- Workshop shell DataTemplate -->
     <DataTemplate DataType="{x:Type wkvm:WorkshopShellViewModel}">
         <wkviews:WorkshopShellView />
+    </DataTemplate>
+
+    <!-- Unified Requirements Hub DataTemplate -->
+    <DataTemplate DataType="{x:Type reqvm:UnifiedRequirementsHubViewModel}">
+        <reqviews:UnifiedRequirementsHubView />
     </DataTemplate>
 
     <!-- TrainingDataValidation Domain DataTemplates -->

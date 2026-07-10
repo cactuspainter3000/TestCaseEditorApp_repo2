@@ -218,26 +218,26 @@ namespace TestCaseEditorApp.Services
         {
             TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Creating Requirements configuration with tab selector");
             
-            // Get the Requirements Tab Selector which manages switching between Main/Cleanup/Attachments
-            var tabSelector = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.RequirementsTabSelectorViewModel>();
+            // Use consolidated Requirements Hub adapter as the requirements section shell.
+            var requirementsHub = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels.UnifiedRequirementsHubViewModel>();
             
             // CRITICAL FIX: DO NOT create header/navigation ViewModels here - they subscribe to mediator events 
             // that fire for 818+ cached requirements, blocking the UI for 5+ minutes.
             // The TabSelector manages everything; header/navigation are only needed when user selects a tab.
             
-            // Fail-fast validation for TabSelector only
-            if (tabSelector == null) 
+            // Fail-fast validation
+            if (requirementsHub == null) 
             {
-                throw new InvalidOperationException("RequirementsTabSelectorViewModel not registered in DI container");
+                throw new InvalidOperationException("UnifiedRequirementsHubViewModel not registered in DI container");
             }
 
-            TestCaseEditorApp.Services.Logging.Log.Debug($"[ViewConfigurationService] Retrieved RequirementsTabSelectorViewModel for workspace");
+            TestCaseEditorApp.Services.Logging.Log.Debug("[ViewConfigurationService] Retrieved UnifiedRequirementsHubViewModel for workspace");
             
             return new ViewConfiguration(
                 sectionName: "Requirements",
                 titleViewModel: null,
                 headerViewModel: null,  // Lazy-loaded when needed (when a tab is selected)
-                contentViewModel: tabSelector,
+                contentViewModel: requirementsHub,
                 navigationViewModel: null,  // Lazy-loaded when needed
                 notificationViewModel: null,
                 context: context
