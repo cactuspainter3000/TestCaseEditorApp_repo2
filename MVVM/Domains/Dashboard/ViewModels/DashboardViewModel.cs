@@ -5,6 +5,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Threading.Tasks;
+using System.Windows;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
@@ -23,6 +24,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Dashboard.ViewModels
         private readonly IOpenProjectMediator _openProjectMediator;
         private readonly RecentFilesService _recentFilesService;
         private readonly INavigationMediator _navigationMediator;
+        private readonly ISettingsDialogService _settingsDialogService;
         private readonly ILogger<DashboardViewModel> _logger;
 
         [ObservableProperty]
@@ -45,12 +47,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Dashboard.ViewModels
             IOpenProjectMediator openProjectMediator,
             RecentFilesService recentFilesService,
             INavigationMediator navigationMediator,
+            ISettingsDialogService settingsDialogService,
             ILogger<DashboardViewModel> logger)
         {
             _newProjectMediator = newProjectMediator ?? throw new ArgumentNullException(nameof(newProjectMediator));
             _openProjectMediator = openProjectMediator ?? throw new ArgumentNullException(nameof(openProjectMediator));
             _recentFilesService = recentFilesService ?? throw new ArgumentNullException(nameof(recentFilesService));
             _navigationMediator = navigationMediator ?? throw new ArgumentNullException(nameof(navigationMediator));
+            _settingsDialogService = settingsDialogService ?? throw new ArgumentNullException(nameof(settingsDialogService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             RefreshRecentProjects();
@@ -104,7 +108,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Dashboard.ViewModels
         }
 
         [RelayCommand]
-        public async Task OpenSelectedProject()
+        public void OpenSettings()
+        {
+            try
+            {
+                _settingsDialogService.ShowSettingsDialog(Application.Current?.MainWindow, isRequired: false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[DashboardViewModel] Error opening settings dialog");
+                StatusMessage = $"Error: {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
+        public async Task OpenSelectedWorkshop()
         {
             if (SelectedRecentProject == null)
             {
@@ -112,11 +130,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Dashboard.ViewModels
                 return;
             }
 
-            await OpenRecentProject(SelectedRecentProject.FilePath);
+            await OpenRecentWorkshop(SelectedRecentProject.FilePath);
         }
 
         [RelayCommand]
-        public async Task OpenRecentProject(string? filePath)
+        public async Task OpenRecentWorkshop(string? filePath)
         {
             if (string.IsNullOrWhiteSpace(filePath))
             {

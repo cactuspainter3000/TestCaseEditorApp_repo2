@@ -235,7 +235,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             });
 
             // Set title for BaseDomainViewModel
-            Title = "New Project Workflow";
+            Title = "New Workshop Workflow";
         }
 
         // ===== ABSTRACT METHOD IMPLEMENTATIONS =====
@@ -245,17 +245,17 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
             try
             {
                 IsBusy = true;
-                StatusMessage = "Saving project...";
+                StatusMessage = "Saving workshop...";
 
                 // Save current project state (if applicable)
                 await Task.CompletedTask; // No specific save operation for workflow
                 
-                StatusMessage = "Project saved";
+                StatusMessage = "Workshop saved";
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[NewProject] Error saving project");
-                ErrorMessage = $"Error saving project: {ex.Message}";
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, "[NewProject] Error saving workshop");
+                ErrorMessage = $"Error saving workshop: {ex.Message}";
                 HasErrors = true;
             }
             finally
@@ -268,7 +268,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
         {
             // Reset form to initial state
             Initialize(forceReset: true);
-            StatusMessage = "Project creation cancelled";
+            StatusMessage = "Workshop creation cancelled";
             ProjectCancelled?.Invoke(this, EventArgs.Empty);
         }
 

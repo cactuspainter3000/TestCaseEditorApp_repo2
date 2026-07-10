@@ -53,8 +53,9 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 var openProjectMediator = provider.GetRequiredService<IOpenProjectMediator>();
                 var recentFilesService = provider.GetRequiredService<RecentFilesService>();
                 var navigationMediator = provider.GetRequiredService<INavigationMediator>();
+                var settingsDialogService = provider.GetRequiredService<ISettingsDialogService>();
                 var logger = provider.GetRequiredService<ILogger<DashboardViewModel>>();
-                return new DashboardViewModel(newProjectMediator, openProjectMediator, recentFilesService, navigationMediator, logger);
+                return new DashboardViewModel(newProjectMediator, openProjectMediator, recentFilesService, navigationMediator, settingsDialogService, logger);
             });
 
             // Side Menu ViewModel (SINGLETON - maintains navigation state and recent files)

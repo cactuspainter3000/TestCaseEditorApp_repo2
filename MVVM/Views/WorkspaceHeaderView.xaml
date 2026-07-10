@@ -30,6 +30,17 @@
 
         <!-- Right: Actions and status -->
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+            <Button Content="← Dashboard"
+                Command="{Binding BackToDashboardCommand}"
+                ToolTip="Return to the main dashboard"
+                Padding="12,6"
+                FontSize="12"
+                Margin="0,0,8,0"
+                Background="#3F3F3F"
+                Foreground="White"
+                BorderBrush="#696969"
+                BorderThickness="1"/>
+
             <!-- Re-Analyze button -->
             <Button Content="Re-Analyze"
                     Command="{Binding ReAnalyzeCommand}"

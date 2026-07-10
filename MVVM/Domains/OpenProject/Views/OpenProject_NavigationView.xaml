@@ -20,7 +20,7 @@
             <Border Background="#2D3748" 
                     CornerRadius="4"
                     Padding="8,4">
-                <TextBlock Text="📁 Recent Projects" 
+                <TextBlock Text="📁 Available Workshops" 
                           FontSize="11" 
                           Foreground="#9CA3AF"/>
             </Border>

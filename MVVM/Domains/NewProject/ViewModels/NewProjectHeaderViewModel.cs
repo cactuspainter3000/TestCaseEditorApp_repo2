@@ -12,8 +12,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels
     /// </summary>
     public partial class NewProjectHeaderViewModel : ObservableObject
     {
-        [ObservableProperty] private string title = "Create New Project";
-        [ObservableProperty] private string subtitle = "Setting up your new project workspace";
+        [ObservableProperty] private string title = "Create New Workshop";
+        [ObservableProperty] private string subtitle = "Setting up your new workshop workspace";
         
         // Progress tracking properties
         [ObservableProperty] private bool canProceed = false;

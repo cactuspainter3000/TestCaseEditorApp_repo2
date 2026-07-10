@@ -3,6 +3,7 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Windows.Input;
+using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.MVVM.Utils;
 using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
@@ -138,6 +139,17 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 {
                     appWin.WindowState = appWin.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
                 }
+            }
+            catch { /* best-effort */ }
+        }
+
+        [RelayCommand]
+        private void BackToDashboard()
+        {
+            try
+            {
+                var navigationMediator = App.ServiceProvider?.GetService<INavigationMediator>();
+                navigationMediator?.NavigateToSection("dashboard");
             }
             catch { /* best-effort */ }
         }
