@@ -455,15 +455,18 @@ function Get-RequirementFieldInventory {
     function Get-FirstSuccessfulResponse {
         param(
             [string[]]$Urls,
+            [string]$Label,
             [hashtable]$Headers,
-            [int]$TimeoutSec = 30
+            [int]$TimeoutSec = 8
         )
 
         $attempts = New-Object System.Collections.Generic.List[string]
         foreach ($url in $Urls) {
+            Write-ProbeStep "Trying $Label endpoint: $url"
             try {
                 $resp = Invoke-WebRequest -Uri $url -Method Get -Headers $Headers -TimeoutSec $TimeoutSec
                 $attempts.Add("$url -> $([int]$resp.StatusCode)")
+                Write-ProbeStep "$Label endpoint status $([int]$resp.StatusCode): $url"
                 if ($resp.StatusCode -ge 200 -and $resp.StatusCode -lt 300) {
                     $parsed = $null
                     if (-not [string]::IsNullOrWhiteSpace($resp.Content)) {
@@ -506,15 +509,13 @@ function Get-RequirementFieldInventory {
     Write-ProbeStep "Discovering item type catalog"
     $itemTypeCatalogCandidates = @(
         "$BaseUrl/rest/v1/itemtypes?project=$ProjectId&maxResults=500",
-        "$BaseUrl/rest/v1/itemtypes?project=$ProjectId",
-        "$BaseUrl/rest/v1/itemtypes?maxResults=500",
+        "$BaseUrl/rest/v1/itemtypes?maxResults=200",
         "$BaseUrl/rest/v1/itemtypes",
-        "$BaseUrl/rest/latest/itemtypes?project=$ProjectId&maxResults=500",
-        "$BaseUrl/rest/latest/itemtypes?project=$ProjectId",
+        "$BaseUrl/rest/latest/itemtypes?project=$ProjectId&maxResults=200",
         "$BaseUrl/rest/latest/itemtypes"
     )
 
-    $itemTypeCatalogResult = Get-FirstSuccessfulResponse -Urls $itemTypeCatalogCandidates -Headers $Headers -TimeoutSec 30
+    $itemTypeCatalogResult = Get-FirstSuccessfulResponse -Urls $itemTypeCatalogCandidates -Label "item type catalog" -Headers $Headers -TimeoutSec 8
     if (-not $itemTypeCatalogResult.Success) {
         $result.Notes = "Failed to query item types. Attempts: $($itemTypeCatalogResult.Attempts -join ' | ')"
         return [PSCustomObject]$result
@@ -523,6 +524,28 @@ function Get-RequirementFieldInventory {
     $itemTypes = Get-DataArray -Response $itemTypeCatalogResult.Response
 
     $candidateTypes = New-Object System.Collections.Generic.List[object]
+    $seedItemTypeId = $null
+    if ($SeedItemId -gt 0) {
+        try {
+            Write-ProbeStep "Resolving seed item type from item $SeedItemId"
+            $seedItem = Invoke-RestMethod -Uri "$BaseUrl/rest/v1/items/$SeedItemId" -Method Get -Headers $Headers -TimeoutSec 8
+            if ($seedItem -and $seedItem.data -and $seedItem.data.itemType) {
+                $seedItemTypeId = [int]$seedItem.data.itemType
+            }
+        } catch {
+            Write-ProbeStep "Could not resolve seed item type: $($_.Exception.Message)"
+        }
+    }
+
+    if ($seedItemTypeId) {
+        foreach ($t in $itemTypes) {
+            if ($t.id -eq $seedItemTypeId) {
+                $candidateTypes.Add($t)
+                break
+            }
+        }
+    }
+
     foreach ($t in $itemTypes) {
         $name = ""
         $typeKey = ""
@@ -530,26 +553,29 @@ function Get-RequirementFieldInventory {
         if ($t.PSObject.Properties.Name -contains "typeKey") { $typeKey = [string]$t.typeKey }
 
         if ($name -match "requirement" -or $typeKey -match "requirement") {
-            $candidateTypes.Add($t)
+            if (-not (@($candidateTypes | Where-Object { $_.id -eq $t.id }).Count -gt 0)) {
+                $candidateTypes.Add($t)
+            }
+
+            # Keep probe latency bounded for UI-driven runs.
+            if ($candidateTypes.Count -ge 3) {
+                break
+            }
         }
     }
 
-    if ($candidateTypes.Count -eq 0 -and $SeedItemId -gt 0) {
+    if ($candidateTypes.Count -eq 0 -and $seedItemTypeId) {
         try {
-            Write-ProbeStep "No requirement-named item type found, deriving from seed item"
-            $seedItem = Invoke-RestMethod -Uri "$BaseUrl/rest/v1/items/$SeedItemId" -Method Get -Headers $Headers -TimeoutSec 30
-            if ($seedItem -and $seedItem.data -and $seedItem.data.itemType) {
-                $seedItemTypeId = [int]$seedItem.data.itemType
-                foreach ($t in $itemTypes) {
-                    if ($t.id -eq $seedItemTypeId) {
-                        $candidateTypes.Add($t)
-                        break
-                    }
+            Write-ProbeStep "No requirement-named item type found, using seed item type"
+            foreach ($t in $itemTypes) {
+                if ($t.id -eq $seedItemTypeId) {
+                    $candidateTypes.Add($t)
+                    break
                 }
+            }
 
-                if ($candidateTypes.Count -eq 0) {
-                    $candidateTypes.Add([PSCustomObject]@{ id = $seedItemTypeId; name = "Seed item type"; typeKey = "" })
-                }
+            if ($candidateTypes.Count -eq 0) {
+                $candidateTypes.Add([PSCustomObject]@{ id = $seedItemTypeId; name = "Seed item type"; typeKey = "" })
             }
         } catch {
             $result.Notes = "Could not derive item type from seed item: $($_.Exception.Message)"
@@ -589,7 +615,7 @@ function Get-RequirementFieldInventory {
             "$BaseUrl/rest/latest/itemtypes/$typeId"
         )
 
-        $typeResult = Get-FirstSuccessfulResponse -Urls $fieldEndpointCandidates -Headers $Headers -TimeoutSec 30
+        $typeResult = Get-FirstSuccessfulResponse -Urls $fieldEndpointCandidates -Label "item type fields" -Headers $Headers -TimeoutSec 8
         if (-not $typeResult.Success) {
             $result.FieldRows.Add([PSCustomObject]@{
                 ItemTypeId = $typeId
@@ -685,7 +711,7 @@ function Get-RequirementFieldInventory {
             "$BaseUrl/rest/latest/picklistoptions/$pid?maxResults=500"
         )
 
-        $picklistResult = Get-FirstSuccessfulResponse -Urls $picklistCandidates -Headers $Headers -TimeoutSec 30
+        $picklistResult = Get-FirstSuccessfulResponse -Urls $picklistCandidates -Label "picklist options" -Headers $Headers -TimeoutSec 6
         if ($picklistResult.Success) {
             $picklistResp = $picklistResult.Response
             $optionCount = 0
