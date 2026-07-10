@@ -30,7 +30,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             _requirementsTabSelector = requirementsTabSelector ?? throw new ArgumentNullException(nameof(requirementsTabSelector));
             _testCaseGenerator = testCaseGenerator ?? throw new ArgumentNullException(nameof(testCaseGenerator));
 
-            ActivateRequirementsArea();
+            // Initial activation keeps the requirements shell visible without forcing heavy tab content creation.
+            ActivateRequirementsArea(loadMainTabIfNeeded: false);
         }
 
         public bool IsRequirementsSelected => SelectedArea == WorkshopArea.Requirements;
@@ -39,7 +40,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         [RelayCommand]
         private void ShowRequirementsArea()
         {
-            ActivateRequirementsArea();
+            ActivateRequirementsArea(loadMainTabIfNeeded: true);
         }
 
         [RelayCommand]
@@ -51,12 +52,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             OnPropertyChanged(nameof(IsTestCasesSelected));
         }
 
-        private void ActivateRequirementsArea()
+        private void ActivateRequirementsArea(bool loadMainTabIfNeeded)
         {
             SelectedArea = WorkshopArea.Requirements;
 
-            // Ensure a predictable default tab when opening a workshop.
-            if (_requirementsTabSelector.SelectedTab == RequirementsTabSelectorViewModel.WorkspaceTab.None)
+            // Load main requirements tab on explicit user action, not at initial open.
+            if (loadMainTabIfNeeded && _requirementsTabSelector.SelectedTab == RequirementsTabSelectorViewModel.WorkspaceTab.None)
             {
                 _requirementsTabSelector.SelectMainTabCommand.Execute(null);
             }

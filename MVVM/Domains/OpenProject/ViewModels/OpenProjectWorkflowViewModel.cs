@@ -226,7 +226,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
             _logger.LogInformation("Workshop selection cleared");
         }
 
-        private void PopulateMainProjectMetadata(string filePath)
+        private async Task PopulateMainProjectMetadataAsync(string filePath)
         {
             try
             {
@@ -238,38 +238,40 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                     return;
                 }
 
-                var jsonContent = File.ReadAllText(filePath);
-                using var document = JsonDocument.Parse(jsonContent);
-                var root = document.RootElement;
-
-                // Count requirements
-                if (root.TryGetProperty("Requirements", out var reqsElement) && reqsElement.ValueKind == JsonValueKind.Array)
+                var metadata = await Task.Run(() =>
                 {
-                    RequirementCount = reqsElement.GetArrayLength();
-                    
-                    // Count analyzed and test cases
-                    AnalyzedCount = 0;
-                    TestCasesGeneratedCount = 0;
-                    
-                    foreach (var req in reqsElement.EnumerateArray())
+                    var jsonContent = File.ReadAllText(filePath);
+                    using var document = JsonDocument.Parse(jsonContent);
+                    var root = document.RootElement;
+
+                    var requirementCount = 0;
+                    var analyzedCount = 0;
+                    var testCasesGeneratedCount = 0;
+
+                    if (root.TryGetProperty("Requirements", out var reqsElement) && reqsElement.ValueKind == JsonValueKind.Array)
                     {
-                        if (req.TryGetProperty("IsAnalyzed", out var analyzed) && analyzed.GetBoolean())
+                        requirementCount = reqsElement.GetArrayLength();
+
+                        foreach (var req in reqsElement.EnumerateArray())
                         {
-                            AnalyzedCount++;
-                        }
-                        
-                        if (req.TryGetProperty("TestCases", out var testCases) && testCases.ValueKind == JsonValueKind.Array)
-                        {
-                            TestCasesGeneratedCount += testCases.GetArrayLength();
+                            if (req.TryGetProperty("IsAnalyzed", out var analyzed) && analyzed.GetBoolean())
+                            {
+                                analyzedCount++;
+                            }
+
+                            if (req.TryGetProperty("TestCases", out var testCases) && testCases.ValueKind == JsonValueKind.Array)
+                            {
+                                testCasesGeneratedCount += testCases.GetArrayLength();
+                            }
                         }
                     }
-                }
-                else
-                {
-                    RequirementCount = 0;
-                    AnalyzedCount = 0;
-                    TestCasesGeneratedCount = 0;
-                }
+
+                    return (requirementCount, analyzedCount, testCasesGeneratedCount);
+                });
+
+                RequirementCount = metadata.requirementCount;
+                AnalyzedCount = metadata.analyzedCount;
+                TestCasesGeneratedCount = metadata.testCasesGeneratedCount;
 
                 // Notify UI of percentage changes
                 OnPropertyChanged(nameof(AnalyzedPercentage));
@@ -475,7 +477,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                     ProjectName = Path.GetFileNameWithoutExtension(ProjectName);
                 }
                 IsProjectSelected = true;
-                PopulateMainProjectMetadata(filePath);
+                await PopulateMainProjectMetadataAsync(filePath);
                 
                 // Open through mediator
                 var success = await _mediator.OpenProjectFileAsync(filePath);
