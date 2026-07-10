@@ -1275,8 +1275,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         private void ExecuteNavigateToMain()
         {
-            _logger.LogInformation("[UnifiedRequirementsMainVM] Navigating to main/startup view");
-            _navigationMediator.NavigateToSection("startup");
+            _logger.LogInformation("[UnifiedRequirementsMainVM] Navigating to dashboard view");
+            _navigationMediator.NavigateToSection("dashboard");
         }
 
 

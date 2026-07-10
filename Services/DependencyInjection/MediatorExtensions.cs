@@ -5,7 +5,6 @@ using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
-using TestCaseEditorApp.MVVM.Domains.Startup.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Dummy.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Mediators;
 using Microsoft.Extensions.Logging;
@@ -25,9 +24,6 @@ namespace TestCaseEditorApp.Services.DependencyInjection
         {
             // Dummy Mediator - Testing workspace coordination (SINGLETON)
             services.AddSingleton<IDummyMediator, DummyMediator>();
-
-            // Startup Mediator - Initial app state (SINGLETON)
-            services.AddSingleton<IStartupMediator, StartupMediator>();
 
             // Test Case Generation Mediator (SINGLETON - orchestrates analysis and generation)
             services.AddSingleton<ITestCaseGenerationMediator>(provider =>

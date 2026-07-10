@@ -63,9 +63,6 @@ namespace TestCaseEditorApp.Services
                 // Dashboard (landing page) - NEW DEFAULT
                 "dashboard" => CreateDashboardConfiguration(context),
                 
-                // Startup domain - works correctly
-                "startup" => CreateStartupConfiguration(context),
-                
                 // Workshop domain - fixed case mismatch
                 "project" or "Project" => CreateProjectConfiguration(context),
                 
@@ -113,31 +110,6 @@ namespace TestCaseEditorApp.Services
         }
 
         #region Configuration Creators
-
-        private ViewConfiguration CreateStartupConfiguration(object? context)
-        {
-            // Use DI container to resolve ViewModels following AI Guide patterns
-            var titleVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_TitleViewModel>();
-            var headerVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_HeaderViewModel>();
-            var mainVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_MainViewModel>();
-            var navVM = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Startup.ViewModels.StartUp_NavigationViewModel>();
-            // Notification workspace host was removed from shell; keep section configuration notification-free.
-            
-            if (titleVM == null) throw new InvalidOperationException("StartUp_TitleViewModel not resolved from DI container");
-            if (headerVM == null) throw new InvalidOperationException("StartUp_HeaderViewModel not resolved from DI container");
-            if (mainVM == null) throw new InvalidOperationException("StartUp_MainViewModel not resolved from DI container");
-            if (navVM == null) throw new InvalidOperationException("StartUp_NavigationViewModel not resolved from DI container");
-            
-            return new ViewConfiguration(
-                sectionName: "Startup",
-                titleViewModel: titleVM,
-                headerViewModel: headerVM,
-                contentViewModel: mainVM,
-                navigationViewModel: navVM,
-                notificationViewModel: null,
-                context: context
-            );
-        }
 
         private ViewConfiguration CreateDashboardConfiguration(object? context)
         {

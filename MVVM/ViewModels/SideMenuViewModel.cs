@@ -181,9 +181,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 // ("*** SideMenuViewModel.NavigateToStartup called! ***");
 // ("*** SideMenuViewModel.NavigateToStartup called! ***");
             
-            SelectedSection = "startup"; // Update selected section to trigger SectionChanged event
+            SelectedSection = "dashboard"; // Update selected section to trigger SectionChanged event
             
-            _navigationMediator.NavigateToSection("startup");
+            _navigationMediator.NavigateToSection("dashboard");
         }
         
         #region AnythingLLM Status Handling
@@ -218,7 +218,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 IsExpanded = true, // Make sure the section itself is expanded
                 Items = new ObservableCollection<MenuContentItem>
                 {
-                        new MenuAction { Id = "startup", Text = "Dashboard", Icon = "🏠", Command = StartupNavigationCommand }
+                    new MenuAction { Id = "dashboard", Text = "Dashboard", Icon = "🏠", Command = StartupNavigationCommand }
                 }
             };
         }

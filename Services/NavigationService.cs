@@ -167,7 +167,6 @@ namespace TestCaseEditorApp.Services
                 "newproject" => "Test Case Generator",
                 "testflow" => "Test Case Generator",
                 "import" => "Test Case Generator",
-                "startup" => "Systems ATE APP",
                 _ => "Test Case Editor App"  // Default to dashboard app title
             };
             

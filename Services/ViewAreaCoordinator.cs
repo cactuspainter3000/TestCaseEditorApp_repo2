@@ -67,7 +67,7 @@ namespace TestCaseEditorApp.Services
             // NOT: SideMenu → SelectedSection → SectionChanged → NavigateToSection (circular!)
             
             // Note: Initial configuration is now handled by NavigationService.Initialize() 
-            // which explicitly sets "startup" configuration. No auto-default needed.
+            // which explicitly sets "dashboard" configuration. No auto-default needed.
         }
 
         private void OnSectionChangeRequested(NavigationEvents.SectionChangeRequested request)

@@ -9,9 +9,6 @@
         xmlns:tcgmodeviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.Views"
         xmlns:wmvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels"
         xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
-
-        xmlns:startupvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.ViewModels"
-        xmlns:startupviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Startup.Views"
         xmlns:wmviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.Views"
         xmlns:opvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels"
         xmlns:opviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.Views"
@@ -70,23 +67,6 @@
 
         <!-- REMOVED: TestCaseGeneratorMainVM DataTemplate - dead code, never used -->
 
-        <!-- Startup ViewModels DataTemplates -->
-        <DataTemplate DataType="{x:Type startupvm:StartUp_TitleViewModel}">
-            <startupviews:StartUp_TitleView />
-        </DataTemplate>
-        
-        <DataTemplate DataType="{x:Type startupvm:StartUp_HeaderViewModel}">
-            <startupviews:StartUp_HeaderView />
-        </DataTemplate>
-        
-        <DataTemplate DataType="{x:Type startupvm:StartUp_MainViewModel}">
-            <startupviews:StartUp_MainView />
-        </DataTemplate>
-        
-        <DataTemplate DataType="{x:Type startupvm:StartUp_NavigationViewModel}">
-            <startupviews:StartUp_NavigationView />
-        </DataTemplate>
-        
         <!-- NEW-STYLE Dummy ViewModels DataTemplates (AI Guide compliant) -->
         <DataTemplate DataType="{x:Type dummyvm:Dummy_TitleViewModel}">
             <dummyviews:Dummy_TitleView />
@@ -124,10 +104,6 @@
         <DataTemplate DataType="{x:Type tccvm:TestCaseCreation_NavigationViewModel}">
             <tccviews:TestCaseCreation_NavigationView />
         </DataTemplate>
-
-        <!--<DataTemplate DataType="{x:Type startupvm:StartUp_MainViewModel}">
-            <startupviews:StartUp_MainView />
-        </DataTemplate>-->
 
         <!--<DataTemplate DataType="{x:Type vm:ProjectViewModel}">
             <views:ProjectView />

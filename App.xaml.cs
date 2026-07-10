@@ -18,7 +18,6 @@ using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestFlow.Mediators;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
-using TestCaseEditorApp.MVVM.Domains.Startup.Mediators;
 using TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels;
 
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
@@ -201,10 +200,6 @@ namespace TestCaseEditorApp
                 // Mark Requirements mediator as registered for requirements domain
                 var requirementsMediator = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
                 requirementsMediator.MarkAsRegistered();
-                
-                // Mark Startup mediator as registered for startup domain
-                var startupMediator = _host.Services.GetRequiredService<TestCaseEditorApp.MVVM.Domains.Startup.Mediators.IStartupMediator>();
-                startupMediator.MarkAsRegistered();
                 
                 // Wire cross-domain commands - enable workspace commands in header
                 if (testCaseGenMediator is MVVM.Domains.TestCaseGeneration.Mediators.TestCaseGenerationMediator tcgMediator)

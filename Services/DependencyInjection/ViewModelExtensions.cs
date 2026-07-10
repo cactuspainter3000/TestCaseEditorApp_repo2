@@ -5,7 +5,6 @@ using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
-using TestCaseEditorApp.MVVM.Domains.Startup.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseGeneration.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Title.ViewModels;
@@ -13,7 +12,6 @@ using TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.NewProject.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels;
-using TestCaseEditorApp.MVVM.Domains.Startup.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.Shared.ViewModels;
@@ -247,37 +245,6 @@ namespace TestCaseEditorApp.Services.DependencyInjection
             services.AddTransient<OpenProject_TitleViewModel>();
             services.AddTransient<OpenProject_HeaderViewModel>();
             services.AddTransient<OpenProject_NavigationViewModel>();
-
-            // === STARTUP DOMAIN VIEWMODELS ===
-            services.AddTransient<StartUp_MainViewModel>(provider =>
-            {
-                var mediator = provider.GetRequiredService<IStartupMediator>();
-                var navigationMediator = provider.GetRequiredService<INavigationMediator>();
-                var recentFilesService = provider.GetRequiredService<RecentFilesService>();
-                var workspaceContext = provider.GetRequiredService<IWorkspaceContext>();
-                var jamaConnectService = provider.GetRequiredService<IJamaConnectService>();
-                var anythingLlmService = provider.GetRequiredService<AnythingLLMService>();
-                var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
-                var openProjectMediator = provider.GetRequiredService<IOpenProjectMediator>();
-                var requirementsMediator = provider.GetRequiredService<IRequirementsMediator>();
-                var workspaceDiagnosticsService = provider.GetRequiredService<IWorkspaceDiagnosticsService>();
-                var logger = provider.GetRequiredService<ILogger<StartUp_MainViewModel>>();
-                return new StartUp_MainViewModel(
-                    mediator,
-                    navigationMediator,
-                    recentFilesService,
-                    workspaceContext,
-                    jamaConnectService,
-                    anythingLlmService,
-                    newProjectMediator,
-                    openProjectMediator,
-                    requirementsMediator,
-                    workspaceDiagnosticsService,
-                    logger);
-            });
-            services.AddTransient<StartUp_HeaderViewModel>();
-            services.AddTransient<StartUp_NavigationViewModel>();
-            services.AddTransient<StartUp_TitleViewModel>();
 
             // === DUMMY DOMAIN VIEWMODELS (FOR TESTING) ===
             services.AddTransient<Dummy_MainViewModel>();
