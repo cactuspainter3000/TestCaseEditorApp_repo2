@@ -288,9 +288,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             var q = SearchQuery?.Trim();
             if (string.IsNullOrEmpty(q)) return;
 
-            // Match Item ID only (case-insensitive)
+            // Match Item ID, Name, or Description (case-insensitive)
             var found = _requirements.FirstOrDefault(r =>
-                !string.IsNullOrEmpty(r.Item) && r.Item.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0);
+                (!string.IsNullOrEmpty(r.Item) && r.Item.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0) ||
+                (!string.IsNullOrEmpty(r.Name) && r.Name.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0) ||
+                (!string.IsNullOrEmpty(r.Description) && r.Description.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0));
 
             if (found != null)
             {

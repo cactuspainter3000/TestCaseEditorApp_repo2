@@ -190,7 +190,8 @@ namespace TestCaseEditorApp.Services.DependencyInjection
             services.AddSingleton<UnifiedRequirementsHubViewModel>(provider =>
             {
                 var tabSelector = provider.GetRequiredService<RequirementsTabSelectorViewModel>();
-                return new UnifiedRequirementsHubViewModel(tabSelector);
+                var requirementsNavigation = provider.GetRequiredService<Requirements_NavigationViewModel>();
+                return new UnifiedRequirementsHubViewModel(tabSelector, requirementsNavigation);
             });
 
             // Requirements Utilities (SINGLETON - utilities dashboard)

@@ -13,6 +13,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
     public partial class UnifiedRequirementsHubViewModel : ObservableObject
     {
         private readonly RequirementsTabSelectorViewModel _tabSelector;
+        private readonly Requirements_NavigationViewModel _requirementsNavigation;
 
         [ObservableProperty]
         private string searchText = string.Empty;
@@ -20,15 +21,39 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private object? currentContentViewModel;
 
-        public UnifiedRequirementsHubViewModel(RequirementsTabSelectorViewModel tabSelector)
+        public UnifiedRequirementsHubViewModel(
+            RequirementsTabSelectorViewModel tabSelector,
+            Requirements_NavigationViewModel requirementsNavigation)
         {
             _tabSelector = tabSelector ?? throw new ArgumentNullException(nameof(tabSelector));
+            _requirementsNavigation = requirementsNavigation ?? throw new ArgumentNullException(nameof(requirementsNavigation));
             CurrentContentViewModel = _tabSelector.CurrentContentViewModel;
 
             _tabSelector.PropertyChanged += OnTabSelectorPropertyChanged;
         }
 
         public bool HasCurrentContent => CurrentContentViewModel != null;
+
+        [RelayCommand]
+        private void ApplySearch()
+        {
+            _requirementsNavigation.SearchQuery = SearchText?.Trim();
+
+            if (_requirementsNavigation.SearchCommand.CanExecute(null))
+            {
+                _requirementsNavigation.SearchCommand.Execute(null);
+            }
+
+            EnsureMainTabSelected();
+        }
+
+        [RelayCommand]
+        private void ClearSearch()
+        {
+            SearchText = string.Empty;
+            _requirementsNavigation.SearchQuery = string.Empty;
+            EnsureMainTabSelected();
+        }
 
         [RelayCommand]
         private void ShowRequirements()
@@ -49,9 +74,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         }
 
         [RelayCommand]
+        private void OpenAttachmentScraper()
+        {
+            ShowAttachments();
+        }
+
+        [RelayCommand]
         private void ShowUtilities()
         {
             _tabSelector.SelectUtilitiesTabCommand.Execute(null);
+        }
+
+        [RelayCommand]
+        private void OpenUtilities()
+        {
+            ShowUtilities();
         }
 
         public void EnsureMainTabSelected()

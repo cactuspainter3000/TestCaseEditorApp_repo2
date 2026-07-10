@@ -27,13 +27,15 @@
                 <TextBox Grid.Column="0"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource MenuPopupTextBoxStyle}"
-                         ToolTip="Search/filter requirements (adapter phase: wiring in progress)"/>
+                         ToolTip="Search requirements by ID, name, or description"/>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Left">
+                    <Button Content="Apply Search" Command="{Binding ApplySearchCommand}" Padding="10,5" Margin="0,0,8,0"/>
+                    <Button Content="Clear" Command="{Binding ClearSearchCommand}" Padding="10,5" Margin="0,0,12,0"/>
                     <Button Content="Requirements" Command="{Binding ShowRequirementsCommand}" Padding="10,5" Margin="0,0,8,0"/>
                     <Button Content="Cleanup" Command="{Binding ShowCleanupCommand}" Padding="10,5" Margin="0,0,8,0"/>
-                    <Button Content="Attachments" Command="{Binding ShowAttachmentsCommand}" Padding="10,5" Margin="0,0,8,0"/>
-                    <Button Content="Utilities" Command="{Binding ShowUtilitiesCommand}" Padding="10,5"/>
+                    <Button Content="Attachment Scraper" Command="{Binding OpenAttachmentScraperCommand}" Padding="10,5" Margin="0,0,8,0"/>
+                    <Button Content="Utilities" Command="{Binding OpenUtilitiesCommand}" Padding="10,5"/>
                 </StackPanel>
             </Grid>
         </Border>
