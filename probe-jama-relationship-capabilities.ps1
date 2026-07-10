@@ -886,6 +886,10 @@ if ($SeedItemId -and $SeedItemId -gt 0) {
     if ($relationshipReadTimedOut) {
         Write-ProbeStep "Baseline project+lastId relationship query timed out, but item-filtered project queries were still attempted with lastId=$relationshipProbeLastId."
     }
+    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/items/$SeedItemId/upstreamrelationships?maxResults=20" -Headers $apiHeaders))
+    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/items/$SeedItemId/downstreamrelationships?maxResults=20" -Headers $apiHeaders))
+    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/items/$SeedItemId/upstreamrelated?maxResults=20" -Headers $apiHeaders))
+    $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/items/$SeedItemId/downstreamrelated?maxResults=20" -Headers $apiHeaders))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/abstractitems/$SeedItemId/upstreamrelationships?maxResults=20" -Headers $apiHeaders))
     $results.Add((Invoke-Probe -Url "$BaseUrl/rest/v1/abstractitems/$SeedItemId/downstreamrelationships?maxResults=20" -Headers $apiHeaders))
 
