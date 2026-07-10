@@ -23,12 +23,12 @@
                               Margin="0,0,8,0"
                               Padding="12,6"
                               Command="{Binding ShowRequirementsAreaCommand}"
-                              IsChecked="{Binding IsRequirementsSelected}"/>
+                              IsChecked="{Binding IsRequirementsSelected, Mode=OneWay}"/>
 
                 <ToggleButton Content="Test Cases"
                               Padding="12,6"
                               Command="{Binding ShowTestCasesAreaCommand}"
-                              IsChecked="{Binding IsTestCasesSelected}"/>
+                              IsChecked="{Binding IsTestCasesSelected, Mode=OneWay}"/>
             </StackPanel>
         </Border>
 
