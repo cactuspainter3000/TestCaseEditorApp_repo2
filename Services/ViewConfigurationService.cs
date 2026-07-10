@@ -143,15 +143,20 @@ namespace TestCaseEditorApp.Services
                     throw new InvalidOperationException("App.ServiceProvider is null - DI container not initialized yet");
                 }
                 
-                // OpenProject mode: Project workflow with null shared ViewModels (handled internally)
-                var projectStaticView = new TestCaseEditorApp.MVVM.Views.ProjectStaticView();
+                // Workshop shell composes requirements and test case authoring as peer areas.
+                var workshopShellViewModel = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels.WorkshopShellViewModel>();
                 var blankHeaderVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("");
+
+                if (workshopShellViewModel == null)
+                {
+                    throw new InvalidOperationException("WorkshopShellViewModel not resolved from DI container");
+                }
                 
                 return new ViewConfiguration(
                     sectionName: "Workshop",
                     titleViewModel: null, // Workshop mode handles title internally
                     headerViewModel: blankHeaderVM,
-                    contentViewModel: projectStaticView,
+                    contentViewModel: workshopShellViewModel,
                     navigationViewModel: null, // Workshop mode handles navigation internally
                     notificationViewModel: null,
                     context: context

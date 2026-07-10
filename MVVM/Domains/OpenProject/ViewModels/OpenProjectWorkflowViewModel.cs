@@ -188,7 +188,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                             OnPropertyChanged(nameof(RecentProjects));
                             ProjectStatus = "Requirements Workshop opened successfully";
                             _logger.LogInformation($"Project opened successfully: {SelectedProjectPath}");
-                            _navigationMediator.NavigateToSection("requirements");
+                            _navigationMediator.NavigateToSection("project");
                         }
                         else
                         {
@@ -486,7 +486,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
                     OnPropertyChanged(nameof(RecentProjects));
                     ProjectStatus = "Requirements Workshop opened successfully";
                     _logger.LogInformation($"Project opened successfully: {filePath}");
-                    _navigationMediator.NavigateToSection("requirements");
+                    _navigationMediator.NavigateToSection("project");
                 }
                 else
                 {

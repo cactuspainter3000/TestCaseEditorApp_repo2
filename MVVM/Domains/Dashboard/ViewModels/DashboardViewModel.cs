@@ -160,7 +160,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Dashboard.ViewModels
                     _recentFilesService.AddRecentFile(filePath);
                     RefreshRecentProjects();
                     StatusMessage = "Workshop opened successfully.";
-                    _navigationMediator.NavigateToSection("requirements");
+                    _navigationMediator.NavigateToSection("project");
                 }
                 else
                 {

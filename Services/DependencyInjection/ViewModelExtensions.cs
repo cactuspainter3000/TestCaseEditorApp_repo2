@@ -16,6 +16,7 @@ using TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.Shared.ViewModels;
 using TestCaseEditorApp.MVVM.Domains.Dashboard.ViewModels;
+using TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels;
 using TestCaseEditorApp.MVVM.Services.Theme;
 using Microsoft.Extensions.Logging;
 
@@ -81,6 +82,14 @@ namespace TestCaseEditorApp.Services.DependencyInjection
 
             // Workspace Header ViewModel (SINGLETON - shared across all workspaces)
             services.AddSingleton<WorkspaceHeaderViewModel>();
+
+            // Workshop shell ViewModel (SINGLETON - composes requirements and test case areas)
+            services.AddSingleton<WorkshopShellViewModel>(provider =>
+            {
+                var requirementsTabSelector = provider.GetRequiredService<RequirementsTabSelectorViewModel>();
+                var testCaseGenerator = provider.GetRequiredService<LLMTestCaseGeneratorViewModel>();
+                return new WorkshopShellViewModel(requirementsTabSelector, testCaseGenerator);
+            });
 
             // Main ViewModel (TRANSIENT - matches existing app lifecycle)
             services.AddTransient<MainViewModel>(provider =>

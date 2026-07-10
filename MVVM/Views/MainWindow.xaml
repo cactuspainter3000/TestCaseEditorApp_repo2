@@ -11,7 +11,9 @@
         xmlns:views="clr-namespace:TestCaseEditorApp.MVVM.Views"
         xmlns:wmviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.NewProject.Views"
         xmlns:opvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels"
+        xmlns:wkvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels"
         xmlns:opviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.OpenProject.Views"
+        xmlns:wkviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Workshop.Views"
         xmlns:dummyvm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dummy.ViewModels"
         xmlns:dummyviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.Dummy.Views"
         xmlns:titlevm="clr-namespace:TestCaseEditorApp.MVVM.Domains.Title.ViewModels"
@@ -300,6 +302,10 @@
 
         <DataTemplate DataType="{x:Type opvm:OpenProject_NavigationViewModel}">
             <opviews:OpenProject_NavigationView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type wkvm:WorkshopShellViewModel}">
+            <wkviews:WorkshopShellView />
         </DataTemplate>
 
 
