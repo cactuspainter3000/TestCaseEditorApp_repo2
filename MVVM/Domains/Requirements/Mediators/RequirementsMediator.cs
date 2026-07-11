@@ -715,7 +715,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                         if (_analysisEngine != null)
                         {
                             analysis = await _analysisEngine.AnalyzeRequirementAsync(requirement, 
-                                progressMsg => UpdateProgress($"Analyzing {requirement.GlobalId}... ({i + 1}/{requirements.Count}) - {progressMsg}", (double)(i + 1) / requirements.Count * 100));
+                                progressMsg => OnAnalysisProgressUpdate(requirement, progressMsg));
                         }
                         else
                         {
