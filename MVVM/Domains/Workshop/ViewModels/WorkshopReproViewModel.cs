@@ -108,6 +108,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
         private void OnAnalysisCompleted(RequirementsEvents.RequirementAnalyzed e)
         {
+            // Capture results from the event rather than polling after await
+            if (e.Requirement == CurrentRequirement)
+            {
+                AnalysisResults = e.Analysis;
+                IsAnalyzing = false;
+            }
+
             if (e.Success)
                 AnalysisStatusText = $"✓ Analysis complete ({e.AnalysisTime.TotalSeconds:F1}s)";
             else
@@ -150,32 +157,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 System.Diagnostics.Debug.WriteLine($"[Analysis] Starting for requirement: {CurrentRequirement.Name}");
                 
                 // Add timeout to prevent hanging
-                bool success = false;
                 using (var cts = CancellationTokenSource.CreateLinkedTokenSource(ct))
                 {
-                    cts.CancelAfter(TimeSpan.FromSeconds(60)); // 60 second timeout
-                    success = await _mediator.AnalyzeRequirementAsync(CurrentRequirement);
-                    System.Diagnostics.Debug.WriteLine($"[Analysis] Mediator returned: success={success}");
+                    cts.CancelAfter(TimeSpan.FromSeconds(60));
+                    await _mediator.AnalyzeRequirementAsync(CurrentRequirement);
                 }
-                
-                AnalysisStatusText = "Processing results…";
-                await Task.Yield();
-
-                System.Diagnostics.Debug.WriteLine($"[Analysis] Captured results: {(AnalysisResults != null ? "not null" : "NULL")}");
-                
-                // Exit loading state immediately when results are available
-                IsAnalyzing = false;
-                
-                if (AnalysisResults == null)
-                {
-                    AnalysisStatusText = "⚠ No results returned (check log)";
-                    System.Diagnostics.Debug.WriteLine("[Analysis] WARNING: CurrentRequirement.Analysis is null after analysis completed");
-                }
-                else
-                {
-                    AnalysisStatusText = success ? "✓ Analysis complete" : "⚠ Completed with warnings";
-                    System.Diagnostics.Debug.WriteLine($"[Analysis] Display status: {AnalysisStatusText}");
-                }
+                // AnalysisResults and IsAnalyzing are set by OnAnalysisCompleted mediator event
             }
             catch (OperationCanceledException)
             {
@@ -271,6 +258,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         {
             if (CurrentRequirement == null || AnalysisResults?.ImprovedRequirement == null) return;
             CurrentRequirement.Description = AnalysisResults.ImprovedRequirement;
+            // Notify the mediator so RequirementUpdated event fires and IsDirty is set
+            _mediator.UpdateRequirement(CurrentRequirement, new[] { "Description" });
             AnalysisStatusText = "✓ Applied improved requirement to description";
         }
 
