@@ -532,14 +532,31 @@
                                                     </ItemsControl>
 
                                                     <!-- Improved Requirement -->
-                                                    <Border BorderBrush="{StaticResource Brush.State.Success}" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,0,0,12" Background="{StaticResource Brush.Background.Menu}">
+                                                    <Border BorderBrush="{StaticResource Brush.State.Success}" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,8,0,12" Background="{StaticResource Brush.Background.Menu}">
                                                         <Grid>
                                                             <Grid.RowDefinitions>
                                                                 <RowDefinition Height="Auto"/>
                                                                 <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="Auto"/>
                                                             </Grid.RowDefinitions>
-                                                            <TextBlock Text="Improved Requirement" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Brush.State.Success}"/>
-                                                            <TextBlock Grid.Row="1" Text="{Binding AnalysisResults.ImprovedRequirement}" FontSize="9" Foreground="{StaticResource Brush.Text.Secondary}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock Text="Improved Requirement" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Brush.State.Success}" VerticalAlignment="Center"/>
+                                                                <Button Grid.Column="1"
+                                                                        Content="↩ Apply to Description"
+                                                                        Command="{Binding ApplyImprovedRequirementCommand}"
+                                                                        Padding="6,2"
+                                                                        FontSize="9"
+                                                                        FontWeight="SemiBold"
+                                                                        Background="{StaticResource Brush.State.Success}"
+                                                                        Foreground="White"
+                                                                        BorderBrush="{StaticResource Brush.State.Success}"
+                                                                        BorderThickness="1"/>
+                                                            </Grid>
+                                                            <TextBlock Grid.Row="1" Text="{Binding AnalysisResults.ImprovedRequirement}" FontSize="9" Foreground="{StaticResource Brush.Text.Secondary}" TextWrapping="Wrap" Margin="0,6,0,0"/>
                                                         </Grid>
                                                     </Border>
 

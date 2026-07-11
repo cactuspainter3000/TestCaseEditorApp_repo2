@@ -78,6 +78,25 @@ namespace TestCaseEditorApp.Prompts
             sb.AppendLine("   When evaluating consistency: Check that 'when' is used for events, 'while' for states,");
             sb.AppendLine("   'where' for optional features — not mixed. Every SuggestedEdit should conform to one of these patterns.");
             sb.AppendLine();
+            sb.AppendLine("====================================");
+            sb.AppendLine("ACTOR CONTEXT — TEST SOLUTION PERSPECTIVE:");
+            sb.AppendLine("====================================");
+            sb.AppendLine("These requirements describe what a TEST SOLUTION (test set / automated test equipment) shall do,");
+            sb.AppendLine("NOT what the unit under test (UUT) shall do.");
+            sb.AppendLine();
+            sb.AppendLine("The UUT is the system being tested (e.g., MFD, avionics unit, device). The ACTOR in all");
+            sb.AppendLine("rewritten requirements must be the test solution — the equipment or software performing the test.");
+            sb.AppendLine();
+            sb.AppendLine("❌ WRONG actor: 'The MFD shall...' or 'The system shall display...'");
+            sb.AppendLine("✅ CORRECT actor: 'The test solution shall have the means to verify that the MFD...'");
+            sb.AppendLine("✅ CORRECT actor: 'The test solution shall [stimulate / measure / record / verify] that [UUT] ...'");
+            sb.AppendLine();
+            sb.AppendLine("When rewriting in ImprovedRequirement and SuggestedEdit:");
+            sb.AppendLine("- Frame the requirement as what the TEST SOLUTION provides, not what the UUT does");
+            sb.AppendLine("- Use phrases like 'have the means to verify', 'be capable of stimulating', 'provide a method to measure'");
+            sb.AppendLine("- The UUT behavior can be referenced as the acceptance condition, not the subject");
+            sb.AppendLine("====================================");
+            sb.AppendLine();
 
             // Critical instructions
             sb.AppendLine("====================================");

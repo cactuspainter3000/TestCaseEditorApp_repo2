@@ -245,6 +245,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             IsComplianceExpanded = !IsComplianceExpanded;
         }
 
+        [RelayCommand(CanExecute = nameof(CanApplyImprovedRequirement))]
+        private void ApplyImprovedRequirement()
+        {
+            if (CurrentRequirement == null || AnalysisResults?.ImprovedRequirement == null) return;
+            CurrentRequirement.Description = AnalysisResults.ImprovedRequirement;
+            AnalysisStatusText = "✓ Applied improved requirement to description";
+        }
+
+        private bool CanApplyImprovedRequirement() =>
+            CurrentRequirement != null &&
+            AnalysisResults != null &&
+            !string.IsNullOrWhiteSpace(AnalysisResults.ImprovedRequirement);
+
         [RelayCommand(CanExecute = nameof(CanNavigatePrevious))]
         private void PreviousRequirement()
         {
