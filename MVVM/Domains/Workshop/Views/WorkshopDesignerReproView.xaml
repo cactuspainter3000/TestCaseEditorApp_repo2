@@ -373,15 +373,106 @@
                                             <ScrollViewer x:Name="AnalysisResultsScroll"
                                                           VerticalScrollBarVisibility="Auto"
                                                           Visibility="{Binding AnalysisResults, Converter={StaticResource HasAnalysisResultsConverter}}">
-                                                <TextBox Text="{Binding AnalysisResults.FreeformFeedback, TargetNullValue='Analyzing...'}"
-                                                         IsReadOnly="True"
-                                                         TextWrapping="Wrap"
-                                                         AcceptsReturn="True"
-                                                         VerticalScrollBarVisibility="Auto"
-                                                         Foreground="{StaticResource Brush.Text.Secondary}"
-                                                         Background="{StaticResource Brush.Background.Header}"
-                                                         BorderBrush="{StaticResource Brush.Border.Subtle}"
-                                                         Padding="8"/>
+                                                <Border Padding="8">
+                                                    <StackPanel>
+                                                        <!-- Quality Scores -->
+                                                        <Border BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,0,0,12" Background="{StaticResource Brush.Background.Menu}">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <StackPanel>
+                                                                <TextBlock Text="Original Quality" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                                <TextBlock Text="{Binding AnalysisResults.OriginalQualityScore, StringFormat='0/10'}" FontSize="14" FontWeight="Bold" Foreground="{StaticResource Brush.Text.Primary}"/>
+                                                            </StackPanel>
+                                                            <StackPanel Grid.Column="1">
+                                                                <TextBlock Text="Improved Quality" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                                <TextBlock Text="{Binding AnalysisResults.ImprovedQualityScore, StringFormat='0/10', TargetNullValue='—'}" FontSize="14" FontWeight="Bold" Foreground="{StaticResource Brush.State.Success}"/>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Border>
+
+                                                    <!-- Hallucination Check -->
+                                                    <Border BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,0,0,12" Background="{StaticResource Brush.Background.Menu}">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock Text="Hallucination Check:" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                            <TextBlock Grid.Column="1" Text="{Binding AnalysisResults.HallucinationCheck, TargetNullValue='Unknown', FallbackValue='Unknown'}" FontSize="10" Foreground="{StaticResource Brush.Text.Secondary}" Margin="6,0,0,0"/>
+                                                        </Grid>
+                                                    </Border>
+
+                                                    <!-- Issues -->
+                                                    <ItemsControl ItemsSource="{Binding AnalysisResults.Issues}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,4,0,0" Background="{StaticResource Brush.Background.Menu}">
+                                                                    <Grid>
+                                                                        <Grid.RowDefinitions>
+                                                                            <RowDefinition Height="Auto"/>
+                                                                            <RowDefinition Height="Auto"/>
+                                                                            <RowDefinition Height="Auto"/>
+                                                                        </Grid.RowDefinitions>
+                                                                        <StackPanel Orientation="Horizontal">
+                                                                            <TextBlock Text="{Binding Category}" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                                            <Border Background="{StaticResource Brush.Background.Header}" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="3" Padding="4,1" Margin="6,0,0,0">
+                                                                                <TextBlock Text="{Binding Severity}" FontSize="9" Foreground="{StaticResource Brush.Text.Tertiary}"/>
+                                                                            </Border>
+                                                                        </StackPanel>
+                                                                        <TextBlock Grid.Row="1" Text="{Binding Description}" FontSize="9" Foreground="{StaticResource Brush.Text.Secondary}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                                        <TextBlock Grid.Row="2" Text="{Binding Fix, StringFormat='✓ Fixed: {0}'}" FontSize="9" Foreground="{StaticResource Brush.State.Success}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                                    </Grid>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+
+                                                    <!-- Recommendations -->
+                                                    <ItemsControl ItemsSource="{Binding AnalysisResults.Recommendations}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border BorderBrush="{StaticResource Brush.Border.Accent}" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,4,0,0" Background="{StaticResource Brush.Background.Menu}">
+                                                                    <Grid>
+                                                                        <Grid.RowDefinitions>
+                                                                            <RowDefinition Height="Auto"/>
+                                                                            <RowDefinition Height="Auto"/>
+                                                                        </Grid.RowDefinitions>
+                                                                        <TextBlock Text="{Binding Action}" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                                        <TextBlock Grid.Row="1" Text="{Binding Details}" FontSize="9" Foreground="{StaticResource Brush.Text.Secondary}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                                    </Grid>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+
+                                                    <!-- Improved Requirement -->
+                                                    <Border BorderBrush="{StaticResource Brush.State.Success}" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,0,0,12" Background="{StaticResource Brush.Background.Menu}">
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="Auto"/>
+                                                            </Grid.RowDefinitions>
+                                                            <TextBlock Text="Improved Requirement" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Brush.State.Success}"/>
+                                                            <TextBlock Grid.Row="1" Text="{Binding AnalysisResults.ImprovedRequirement}" FontSize="9" Foreground="{StaticResource Brush.Text.Secondary}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                        </Grid>
+                                                    </Border>
+
+                                                    <!-- Freeform Feedback -->
+                                                    <Border BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="4" Padding="8" Background="{StaticResource Brush.Background.Menu}">
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="Auto"/>
+                                                            </Grid.RowDefinitions>
+                                                            <TextBlock Text="Analysis Notes" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                            <TextBlock Grid.Row="1" Text="{Binding AnalysisResults.FreeformFeedback, TargetNullValue='No additional notes'}" FontSize="9" Foreground="{StaticResource Brush.Text.Secondary}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                                        </Grid>
+                                                    </Border>
+                                                    </StackPanel>
+                                                </Border>
                                             </ScrollViewer>
                                         </Grid>
                                     </Border>
