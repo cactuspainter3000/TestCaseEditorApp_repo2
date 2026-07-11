@@ -79,6 +79,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
 
             _mediator.Subscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelected);
+            _mediator.Subscribe<RequirementsEvents.RequirementAnalysisStarted>(OnAnalysisStarted);
+            _mediator.Subscribe<RequirementsEvents.RequirementAnalyzed>(OnAnalysisCompleted);
+            _mediator.Subscribe<RequirementsEvents.RAGAnalysisFallback>(OnRagFallback);
             _mediator.Requirements.CollectionChanged += (_, __) =>
             {
                 OnPropertyChanged(nameof(TotalCount));
@@ -96,6 +99,24 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private void OnRequirementSelected(RequirementsEvents.RequirementSelected e)
         {
             ApplyCurrentRequirement(e.Requirement);
+        }
+
+        private void OnAnalysisStarted(RequirementsEvents.RequirementAnalysisStarted e)
+        {
+            AnalysisStatusText = $"Sending to LLM… ({e.AnalysisType})";
+        }
+
+        private void OnAnalysisCompleted(RequirementsEvents.RequirementAnalyzed e)
+        {
+            if (e.Success)
+                AnalysisStatusText = $"✓ Analysis complete ({e.AnalysisTime.TotalSeconds:F1}s)";
+            else
+                AnalysisStatusText = $"⚠ Analysis completed with warnings";
+        }
+
+        private void OnRagFallback(RequirementsEvents.RAGAnalysisFallback e)
+        {
+            AnalysisStatusText = $"↻ Retrying via direct LLM…";
         }
 
         private void ApplyCurrentRequirement(Requirement? req)
@@ -119,13 +140,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             try
             {
                 IsAnalyzing = true;
-                AnalysisStatusText = "Starting analysis…";
                 AnalysisResults = null; // Clear previous results
                 IsAnalysisModalOpen = true;
+                AnalysisStatusText = "Preparing analysis…";
+                
+                // Yield to let UI render before the long call
+                await Task.Yield();
                 
                 System.Diagnostics.Debug.WriteLine($"[Analysis] Starting for requirement: {CurrentRequirement.Name}");
-                
-                AnalysisStatusText = "Sending to LLM…";
                 
                 // Add timeout to prevent hanging
                 bool success = false;
@@ -137,9 +159,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 }
                 
                 AnalysisStatusText = "Processing results…";
-                
-                // Capture analysis results from the requirement object
-                AnalysisResults = CurrentRequirement.Analysis;
+                await Task.Yield();
+
                 System.Diagnostics.Debug.WriteLine($"[Analysis] Captured results: {(AnalysisResults != null ? "not null" : "NULL")}");
                 
                 // Exit loading state immediately when results are available
