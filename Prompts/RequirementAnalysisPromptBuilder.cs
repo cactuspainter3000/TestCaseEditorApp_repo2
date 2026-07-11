@@ -339,6 +339,11 @@ namespace TestCaseEditorApp.Prompts
             // Requirement to analyze
             sb.AppendLine("REQUIREMENT TO ANALYZE:");
             sb.AppendLine();
+            sb.AppendLine("⚠️ CRITICAL ACTOR RULE: These requirements describe what the TEST SOLUTION (test equipment/software) shall do.");
+            sb.AppendLine("ImprovedRequirement and SuggestedEdit MUST use the test solution as the actor — NOT the unit under test (UUT).");
+            sb.AppendLine("❌ WRONG actor: 'The MFD shall...' or 'The system shall display...'");
+            sb.AppendLine("✅ CORRECT actor: 'The test solution shall have the means to verify that the MFD...' or 'The test solution shall [stimulate/measure/record/verify]...'");
+            sb.AppendLine();
             sb.AppendLine("IMPORTANT: Analyze ONLY the text provided below. Do not reference examples from the criteria.");
             sb.AppendLine();
             sb.AppendLine($"ID: {requirementId}");
@@ -515,6 +520,11 @@ namespace TestCaseEditorApp.Prompts
 
             // Requirement to analyze
             sb.AppendLine("REQUIREMENT TO ANALYZE:");
+            sb.AppendLine();
+            sb.AppendLine("⚠️ CRITICAL ACTOR RULE: These requirements describe what the TEST SOLUTION (test equipment/software) shall do.");
+            sb.AppendLine("ImprovedRequirement and SuggestedEdit MUST use the test solution as the actor — NOT the unit under test (UUT).");
+            sb.AppendLine("❌ WRONG actor: 'The MFD shall...' or 'The system shall display...'");
+            sb.AppendLine("✅ CORRECT actor: 'The test solution shall have the means to verify that the MFD...' or 'The test solution shall [stimulate/measure/record/verify]...'");
             sb.AppendLine();
             sb.AppendLine("IMPORTANT: Analyze ONLY the text provided below. Do not reference examples from the criteria.");
             sb.AppendLine();
