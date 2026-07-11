@@ -22,16 +22,48 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- Main workshop composition canvas -->
-                <Grid Grid.Row="0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="10"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
+                <!-- Main workshop composition canvas — tabbed interface for Requirement/Test Case -->
+                <TabControl Grid.Row="0" Background="{StaticResource Brush.Background.Menu}" BorderThickness="0">
+                    <TabControl.Resources>
+                        <Style TargetType="{x:Type TabItem}">
+                            <Setter Property="Background" Value="{StaticResource Brush.Background.Header}"/>
+                            <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="BorderThickness" Value="1"/>
+                            <Setter Property="Padding" Value="20,8"/>
+                            <Setter Property="Margin" Value="0,0,2,0"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="TabItem">
+                                        <Border x:Name="Root"
+                                                Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="4,4,0,0"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter x:Name="ContentSite"
+                                                              ContentSource="Header"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Focus}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Accent}"/>
+                                                <Setter TargetName="Root" Property="Background" Value="{StaticResource Brush.Background.Pill.Selected}"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </TabControl.Resources>
 
-                    <!-- Requirements section -->
-                    <Border Grid.Column="0"
+                    <!-- Requirement Tab -->
+                    <TabItem Header="Requirement">
+                        <Border
                             BorderBrush="{StaticResource Brush.Border.Subtle}"
                             BorderThickness="1"
                             CornerRadius="6"
@@ -240,11 +272,11 @@
                                     </Grid>
                                 </Grid>
                             </Border>
-                        </Grid>
-                    </Border>
+                        </Grid>                    </Border>                    </TabItem>
 
-                    <!-- Test Cases section -->
-                    <Border Grid.Column="2"
+                    <!-- Test Case Tab -->
+                    <TabItem Header="Test Case">
+                        <Border
                             BorderBrush="{StaticResource Brush.Border.Subtle}"
                             BorderThickness="1"
                             CornerRadius="6"
@@ -361,7 +393,8 @@
                             </Border>
                         </Grid>
                     </Border>
-                </Grid>
+                    </TabItem>
+                </TabControl>
 
                 <!-- Bottom global Jama Object lifecycle + navigation area -->
                 <Border Grid.Row="2"
