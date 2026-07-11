@@ -49,6 +49,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private string analysisStatusText = string.Empty;
 
         [ObservableProperty]
+        private double analysisProgressValue;
+
+        [ObservableProperty]
         private bool isAnalysisModalOpen;
 
         [ObservableProperty]
@@ -104,19 +107,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
         private void OnAnalysisStarted(RequirementsEvents.RequirementAnalysisStarted e)
         {
-            AnalysisStatusText = $"Sending to LLM… ({e.AnalysisType})";
+            AnalysisStatusText = $"Analyzing…";
+            AnalysisProgressValue = 0;
             
-            // Start animated status feedback
+            // Start animated progress bar
             _statusAnimationCts?.Cancel();
             _statusAnimationCts = new CancellationTokenSource();
-            _ = AnimateStatusFeedbackAsync(e.AnalysisType, _statusAnimationCts.Token);
+            _ = AnimateProgressBarAsync(_statusAnimationCts.Token);
         }
 
         private void OnAnalysisCompleted(RequirementsEvents.RequirementAnalyzed e)
         {
-            // Stop animation immediately
+            // Stop animation and complete the progress bar
             _statusAnimationCts?.Cancel();
             _statusAnimationCts = null;
+            AnalysisProgressValue = 100;
             
             // Capture results from the event rather than polling after await
             if (e.Requirement == CurrentRequirement)
@@ -126,9 +131,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             }
 
             if (e.Success)
-                AnalysisStatusText = $"✓ Analysis complete ({e.AnalysisTime.TotalSeconds:F1}s)";
+                AnalysisStatusText = $"✓ Complete ({e.AnalysisTime.TotalSeconds:F1}s)";
             else
-                AnalysisStatusText = $"⚠ Analysis completed with warnings";
+                AnalysisStatusText = $"⚠ Completed with warnings";
         }
 
         private void OnRagFallback(RequirementsEvents.RAGAnalysisFallback e)
@@ -137,34 +142,36 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         }
 
         /// <summary>
-        /// Animates the analysis status text through meaningful stages to provide progress feedback.
-        /// Progresses through: Preparing → Sending → Processing → Extracting
-        /// Each stage lasts 1 second, then loops until analysis completes.
+        /// Animates a progress bar from 0% to ~95% during LLM analysis.
+        /// Simulates smooth progress even though we don't have actual progress data.
+        /// Stalls near 95% to avoid false confidence before completion.
         /// </summary>
-        private async Task AnimateStatusFeedbackAsync(string analysisType, CancellationToken ct)
+        private async Task AnimateProgressBarAsync(CancellationToken ct)
         {
-            var stages = new[]
-            {
-                $"Preparing analysis…",
-                $"Sending to LLM… ({analysisType})",
-                $"Processing response…",
-                $"Extracting results…"
-            };
-            int stageIndex = 0;
-
+            const double targetProgress = 95.0;
+            const int totalDurationMs = 45000; // 45 seconds
+            const int updateIntervalMs = 100;  // Update every 100ms
+            
             try
             {
-                while (!ct.IsCancellationRequested)
+                int elapsedMs = 0;
+                while (!ct.IsCancellationRequested && elapsedMs < totalDurationMs)
                 {
-                    AnalysisStatusText = stages[stageIndex];
-                    stageIndex = (stageIndex + 1) % stages.Length;
+                    // Eased progress: starts fast, slows down approaching the target
+                    double ratio = (double)elapsedMs / totalDurationMs;
+                    double easedRatio = ratio * ratio; // Quadratic ease-out for natural feel
+                    AnalysisProgressValue = easedRatio * targetProgress;
                     
-                    await Task.Delay(1200, ct);
+                    await Task.Delay(updateIntervalMs, ct);
+                    elapsedMs += updateIntervalMs;
                 }
+                
+                // Hold at ~95% until actual completion
+                AnalysisProgressValue = targetProgress;
             }
             catch (OperationCanceledException)
             {
-                // Animation was cancelled, which is expected
+                // Animation was cancelled when analysis completed
             }
         }
 

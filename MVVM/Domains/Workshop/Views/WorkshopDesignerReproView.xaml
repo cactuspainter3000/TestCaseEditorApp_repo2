@@ -439,17 +439,20 @@
                                             <!-- Loading state -->
                                             <StackPanel x:Name="AnalysisLoadingStack"
                                                         VerticalAlignment="Center"
-                                                        HorizontalAlignment="Center"
-                                                        Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                <TextBlock Text="⟳"
-                                                           FontSize="28"
-                                                           Foreground="{StaticResource Brush.Accent.Primary}"
-                                                           HorizontalAlignment="Center"
-                                                           Margin="0,0,0,10"/>
-                                                <TextBlock Text="{Binding AnalysisStatusText, FallbackValue='Analyzing requirement…'}"
+                                                        HorizontalAlignment="Stretch"
+                                                        Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                        Margin="12">
+                                                <TextBlock Text="{Binding AnalysisStatusText, FallbackValue='Analyzing…'}"
                                                            FontSize="11"
                                                            Foreground="{StaticResource Brush.Text.Secondary}"
-                                                           HorizontalAlignment="Center"/>
+                                                           HorizontalAlignment="Center"
+                                                           Margin="0,0,0,12"/>
+                                                <ProgressBar Height="6"
+                                                             Value="{Binding AnalysisProgressValue}"
+                                                             Maximum="100"
+                                                             Foreground="{StaticResource Brush.Accent.Primary}"
+                                                             Background="{StaticResource Brush.Background.Header}"
+                                                             BorderThickness="0"/>
                                             </StackPanel>
                                             
                                             <!-- Results state -->
