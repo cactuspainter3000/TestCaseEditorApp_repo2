@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 using System.Globalization;
 using TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels;
 
@@ -10,6 +11,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
 {
     public partial class WorkshopDesignerReproView : UserControl
     {
+        private const double AnalysisPanelWidth = 380; // Width when analysis panel is open
+
         public WorkshopDesignerReproView()
         {
             InitializeComponent();
@@ -19,13 +22,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
                 {
                     vm.PropertyChanged += (sender, args) =>
                     {
-                        if (args.PropertyName == nameof(vm.AnalysisResults))
+                        if (args.PropertyName == nameof(vm.IsAnalysisModalOpen))
+                        {
+                            AnimateAnalysisPanelWidth(vm.IsAnalysisModalOpen);
+                        }
+                        else if (args.PropertyName == nameof(vm.AnalysisResults))
                         {
                             // Show results scroll, hide loading
                             if (vm.AnalysisResults != null && !vm.IsAnalyzing)
                             {
-                                LoadingStack.Visibility = Visibility.Collapsed;
-                                ResultsScroll.Visibility = Visibility.Visible;
+                                AnalysisLoadingStack.Visibility = Visibility.Collapsed;
+                                AnalysisResultsScroll.Visibility = Visibility.Visible;
                             }
                         }
                         else if (args.PropertyName == nameof(vm.IsAnalyzing))
@@ -33,8 +40,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
                             // Show loading when analysis starts
                             if (vm.IsAnalyzing)
                             {
-                                LoadingStack.Visibility = Visibility.Visible;
-                                ResultsScroll.Visibility = Visibility.Collapsed;
+                                AnalysisLoadingStack.Visibility = Visibility.Visible;
+                                AnalysisResultsScroll.Visibility = Visibility.Collapsed;
                             }
                         }
                     };
@@ -42,16 +49,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
             };
         }
 
-        // Close modal when clicking on semi-transparent backdrop
-        private void AnalysisModalOverlay_MouseDown(object sender, MouseButtonEventArgs e)
+        /// <summary>
+        /// Animates the analysis panel column width in/out smoothly
+        /// </summary>
+        private void AnimateAnalysisPanelWidth(bool isOpen)
         {
-            if (sender is Border && e.Source == sender)
+            double targetWidth = isOpen ? AnalysisPanelWidth : 0;
+            
+            var animation = new DoubleAnimation
             {
-                if (DataContext is WorkshopReproViewModel vm)
-                {
-                    vm.CloseAnalysisModalCommand.Execute(null);
-                }
-            }
+                To = targetWidth,
+                Duration = TimeSpan.FromMilliseconds(300),
+                EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = EasingMode.EaseInOut }
+            };
+
+            AnalysisPanelColumn.BeginAnimation(ColumnDefinition.WidthProperty, animation);
         }
     }
 

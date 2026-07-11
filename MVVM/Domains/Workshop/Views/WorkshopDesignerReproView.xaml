@@ -79,13 +79,20 @@
                             Padding="10"
                             Background="{StaticResource Brush.Background.Menu}">
                         <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="10"/>
-                                <RowDefinition Height="3*"/>
-                                <RowDefinition Height="10"/>
-                                <RowDefinition Height="2*"/>
-                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" x:Name="RequirementColumn"/>
+                                <ColumnDefinition Width="0" x:Name="AnalysisPanelColumn"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Requirement Content -->
+                            <Grid Grid.Column="0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="3*"/>
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="2*"/>
+                                </Grid.RowDefinitions>
 
                             <Grid Grid.Row="0">
                                 <Grid.ColumnDefinitions>
@@ -279,6 +286,101 @@
                                         <TextBlock Grid.Row="2" Margin="0,0,0,4" Text="Downstream Items" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
                                         <TextBox Grid.Row="3" Margin="0,0,0,0" Text="{Binding CurrentRequirement.DownstreamCrossInstanceRelationships, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinLines="1" MaxLines="20" TextWrapping="NoWrap" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto" Padding="6,4" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
                                     </Grid>
+                                </Grid>
+                            </Border>
+                            </Grid>
+                            
+                            <!-- LLM Analysis Panel (right column) -->
+                            <Border Grid.Column="1"
+                                    Background="{StaticResource Brush.Background.Menu}"
+                                    BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                    BorderThickness="1,0,0,0"
+                                    Padding="12">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <!-- Header with Analyze and Close buttons -->
+                                    <Border Grid.Row="0"
+                                            Background="{StaticResource Brush.Background.Header}"
+                                            BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                            BorderThickness="0,0,0,1"
+                                            Padding="8,8"
+                                            Margin="-12,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="LLM Analysis Results"
+                                                           FontWeight="Bold"
+                                                           FontSize="12"
+                                                           Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                <TextBlock Text="{Binding AnalysisStatusText}"
+                                                           FontSize="10"
+                                                           Foreground="{StaticResource Brush.Text.Tertiary}"
+                                                           Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button Content="Analyze"
+                                                        Command="{Binding LlmAnalyzeRequirementCommand}"
+                                                        Margin="0,0,6,0"
+                                                        Padding="8,3"
+                                                        FontSize="11"
+                                                        Background="{StaticResource Brush.Background.Pill.Selected}"
+                                                        Foreground="{StaticResource Brush.Accent.Primary}"
+                                                        BorderBrush="{StaticResource Brush.Border.Accent}"
+                                                        BorderThickness="1"/>
+                                                <Button Content="✕"
+                                                        Command="{Binding ToggleAnalysisModalCommand}"
+                                                        FontSize="14"
+                                                        Width="28"
+                                                        Height="28"
+                                                        Foreground="{StaticResource Brush.Text.Secondary}"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                    
+                                    <!-- Analysis Content -->
+                                    <Border Grid.Row="1" Padding="0">
+                                        <Grid>
+                                            <!-- Loading state -->
+                                            <StackPanel x:Name="AnalysisLoadingStack"
+                                                        VerticalAlignment="Center"
+                                                        HorizontalAlignment="Center"
+                                                        Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <TextBlock Text="⟳"
+                                                           FontSize="28"
+                                                           Foreground="{StaticResource Brush.Accent.Primary}"
+                                                           HorizontalAlignment="Center"
+                                                           Margin="0,0,0,10"/>
+                                                <TextBlock Text="Analyzing requirement…"
+                                                           FontSize="11"
+                                                           Foreground="{StaticResource Brush.Text.Secondary}"
+                                                           HorizontalAlignment="Center"/>
+                                            </StackPanel>
+                                            
+                                            <!-- Results state -->
+                                            <ScrollViewer x:Name="AnalysisResultsScroll"
+                                                          VerticalScrollBarVisibility="Auto"
+                                                          Visibility="Collapsed">
+                                                <TextBox Text="{Binding AnalysisResults.FreeformFeedback, TargetNullValue='Analyzing...'}"
+                                                         IsReadOnly="True"
+                                                         TextWrapping="Wrap"
+                                                         AcceptsReturn="True"
+                                                         VerticalScrollBarVisibility="Auto"
+                                                         Foreground="{StaticResource Brush.Text.Secondary}"
+                                                         Background="{StaticResource Brush.Background.Header}"
+                                                         BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                                         Padding="8"/>
+                                            </ScrollViewer>
+                                        </Grid>
+                                    </Border>
                                 </Grid>
                             </Border>
                         </Grid>                    </Border>                    </TabItem>
@@ -575,108 +677,6 @@
         </TabItem>
     </TabControl>
 
-        <!-- LLM Analysis Modal — Side Slide-Out Panel -->
-        <Grid x:Name="AnalysisModalOverlay"
-              Visibility="{Binding IsAnalysisModalOpen, Converter={StaticResource BoolToVisibilityConverter}}"
-              Background="#66000000"
-              MouseLeftButtonDown="AnalysisModalOverlay_MouseDown">
 
-            <!-- Semi-transparent backdrop (click to close) -->
-            <Border Background="#66000000" MouseLeftButtonDown="AnalysisModalOverlay_MouseDown"/>
-
-            <!-- Slide-out panel from right -->
-            <Border HorizontalAlignment="Right"
-                    VerticalAlignment="Stretch"
-                    Width="700"
-                    Background="{StaticResource Brush.Background.Menu}"
-                    BorderBrush="{StaticResource Brush.Border.Subtle}"
-                    BorderThickness="1,0,0,0">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- Header with close button -->
-                    <Border Grid.Row="0"
-                            Background="{StaticResource Brush.Background.Header}"
-                            BorderBrush="{StaticResource Brush.Border.Subtle}"
-                            BorderThickness="0,0,0,1"
-                            Padding="12,10">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="LLM Analysis Results"
-                                           FontWeight="Bold"
-                                           FontSize="14"
-                                           Foreground="{StaticResource Brush.Accent.Primary}"/>
-                                <TextBlock Text="{Binding AnalysisStatusText}"
-                                           FontSize="11"
-                                           Foreground="{StaticResource Brush.Text.Tertiary}"
-                                           Margin="0,2,0,0"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button Content="Analyze"
-                                        Command="{Binding LlmAnalyzeRequirementCommand}"
-                                        Margin="0,0,8,0"
-                                        Padding="10,4"
-                                        Background="{StaticResource Brush.Background.Pill.Selected}"
-                                        Foreground="{StaticResource Brush.Accent.Primary}"
-                                        BorderBrush="{StaticResource Brush.Border.Accent}"
-                                        BorderThickness="1"/>
-                                <Button Content="✕"
-                                        Command="{Binding CloseAnalysisModalCommand}"
-                                        FontSize="16"
-                                        Width="32"
-                                        Height="32"
-                                        Foreground="{StaticResource Brush.Text.Secondary}"
-                                        Background="Transparent"
-                                        BorderThickness="0"/>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-
-                    <!-- Content area -->
-                    <Border Grid.Row="1" Padding="12" Background="{StaticResource Brush.Background.Menu}">
-                        <Grid>
-                        <!-- Loading state -->
-                        <StackPanel x:Name="LoadingStack"
-                                    VerticalAlignment="Center"
-                                    HorizontalAlignment="Center"
-                                    Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}">
-                            <TextBlock Text="⟳"
-                                       FontSize="32"
-                                       Foreground="{StaticResource Brush.Accent.Primary}"
-                                       HorizontalAlignment="Center"
-                                       Margin="0,0,0,12"/>
-                            <TextBlock Text="Analyzing requirement…"
-                                       FontSize="12"
-                                       Foreground="{StaticResource Brush.Text.Secondary}"
-                                       HorizontalAlignment="Center"/>
-                        </StackPanel>
-
-                        <!-- Results state -->
-                        <ScrollViewer x:Name="ResultsScroll"
-                                      VerticalScrollBarVisibility="Auto"
-                                      Padding="0,0,8,0"
-                                      Visibility="Collapsed">
-                            <TextBox Text="{Binding AnalysisResults.FreeformFeedback, TargetNullValue='Analyzing...'}"
-                                     IsReadOnly="True"
-                                     TextWrapping="Wrap"
-                                     AcceptsReturn="True"
-                                     VerticalScrollBarVisibility="Auto"
-                                     Foreground="{StaticResource Brush.Text.Secondary}"
-                                     Background="{StaticResource Brush.Background.Header}"
-                                     BorderBrush="{StaticResource Brush.Border.Subtle}"
-                                     Padding="8,8"/>
-                        </ScrollViewer>
-                        </Grid>
-                    </Border>
-                </Grid>
-            </Border>
-        </Grid>
     </Grid>
 </UserControl>
