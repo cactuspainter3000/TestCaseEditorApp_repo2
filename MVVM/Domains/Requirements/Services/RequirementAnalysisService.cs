@@ -1914,6 +1914,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
             prompt.AppendLine("- Use exactly these top-level fields: OriginalQualityScore, HallucinationCheck, Issues, Recommendations, ImprovedRequirement, FreeformFeedback");
             prompt.AppendLine("- OriginalQualityScore must be an integer from 1 to 10");
             prompt.AppendLine("- ImprovedRequirement must be a non-empty complete rewritten requirement");
+            prompt.AppendLine();
+            prompt.AppendLine("⚠️ CRITICAL ACTOR RULE — ImprovedRequirement MUST use the TEST SOLUTION as the actor, NOT the unit under test (UUT).");
+            prompt.AppendLine("❌ WRONG: 'The MFD shall...' or 'The system shall display...'");
+            prompt.AppendLine("✅ CORRECT: 'The test solution shall have the means to verify that the MFD...'");
+            prompt.AppendLine("✅ CORRECT: 'The test solution shall [stimulate / measure / record / verify] that [UUT behavior]...'");
+            prompt.AppendLine("The UUT (e.g. MFD, device) is what is being TESTED — the test solution is what performs the test.");
             prompt.AppendLine("Provide your analysis using this JSON contract.");
 
             return prompt.ToString();
