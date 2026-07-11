@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Models;
+using RequirementAnalysis = TestCaseEditorApp.MVVM.Models.RequirementAnalysis;
 
 namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 {
@@ -45,6 +46,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
         [ObservableProperty]
         private string analysisStatusText = string.Empty;
+
+        [ObservableProperty]
+        private bool isAnalysisModalOpen;
+
+        [ObservableProperty]
+        private RequirementAnalysis? analysisResults;
 
         public int TotalCount => _mediator.Requirements.Count;
 
@@ -107,12 +114,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             {
                 IsAnalyzing = true;
                 AnalysisStatusText = "Analyzing…";
-                await _mediator.AnalyzeRequirementAsync(CurrentRequirement);
-                AnalysisStatusText = "Analysis complete.";
+                IsAnalysisModalOpen = true;
+                
+                var success = await _mediator.AnalyzeRequirementAsync(CurrentRequirement);
+                
+                // Capture analysis results from the requirement object
+                AnalysisResults = CurrentRequirement.Analysis;
+                
+                AnalysisStatusText = success ? "Analysis complete." : "Analysis completed with warnings.";
             }
             catch (Exception ex)
             {
                 AnalysisStatusText = $"Analysis failed: {ex.Message}";
+                AnalysisResults = null;
             }
             finally
             {
@@ -161,6 +175,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         }
 
         private bool CanCommitStaged() => StagedCount > 0;
+
+        [RelayCommand]
+        private void CloseAnalysisModal()
+        {
+            IsAnalysisModalOpen = false;
+            AnalysisResults = null;
+            AnalysisStatusText = string.Empty;
+        }
 
         [RelayCommand(CanExecute = nameof(CanNavigatePrevious))]
         private void PreviousRequirement()

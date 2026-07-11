@@ -11,9 +11,14 @@
     <UserControl.Resources>
         <!-- Slightly darker border for this view only — override app-level Brush.Border.Subtle -->
         <SolidColorBrush x:Key="Brush.Border.Subtle" Color="#333333"/>
+        
+        <!-- Converters for modal panel -->
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
     </UserControl.Resources>
 
-    <TabControl Margin="12">
+    <Grid>
+        <!-- Main content -->
+        <TabControl Margin="12">
         <TabItem Header="Jama Object">
             <Grid Margin="8">
                 <Grid.RowDefinitions>
@@ -565,4 +570,100 @@
             </Grid>
         </TabItem>
     </TabControl>
+
+        <!-- LLM Analysis Modal — Side Slide-Out Panel -->
+        <Grid x:Name="AnalysisModalOverlay"
+              Visibility="{Binding IsAnalysisModalOpen, Converter={StaticResource BoolToVisibilityConverter}}"
+              Background="#66000000"
+              MouseLeftButtonDown="AnalysisModalOverlay_MouseDown">
+
+            <!-- Semi-transparent backdrop (click to close) -->
+            <Border Background="#66000000" MouseLeftButtonDown="AnalysisModalOverlay_MouseDown"/>
+
+            <!-- Slide-out panel from right -->
+            <Border HorizontalAlignment="Right"
+                    VerticalAlignment="Stretch"
+                    Width="700"
+                    Background="{StaticResource Brush.Background.Menu}"
+                    BorderBrush="{StaticResource Brush.Border.Subtle}"
+                    BorderThickness="1,0,0,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Header with close button -->
+                    <Border Grid.Row="0"
+                            Background="{StaticResource Brush.Background.Header}"
+                            BorderBrush="{StaticResource Brush.Border.Subtle}"
+                            BorderThickness="0,0,0,1"
+                            Padding="12,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="LLM Analysis Results"
+                                           FontWeight="Bold"
+                                           FontSize="14"
+                                           Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                <TextBlock Text="{Binding AnalysisStatusText}"
+                                           FontSize="11"
+                                           Foreground="{StaticResource Brush.Text.Tertiary}"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    Content="✕"
+                                    Command="{Binding CloseAnalysisModalCommand}"
+                                    FontSize="16"
+                                    Width="32"
+                                    Height="32"
+                                    Foreground="{StaticResource Brush.Text.Secondary}"
+                                    Background="Transparent"
+                                    BorderThickness="0"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Content area -->
+                    <Border Grid.Row="1" Padding="12" Background="{StaticResource Brush.Background.Menu}">
+                        <Grid>
+                        <!-- Loading state -->
+                        <StackPanel x:Name="LoadingStack"
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    Visibility="{Binding IsAnalyzing, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <TextBlock Text="⟳"
+                                       FontSize="32"
+                                       Foreground="{StaticResource Brush.Accent.Primary}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,12"/>
+                            <TextBlock Text="Analyzing requirement…"
+                                       FontSize="12"
+                                       Foreground="{StaticResource Brush.Text.Secondary}"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Results state -->
+                        <ScrollViewer x:Name="ResultsScroll"
+                                      VerticalScrollBarVisibility="Auto"
+                                      Padding="0,0,8,0"
+                                      Visibility="Collapsed">
+                            <TextBox Text="{Binding AnalysisResults.FreeformFeedback, TargetNullValue='Analyzing...'}"
+                                     IsReadOnly="True"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="True"
+                                     VerticalScrollBarVisibility="Auto"
+                                     Foreground="{StaticResource Brush.Text.Secondary}"
+                                     Background="{StaticResource Brush.Background.Header}"
+                                     BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                     Padding="8,8"/>
+                        </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
 </UserControl>
