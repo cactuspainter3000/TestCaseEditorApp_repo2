@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
-using System.Windows.Media.Animation;
+using System.Windows.Threading;
 using System.Globalization;
 using TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels;
 
@@ -12,6 +12,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
     public partial class WorkshopDesignerReproView : UserControl
     {
         private const double AnalysisPanelWidth = 380; // Width when analysis panel is open
+        private const int AnimationDurationMs = 300;
+        private const int AnimationFrameMs = 16; // ~60fps
+        private DispatcherTimer _animationTimer;
+        private double _currentWidth = 0;
+        private double _targetWidth = 0;
+        private DateTime _animationStart;
 
         public WorkshopDesignerReproView()
         {
@@ -50,20 +56,44 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
         }
 
         /// <summary>
-        /// Animates the analysis panel column width in/out smoothly
+        /// Animates the analysis panel column width in/out smoothly using easing function
         /// </summary>
         private void AnimateAnalysisPanelWidth(bool isOpen)
         {
-            double targetWidth = isOpen ? AnalysisPanelWidth : 0;
-            
-            var animation = new DoubleAnimation
-            {
-                To = targetWidth,
-                Duration = TimeSpan.FromMilliseconds(300),
-                EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = EasingMode.EaseInOut }
-            };
+            _targetWidth = isOpen ? AnalysisPanelWidth : 0;
+            _currentWidth = AnalysisPanelColumn.Width.Value;
+            _animationStart = DateTime.Now;
 
-            AnalysisPanelColumn.BeginAnimation(ColumnDefinition.WidthProperty, animation);
+            if (_animationTimer == null)
+            {
+                _animationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(AnimationFrameMs) };
+                _animationTimer.Tick += (s, e) => UpdateColumnWidth();
+            }
+
+            _animationTimer.Start();
+        }
+
+        /// <summary>
+        /// Updates column width during animation with easing
+        /// </summary>
+        private void UpdateColumnWidth()
+        {
+            var elapsed = (DateTime.Now - _animationStart).TotalMilliseconds;
+            var progress = Math.Min(elapsed / AnimationDurationMs, 1.0); // 0 to 1
+
+            // CubicEase.EaseInOut formula
+            progress = progress < 0.5
+                ? 4 * progress * progress * progress
+                : 1 - Math.Pow(-2 * progress + 2, 3) / 2;
+
+            var newWidth = _currentWidth + (_targetWidth - _currentWidth) * progress;
+            AnalysisPanelColumn.Width = new GridLength(newWidth);
+
+            if (progress >= 1.0)
+            {
+                _animationTimer.Stop();
+                AnalysisPanelColumn.Width = new GridLength(_targetWidth);
+            }
         }
     }
 
