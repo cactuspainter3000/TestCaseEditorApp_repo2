@@ -56,6 +56,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         [ObservableProperty]
         private bool isComplianceExpanded;
 
+        public RequirementLifecycleStage CurrentRequirementStage => GetCurrentStage(CurrentRequirement);
+
         public int TotalCount => _mediator.Requirements.Count;
 
         public string CommitStagedButtonText => $"Commit Staged ({StagedCount})";
@@ -105,6 +107,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
             NotifyNavigationCanExecute();
             OnPropertyChanged(nameof(SelectedRequirement));
+            OnPropertyChanged(nameof(CurrentRequirementStage));
         }
 
         // ===== Commands =====
@@ -181,6 +184,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             var key = GetKey(CurrentRequirement);
             _lifecycleStates[key] = RequirementLifecycleStage.StagedForCommit;
             RefreshLifecycleCounts();
+            OnPropertyChanged(nameof(CurrentRequirementStage));
         }
 
         private bool CanStage() =>
@@ -194,6 +198,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             var key = GetKey(CurrentRequirement);
             _lifecycleStates[key] = RequirementLifecycleStage.Edit;
             RefreshLifecycleCounts();
+            OnPropertyChanged(nameof(CurrentRequirementStage));
         }
 
         private bool CanUnstage() =>
@@ -210,6 +215,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                     _lifecycleStates[key] = RequirementLifecycleStage.Committed;
             }
             RefreshLifecycleCounts();
+            OnPropertyChanged(nameof(CurrentRequirementStage));
         }
 
         private bool CanCommitStaged() => StagedCount > 0;

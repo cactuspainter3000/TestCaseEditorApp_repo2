@@ -134,4 +134,47 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
             throw new NotImplementedException();
         }
     }
+
+    public class LifecycleStageToDisplayConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value == null) return "Unknown";
+            
+            // Get the type name to check dynamically since it's from another namespace
+            var typeFullName = value.GetType().FullName ?? "";
+            if (typeFullName.Contains("RequirementLifecycleStage"))
+            {
+                var stageValue = (int)value;
+                return stageValue switch
+                {
+                    0 => "Unsaved",      // Edit
+                    1 => "Staged",       // StagedForCommit
+                    2 => "Committed",    // Committed
+                    _ => "Unknown"
+                };
+            }
+            return "Unknown";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class LifecycleStageToColorConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            // This converter is not currently used in the UI, but kept for future enhancement
+            return -1;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }
+

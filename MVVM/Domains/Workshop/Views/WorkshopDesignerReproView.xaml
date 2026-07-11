@@ -22,6 +22,10 @@
         
         <!-- Converter for showing analysis results -->
         <local:HasAnalysisResultsConverter x:Key="HasAnalysisResultsConverter"/>
+        
+        <!-- Converters for requirement lifecycle state -->
+        <local:LifecycleStageToDisplayConverter x:Key="LifecycleStageToDisplayConverter"/>
+        <local:LifecycleStageToColorConverter x:Key="LifecycleStageToColorConverter"/>
     </UserControl.Resources>
 
     <Grid>
@@ -102,13 +106,30 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="{Binding RequirementNameDisplay, FallbackValue='Requirement: (Name (not set))'}" 
                                            FontWeight="Bold"
                                            FontSize="16"
                                            VerticalAlignment="Center"
                                            Foreground="{StaticResource Brush.Accent.Primary}"/>
-                                <Button Grid.Column="1"
+                                
+                                <!-- State Badge -->
+                                <Border Grid.Column="1"
+                                        Background="{StaticResource Brush.Background.Header}"
+                                        BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        Padding="8,3"
+                                        Margin="12,0,8,0">
+                                    <TextBlock Text="{Binding CurrentRequirementStage, Converter={StaticResource LifecycleStageToDisplayConverter}}"
+                                               FontSize="10"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource Brush.Accent.Primary}"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+                                
+                                <Button Grid.Column="2"
                                         Content="{Binding IsAnalysisModalOpen, Converter={StaticResource BoolToAnalysisButtonTextConverter}}"
                                         Command="{Binding ToggleAnalysisModalCommand}"
                                         Padding="10,4"
@@ -704,18 +725,22 @@
                                         VerticalAlignment="Center">
                                 <Button Content="Stage"
                                     Command="{Binding StageCommand}"
-                                    Margin="0,0,6,0"
-                                    Padding="10,4"
-                                    MinWidth="108"
-                                    Background="{StaticResource Brush.Background.Header}"
-                                    Foreground="{StaticResource Brush.Text.Primary}"
-                                    BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                    Margin="0,0,8,0"
+                                    Padding="12,5"
+                                    MinWidth="80"
+                                    FontSize="11"
+                                    FontWeight="SemiBold"
+                                    Background="{StaticResource Brush.State.Warning}"
+                                    Foreground="White"
+                                    BorderBrush="{StaticResource Brush.State.Warning}"
                                     BorderThickness="1"/>
                                 <Button Content="Unstage"
                                     Command="{Binding UnstageCommand}"
                                     Margin="0,0,8,0"
-                                    Padding="10,4"
-                                    MinWidth="118"
+                                    Padding="12,5"
+                                    MinWidth="80"
+                                    FontSize="11"
+                                    FontWeight="SemiBold"
                                     Background="{StaticResource Brush.Background.Header}"
                                     Foreground="{StaticResource Brush.Text.Secondary}"
                                     BorderBrush="{StaticResource Brush.Border.Subtle}"
@@ -723,11 +748,12 @@
                                 <Button Content="{Binding CommitStagedButtonText, FallbackValue='Commit Staged (0)'}"
                                     Command="{Binding CommitStagedCommand}"
                                     Padding="14,5"
-                                    MinWidth="146"
+                                    MinWidth="140"
+                                    FontSize="11"
                                     FontWeight="SemiBold"
-                                    Background="{StaticResource Brush.Background.Pill.Selected}"
-                                    Foreground="{StaticResource Brush.Accent.Primary}"
-                                    BorderBrush="{StaticResource Brush.Border.Accent}"
+                                    Background="{StaticResource Brush.State.Success}"
+                                    Foreground="White"
+                                    BorderBrush="{StaticResource Brush.State.Success}"
                                     BorderThickness="1"/>
                             </StackPanel>
                         </Grid>
