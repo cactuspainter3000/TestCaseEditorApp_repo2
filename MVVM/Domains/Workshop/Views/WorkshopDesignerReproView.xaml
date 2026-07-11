@@ -114,18 +114,33 @@
                                            VerticalAlignment="Center"
                                            Foreground="{StaticResource Brush.Accent.Primary}"/>
                                 
-                                <!-- State Badge -->
+                                <!-- State Badge — color-coded by lifecycle stage -->
                                 <Border Grid.Column="1"
-                                        Background="{StaticResource Brush.Background.Header}"
-                                        BorderBrush="{StaticResource Brush.Border.Subtle}"
                                         BorderThickness="1"
                                         CornerRadius="12"
                                         Padding="8,3"
                                         Margin="12,0,8,0">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <!-- Default: Unsaved (amber) -->
+                                            <Setter Property="Background" Value="{StaticResource Brush.State.Warning}"/>
+                                            <Setter Property="BorderBrush" Value="{StaticResource Brush.State.Warning}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding CurrentRequirementStage, Converter={StaticResource LifecycleStageToDisplayConverter}}" Value="Staged">
+                                                    <Setter Property="Background" Value="{StaticResource Brush.Accent.Primary}"/>
+                                                    <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent.Primary}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding CurrentRequirementStage, Converter={StaticResource LifecycleStageToDisplayConverter}}" Value="Committed">
+                                                    <Setter Property="Background" Value="{StaticResource Brush.State.Success}"/>
+                                                    <Setter Property="BorderBrush" Value="{StaticResource Brush.State.Success}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
                                     <TextBlock Text="{Binding CurrentRequirementStage, Converter={StaticResource LifecycleStageToDisplayConverter}}"
                                                FontSize="10"
                                                FontWeight="SemiBold"
-                                               Foreground="{StaticResource Brush.Accent.Primary}"
+                                               Foreground="White"
                                                VerticalAlignment="Center"/>
                                 </Border>
                                 
