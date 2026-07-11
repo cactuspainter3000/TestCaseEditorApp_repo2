@@ -22,6 +22,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
     public partial class WorkshopReproViewModel : ObservableObject
     {
         private readonly IRequirementsMediator _mediator;
+        private CancellationTokenSource? _statusAnimationCts;
 
         // Per-requirement lifecycle state — stored here, not on the model
         private readonly Dictionary<string, RequirementLifecycleStage> _lifecycleStates = new();
@@ -104,10 +105,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private void OnAnalysisStarted(RequirementsEvents.RequirementAnalysisStarted e)
         {
             AnalysisStatusText = $"Sending to LLM… ({e.AnalysisType})";
+            
+            // Start animated status feedback
+            _statusAnimationCts?.Cancel();
+            _statusAnimationCts = new CancellationTokenSource();
+            _ = AnimateStatusFeedbackAsync(e.AnalysisType, _statusAnimationCts.Token);
         }
 
         private void OnAnalysisCompleted(RequirementsEvents.RequirementAnalyzed e)
         {
+            // Stop animation immediately
+            _statusAnimationCts?.Cancel();
+            _statusAnimationCts = null;
+            
             // Capture results from the event rather than polling after await
             if (e.Requirement == CurrentRequirement)
             {
@@ -124,6 +134,38 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private void OnRagFallback(RequirementsEvents.RAGAnalysisFallback e)
         {
             AnalysisStatusText = $"↻ Retrying via direct LLM…";
+        }
+
+        /// <summary>
+        /// Animates the analysis status text through meaningful stages to provide progress feedback.
+        /// Progresses through: Preparing → Sending → Processing → Extracting
+        /// Each stage lasts 1 second, then loops until analysis completes.
+        /// </summary>
+        private async Task AnimateStatusFeedbackAsync(string analysisType, CancellationToken ct)
+        {
+            var stages = new[]
+            {
+                $"Preparing analysis…",
+                $"Sending to LLM… ({analysisType})",
+                $"Processing response…",
+                $"Extracting results…"
+            };
+            int stageIndex = 0;
+
+            try
+            {
+                while (!ct.IsCancellationRequested)
+                {
+                    AnalysisStatusText = stages[stageIndex];
+                    stageIndex = (stageIndex + 1) % stages.Length;
+                    
+                    await Task.Delay(1200, ct);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Animation was cancelled, which is expected
+            }
         }
 
         private void ApplyCurrentRequirement(Requirement? req)
