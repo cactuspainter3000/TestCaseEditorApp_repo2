@@ -117,31 +117,52 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 AnalysisResults = null; // Clear previous results
                 IsAnalysisModalOpen = true;
                 
+                System.Diagnostics.Debug.WriteLine($"[Analysis] Starting for requirement: {CurrentRequirement.Name}");
+                
                 AnalysisStatusText = "Sending to LLM…";
-                var success = await _mediator.AnalyzeRequirementAsync(CurrentRequirement);
+                
+                // Add timeout to prevent hanging
+                bool success = false;
+                using (var cts = CancellationTokenSource.CreateLinkedTokenSource(ct))
+                {
+                    cts.CancelAfter(TimeSpan.FromSeconds(60)); // 60 second timeout
+                    success = await _mediator.AnalyzeRequirementAsync(CurrentRequirement);
+                    System.Diagnostics.Debug.WriteLine($"[Analysis] Mediator returned: success={success}");
+                }
                 
                 AnalysisStatusText = "Processing results…";
                 
                 // Capture analysis results from the requirement object
                 AnalysisResults = CurrentRequirement.Analysis;
+                System.Diagnostics.Debug.WriteLine($"[Analysis] Captured results: {(AnalysisResults != null ? "not null" : "NULL")}");
                 
                 if (AnalysisResults == null)
                 {
-                    AnalysisStatusText = "No analysis results returned";
+                    AnalysisStatusText = "⚠ No results returned (check log)";
+                    System.Diagnostics.Debug.WriteLine("[Analysis] WARNING: CurrentRequirement.Analysis is null after analysis completed");
                 }
                 else
                 {
                     AnalysisStatusText = success ? "✓ Analysis complete" : "⚠ Completed with warnings";
+                    System.Diagnostics.Debug.WriteLine($"[Analysis] Display status: {AnalysisStatusText}");
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                AnalysisStatusText = "✗ Analysis timed out (60s limit)";
+                AnalysisResults = null;
+                System.Diagnostics.Debug.WriteLine("[Analysis] ERROR: Timed out");
             }
             catch (Exception ex)
             {
                 AnalysisStatusText = $"✗ Error: {ex.Message}";
                 AnalysisResults = null;
+                System.Diagnostics.Debug.WriteLine($"[Analysis] ERROR: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
             }
             finally
             {
                 IsAnalyzing = false;
+                System.Diagnostics.Debug.WriteLine("[Analysis] IsAnalyzing = false");
             }
         }
 
