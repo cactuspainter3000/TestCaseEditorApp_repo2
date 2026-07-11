@@ -136,6 +136,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 AnalysisResults = CurrentRequirement.Analysis;
                 System.Diagnostics.Debug.WriteLine($"[Analysis] Captured results: {(AnalysisResults != null ? "not null" : "NULL")}");
                 
+                // Exit loading state immediately when results are available
+                IsAnalyzing = false;
+                
                 if (AnalysisResults == null)
                 {
                     AnalysisStatusText = "⚠ No results returned (check log)";
