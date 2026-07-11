@@ -15,9 +15,13 @@
         
         <!-- Converters for modal panel -->
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
         
         <!-- Converter for toggle button text -->
         <local:BoolToAnalysisButtonTextConverter x:Key="BoolToAnalysisButtonTextConverter"/>
+        
+        <!-- Converter for showing analysis results -->
+        <local:HasAnalysisResultsConverter x:Key="HasAnalysisResultsConverter"/>
     </UserControl.Resources>
 
     <Grid>
@@ -359,7 +363,7 @@
                                                            Foreground="{StaticResource Brush.Accent.Primary}"
                                                            HorizontalAlignment="Center"
                                                            Margin="0,0,0,10"/>
-                                                <TextBlock Text="Analyzing requirement…"
+                                                <TextBlock Text="{Binding AnalysisStatusText, FallbackValue='Analyzing requirement…'}"
                                                            FontSize="11"
                                                            Foreground="{StaticResource Brush.Text.Secondary}"
                                                            HorizontalAlignment="Center"/>
@@ -368,7 +372,7 @@
                                             <!-- Results state -->
                                             <ScrollViewer x:Name="AnalysisResultsScroll"
                                                           VerticalScrollBarVisibility="Auto"
-                                                          Visibility="Collapsed">
+                                                          Visibility="{Binding AnalysisResults, Converter={StaticResource HasAnalysisResultsConverter}}">
                                                 <TextBox Text="{Binding AnalysisResults.FreeformFeedback, TargetNullValue='Analyzing...'}"
                                                          IsReadOnly="True"
                                                          TextWrapping="Wrap"

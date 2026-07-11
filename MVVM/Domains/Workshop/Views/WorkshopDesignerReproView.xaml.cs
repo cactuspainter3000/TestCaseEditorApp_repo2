@@ -32,24 +32,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
                         {
                             AnimateAnalysisPanelWidth(vm.IsAnalysisModalOpen);
                         }
-                        else if (args.PropertyName == nameof(vm.AnalysisResults))
-                        {
-                            // Show results scroll, hide loading
-                            if (vm.AnalysisResults != null && !vm.IsAnalyzing)
-                            {
-                                AnalysisLoadingStack.Visibility = Visibility.Collapsed;
-                                AnalysisResultsScroll.Visibility = Visibility.Visible;
-                            }
-                        }
-                        else if (args.PropertyName == nameof(vm.IsAnalyzing))
-                        {
-                            // Show loading when analysis starts
-                            if (vm.IsAnalyzing)
-                            {
-                                AnalysisLoadingStack.Visibility = Visibility.Visible;
-                                AnalysisResultsScroll.Visibility = Visibility.Collapsed;
-                            }
-                        }
                     };
                 }
             };
@@ -109,6 +91,42 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
                 return isOpen ? "Hide LLM Analysis Panel" : "Show LLM Analysis Panel";
             }
             return "Show LLM Analysis Panel";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
+    /// Converter that returns Visible if RequirementAnalysis is not null, otherwise Collapsed
+    /// </summary>
+    public class HasAnalysisResultsConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return value != null ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
+    /// Converter that returns the inverse of a boolean as Visibility
+    /// </summary>
+    public class InverseBoolToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool boolValue)
+            {
+                return boolValue ? Visibility.Collapsed : Visibility.Visible;
+            }
+            return Visibility.Collapsed;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

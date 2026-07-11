@@ -113,19 +113,30 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             try
             {
                 IsAnalyzing = true;
-                AnalysisStatusText = "Analyzing…";
+                AnalysisStatusText = "Starting analysis…";
+                AnalysisResults = null; // Clear previous results
                 IsAnalysisModalOpen = true;
                 
+                AnalysisStatusText = "Sending to LLM…";
                 var success = await _mediator.AnalyzeRequirementAsync(CurrentRequirement);
+                
+                AnalysisStatusText = "Processing results…";
                 
                 // Capture analysis results from the requirement object
                 AnalysisResults = CurrentRequirement.Analysis;
                 
-                AnalysisStatusText = success ? "Analysis complete." : "Analysis completed with warnings.";
+                if (AnalysisResults == null)
+                {
+                    AnalysisStatusText = "No analysis results returned";
+                }
+                else
+                {
+                    AnalysisStatusText = success ? "✓ Analysis complete" : "⚠ Completed with warnings";
+                }
             }
             catch (Exception ex)
             {
-                AnalysisStatusText = $"Analysis failed: {ex.Message}";
+                AnalysisStatusText = $"✗ Error: {ex.Message}";
                 AnalysisResults = null;
             }
             finally
