@@ -780,7 +780,10 @@ FORMAT FOR EACH REQUIREMENT:
 
 ---
 ID: REQ-001
-Text: [Exact text from document - include numbers, references, constraints]
+Text: [Primary requirement sentence in approved format, e.g. The <ACTOR> shall <ACTION> when/while/where <CONDITION>. Include exact numbers and constraints]
+Purpose: [Why this requirement exists; concise engineering rationale tied to intent]
+Product State or Condition: [Required product state/operating condition/context for requirement applicability]
+Input(s) and Stimulus: [Inputs, triggers, and stimuli that drive behavior; include table references or values when applicable]
 Category: [Functional/Performance/Interface/Environmental/Safety/Design/Quality/Test/Compliance]
 Priority: [High/Medium/Low]
 Verification: [Test/Analysis/Inspection/Demonstration]
@@ -790,6 +793,8 @@ Source: [Section name, table name, or location]
 CRITICAL RULES:
 - Use exact wording from the document
 - Include ALL numbers, units, thresholds
+- Populate Text/Purpose/Product State or Condition/Input(s) and Stimulus for every requirement
+- Keep each field on a single line using clear prose (no blank fields)
 - If multiple related specs exist, extract each separately
 - Number sequentially from REQ-001
 - Scan the FULL document - check every section listed in STEP 1
@@ -898,13 +903,31 @@ For a technical ATP/SRS document, expect 15-50+ requirements minimum.";
                     return null;
                 }
 
+                var purpose = ExtractFieldValue(reqData, new[] { "Purpose" });
+                var productStateOrCondition = ExtractFieldValue(reqData, new[] { "Product State or Condition", "Product State", "State or Condition" });
+                var inputsAndStimulus = ExtractFieldValue(reqData, new[] { "Input(s) and Stimulus", "Inputs and Stimulus", "Inputs", "Stimulus" });
+
+                var descriptionSections = new List<string> { text };
+                if (!string.IsNullOrWhiteSpace(purpose))
+                {
+                    descriptionSections.Add($"Purpose: {purpose}");
+                }
+                if (!string.IsNullOrWhiteSpace(productStateOrCondition))
+                {
+                    descriptionSections.Add($"Product State or Condition: {productStateOrCondition}");
+                }
+                if (!string.IsNullOrWhiteSpace(inputsAndStimulus))
+                {
+                    descriptionSections.Add($"Input(s) and Stimulus: {inputsAndStimulus}");
+                }
+
                 // Build requirement object
                 var requirement = new Requirement
                 {
                     GlobalId = id,
                     Item = id,
                     Name = reqData.TryGetValue("Category", out var cat) ? cat : "Extracted Requirement",
-                    Description = text,
+                    Description = string.Join("\n\n", descriptionSections),
                     TraceReference = BuildRequirementTraceReference(attachment.Id, id, 0),
                     SourceDocumentName = attachment.FileName,
                     SourceAttachmentId = attachment.Id,
@@ -1277,7 +1300,10 @@ OUTPUT FORMAT (continue from REQ-{alreadyFound.Count + 1:D3}):
 
 ---
 ID: REQ-{alreadyFound.Count + 1:D3}
-Text: [Exact requirement text from document]
+Text: [Primary requirement sentence in approved format, e.g. The <ACTOR> shall <ACTION> when/while/where <CONDITION>. Include exact numbers and constraints]
+Purpose: [Why this requirement exists; concise engineering rationale tied to intent]
+Product State or Condition: [Required product state/operating condition/context for requirement applicability]
+Input(s) and Stimulus: [Inputs, triggers, and stimuli that drive behavior; include table references or values when applicable]
 Category: [Functional/Performance/Interface/Environmental/Safety/Design/Quality/Test/Compliance]
 Priority: [High/Medium/Low]
 Verification: [Test/Analysis/Inspection/Demonstration]

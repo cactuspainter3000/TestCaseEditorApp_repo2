@@ -24,7 +24,8 @@
         xmlns:tccviews="clr-namespace:TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Views"
         xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
         xmlns:conv="clr-namespace:TestCaseEditorApp.Converters"
-        Height="665" Width="1200"
+        Height="760" Width="1280"
+        MinHeight="700" MinWidth="1100"
         WindowStyle="None"
         Title="{Binding DisplayName, FallbackValue='Test Case Editor'}"
         ResizeMode="CanResizeWithGrip"
@@ -33,7 +34,7 @@
         AllowsTransparency="True"
         mc:Ignorable="d"
         Loaded="Window_Loaded"
-        d:DesignHeight="665" d:DesignWidth="1200">
+        d:DesignHeight="760" d:DesignWidth="1280">
 
     <Window.Resources>
         <conv:SectionSelectedConverter x:Key="SectionSelectedConverter" />

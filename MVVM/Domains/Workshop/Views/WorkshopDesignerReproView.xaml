@@ -1,0 +1,535 @@
+<UserControl x:Class="TestCaseEditorApp.MVVM.Domains.Workshop.Views.WorkshopDesignerReproView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignWidth="1200"
+             d:DesignHeight="760"
+             Background="{StaticResource Brush.Background.Menu}">
+
+    <UserControl.Resources>
+        <!-- Slightly darker border for this view only — override app-level Brush.Border.Subtle -->
+        <SolidColorBrush x:Key="Brush.Border.Subtle" Color="#333333"/>
+    </UserControl.Resources>
+
+    <TabControl Margin="12">
+        <TabItem Header="Jama Object">
+            <Grid Margin="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="10"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Main workshop composition canvas -->
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Requirements section -->
+                    <Border Grid.Column="0"
+                            BorderBrush="{StaticResource Brush.Border.Subtle}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="10"
+                            Background="{StaticResource Brush.Background.Menu}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="10"/>
+                                <RowDefinition Height="3*"/>
+                                <RowDefinition Height="10"/>
+                                <RowDefinition Height="2*"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding RequirementNameDisplay, FallbackValue='Requirement: (Name (not set))'}" 
+                                           FontWeight="Bold"
+                                           FontSize="16"
+                                           VerticalAlignment="Center"
+                                           Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                <Button Grid.Column="1"
+                                        Content="LLM Analyze"
+                                        Command="{Binding LlmAnalyzeRequirementCommand}"
+                                        Padding="10,4"
+                                        VerticalAlignment="Center"
+                                        Background="{StaticResource Brush.Background.Pill.Selected}"
+                                        Foreground="{StaticResource Brush.Accent.Primary}"
+                                        BorderBrush="{StaticResource Brush.Border.Accent}"
+                                        BorderThickness="1"/>
+                            </Grid>
+
+                            <Border Grid.Row="2"
+                                    BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Background="{StaticResource Brush.Background.Menu}"
+                                    Padding="10">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="8"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <WrapPanel Grid.Row="0">
+                                        <Border Background="{StaticResource Brush.Background.Header}" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="12" Margin="0,0,8,0" Padding="8,3">
+                                            <TextBlock Text="{Binding CurrentRequirement.Item, StringFormat=Item ID: {0}, TargetNullValue=Item ID: (not set), FallbackValue=Item ID: (not set)}" Foreground="{StaticResource Brush.Text.Secondary}" FontSize="11"/>
+                                        </Border>
+                                        <Border Background="{StaticResource Brush.Background.Header}" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="12" Margin="0,0,8,0" Padding="8,3">
+                                            <TextBlock Text="{Binding CurrentRequirement.GlobalId, StringFormat=Global ID: {0}, TargetNullValue=Global ID: (not set), FallbackValue=Global ID: (not set)}" Foreground="{StaticResource Brush.Text.Secondary}" FontSize="11"/>
+                                        </Border>
+                                        <Border Background="{StaticResource Brush.Background.Header}" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="12" Margin="0,0,8,0" Padding="8,3">
+                                            <TextBlock Text="{Binding CurrentRequirement.Status, StringFormat=Status: {0}, TargetNullValue=Status: (not set), FallbackValue=Status: (not set)}" Foreground="{StaticResource Brush.Text.Secondary}" FontSize="11"/>
+                                        </Border>
+                                        <Border Background="{StaticResource Brush.Background.Header}" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="12" Margin="0,0,8,0" Padding="8,3">
+                                            <TextBlock Text="{Binding CurrentRequirement.RequirementType, StringFormat=Requirement Type: {0}, TargetNullValue=Requirement Type: (not set), FallbackValue=Requirement Type: (not set)}" Foreground="{StaticResource Brush.Text.Secondary}" FontSize="11"/>
+                                        </Border>
+                                    </WrapPanel>
+
+                                    <Grid Grid.Row="2">
+                                        <Border BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="4" Padding="8" Background="{StaticResource Brush.Background.Header}">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="8"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="8"/>
+                                                    <RowDefinition Height="*"/>
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Template: <ACTOR> shall <ACTION> when <CONDITION>. | Purpose: | Product State or Condition: | Input(s): | Stimulus: -->
+                                                <TextBox Text="{Binding CurrentRequirement.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, TargetNullValue=(description), FallbackValue=(description)}" FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Primary}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="120" VerticalScrollBarVisibility="Disabled" Padding="6,4" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+
+                                                <Grid Grid.Row="2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="160"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="160"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <TextBlock Grid.Column="0" Margin="0,0,6,0" Text="Export Controlled" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                    <TextBox Grid.Column="1" Margin="0,0,12,0" Text="{Binding CurrentRequirement.ExportControlled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,2" MinHeight="22" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+
+                                                    <TextBlock Grid.Column="2" Margin="0,0,6,0" Text="Verification Method/s" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                    <TextBox Grid.Column="3" Margin="0,0,0,0" Text="{Binding CurrentRequirement.VerificationMethodRaw, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,2" MinHeight="22" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+                                                </Grid>
+
+                                                <Border Grid.Row="4"
+                                                        BorderBrush="{StaticResource Brush.Border.Default}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="4">
+                                                    <TabControl Background="{StaticResource Brush.Background.Header}"
+                                                                BorderThickness="0">
+                                                    <TabControl.Resources>
+                                                        <Style TargetType="{x:Type TabItem}">
+                                                            <Setter Property="Background" Value="{StaticResource Brush.Background.Header}"/>
+                                                            <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
+                                                            <Setter Property="BorderBrush" Value="Transparent"/>
+                                                            <Setter Property="BorderThickness" Value="1"/>
+                                                            <Setter Property="Padding" Value="20,8"/>
+                                                            <Setter Property="Margin" Value="0,0,2,0"/>
+                                                            <Setter Property="Template">
+                                                                <Setter.Value>
+                                                                    <ControlTemplate TargetType="TabItem">
+                                                                        <Border x:Name="Root"
+                                                                                Background="{TemplateBinding Background}"
+                                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                                                CornerRadius="4,4,0,0"
+                                                                                Padding="{TemplateBinding Padding}">
+                                                                            <ContentPresenter x:Name="ContentSite"
+                                                                                              ContentSource="Header"
+                                                                                              HorizontalAlignment="Center"
+                                                                                              VerticalAlignment="Center"/>
+                                                                        </Border>
+                                                                        <ControlTemplate.Triggers>
+                                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Focus}"/>
+                                                                            </Trigger>
+                                                                            <Trigger Property="IsSelected" Value="True">
+                                                                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Accent}"/>
+                                                                                <Setter TargetName="Root" Property="Background" Value="{StaticResource Brush.Background.Pill.Selected}"/>
+                                                                            </Trigger>
+                                                                        </ControlTemplate.Triggers>
+                                                                    </ControlTemplate>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </Style>
+                                                    </TabControl.Resources>
+                                                    <TabItem Header="Compliance">
+                                                        <Grid Margin="8">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="200"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="Auto"/>
+                                                            </Grid.RowDefinitions>
+
+                                                            <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,6,4" Text="Statement of Compliance" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                            <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,4" Text="{Binding CurrentRequirement.StatementOfCompliance, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,2" MinHeight="22" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+
+                                                            <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,6,0" Text="Compliance Rationale" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                            <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,0" Text="{Binding CurrentRequirement.ComplianceRationale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,3" MinHeight="40" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Disabled" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+                                                        </Grid>
+                                                    </TabItem>
+
+                                                    <TabItem Header="Validation">
+                                                        <Grid Margin="8">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="200"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="Auto"/>
+                                                            </Grid.RowDefinitions>
+
+                                                            <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,6,4" Text="Validation Method/s" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                            <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,4" Text="{Binding CurrentRequirement.ValidationMethodRaw, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,2" MinHeight="22" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+
+                                                            <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,6,0" Text="Validation Evidence" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                            <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,0" Text="{Binding CurrentRequirement.ValidationEvidence, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,3" MinHeight="40" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Disabled" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+                                                        </Grid>
+                                                    </TabItem>
+                                                    </TabControl>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+
+                            <Border Grid.Row="4"
+                                    BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Background="{StaticResource Brush.Background.Header}"
+                                    Padding="10">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="8"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Relationship Items" FontWeight="SemiBold" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                    <Grid Grid.Row="2">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Grid.Row="0" Margin="0,0,0,4" Text="Upstream Items" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                        <TextBox Grid.Row="1" Margin="0,0,0,8" Text="{Binding CurrentRequirement.UpstreamCrossInstanceRelationships, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinLines="1" MaxLines="20" TextWrapping="NoWrap" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto" Padding="6,4" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+
+                                        <TextBlock Grid.Row="2" Margin="0,0,0,4" Text="Downstream Items" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                        <TextBox Grid.Row="3" Margin="0,0,0,0" Text="{Binding CurrentRequirement.DownstreamCrossInstanceRelationships, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" MinLines="1" MaxLines="20" TextWrapping="NoWrap" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto" Padding="6,4" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- Test Cases section -->
+                    <Border Grid.Column="2"
+                            BorderBrush="{StaticResource Brush.Border.Subtle}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="10"
+                            Background="{StaticResource Brush.Background.Menu}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="10"/>
+                                <RowDefinition Height="3*"/>
+                                <RowDefinition Height="10"/>
+                                <RowDefinition Height="2*"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Test Case"
+                                           FontWeight="Bold"
+                                           FontSize="16"
+                                           VerticalAlignment="Center"
+                                           Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                <Button Grid.Column="1"
+                                        Content="LLM Analyze"
+                                        Padding="10,4"
+                                        VerticalAlignment="Center"
+                                        Background="{StaticResource Brush.Background.Pill.Selected}"
+                                        Foreground="{StaticResource Brush.Accent.Primary}"
+                                        BorderBrush="{StaticResource Brush.Border.Accent}"
+                                        BorderThickness="1"/>
+                            </Grid>
+
+                            <Border Grid.Row="2"
+                                    BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Background="{StaticResource Brush.Background.Menu}"
+                                    Padding="10">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="8"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <WrapPanel Grid.Row="0">
+                                        <Border Background="{StaticResource Brush.Background.Header}" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="12" Margin="0,0,8,0" Padding="8,3">
+                                            <TextBlock Text="{Binding CurrentRequirement.Item, StringFormat=Linked Requirement: {0}, TargetNullValue=Linked Requirement: (not set), FallbackValue=Linked Requirement: (not set)}" Foreground="{StaticResource Brush.Text.Secondary}" FontSize="11"/>
+                                        </Border>
+                                        <Border Background="{StaticResource Brush.Background.Header}" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="12" Margin="0,0,8,0" Padding="8,3">
+                                            <TextBlock Text="{Binding CurrentRequirement.GeneratedTestCases.Count, StringFormat=Cases: {0}, TargetNullValue=Cases: 0, FallbackValue=Cases: 0}" Foreground="{StaticResource Brush.Text.Secondary}" FontSize="11"/>
+                                        </Border>
+                                    </WrapPanel>
+
+                                    <Grid Grid.Row="2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="230"/>
+                                            <ColumnDefinition Width="8"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <Border Grid.Column="0" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="4" Padding="8" Background="{StaticResource Brush.Background.Header}">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="8"/>
+                                                    <RowDefinition Height="*"/>
+                                                </Grid.RowDefinitions>
+                                                <TextBlock Text="Test Case List" FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Primary}"/>
+                                                <ListBox Grid.Row="2" BorderThickness="0" Background="Transparent" Foreground="{StaticResource Brush.Text.Secondary}">
+                                                    <ListBoxItem Content="TC-2201 - Positive export check"/>
+                                                    <ListBoxItem Content="TC-2202 - Role denied"/>
+                                                    <ListBoxItem Content="TC-2203 - Region blocked"/>
+                                                    <ListBoxItem Content="TC-2204 - Audit event verified"/>
+                                                </ListBox>
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Grid.Column="2" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="4" Padding="8" Background="{StaticResource Brush.Background.Header}">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="8"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="6"/>
+                                                    <RowDefinition Height="*"/>
+                                                </Grid.RowDefinitions>
+                                                <TextBlock Text="Test Case Details" FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Primary}"/>
+                                                <TextBlock Grid.Row="2" Text="Steps, expected results, preconditions, and data setup placeholder area." TextWrapping="Wrap" Foreground="{StaticResource Brush.Text.Secondary}"/>
+                                                <TextBlock Grid.Row="4" Text="This pane can mirror Jama test item fields and custom metadata." TextWrapping="Wrap" Foreground="{StaticResource Brush.Text.Tertiary}"/>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+
+                            <Border Grid.Row="4"
+                                    BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Background="{StaticResource Brush.Background.Header}"
+                                    Padding="10">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="8"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Generation / Validation Output" FontWeight="SemiBold" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                    <TextBox Grid.Row="2" Text="Generation status, validation findings, and execution history placeholder." AcceptsReturn="True" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- Bottom global Jama Object lifecycle + navigation area -->
+                <Border Grid.Row="2"
+                        Background="{StaticResource Brush.Background.Menu}"
+                        BorderBrush="{StaticResource Brush.Border.Subtle}"
+                        BorderThickness="0"
+                        CornerRadius="8"
+                        Padding="12">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="1"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0"
+                                Background="{StaticResource Brush.Background.Header}"
+                            BorderBrush="Transparent"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="8,6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <WrapPanel VerticalAlignment="Center">
+                                <TextBlock Text="Jama Object Lifecycle"
+                                           VerticalAlignment="Center"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource Brush.Accent.Primary}"
+                                           Margin="0,0,10,0"/>
+
+                                <Border Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="10" Padding="8,2" Margin="0,0,6,0">
+                                    <TextBlock Text="{Binding TotalCount, StringFormat='All ({0})', FallbackValue='All (0)'}" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}"/>
+                                </Border>
+                                <Border Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="10" Padding="8,2" Margin="0,0,6,0">
+                                    <TextBlock Text="{Binding EditCount, StringFormat='Edit ({0})', FallbackValue='Edit (0)'}" FontSize="11" Foreground="{StaticResource Brush.Text.Secondary}"/>
+                                </Border>
+                                <Border Background="{StaticResource Brush.Background.Pill.Selected}" BorderBrush="{StaticResource Brush.Border.Accent}" BorderThickness="1" CornerRadius="10" Padding="8,2" Margin="0,0,6,0">
+                                    <TextBlock Text="{Binding StagedCount, StringFormat='Staged ({0})', FallbackValue='Staged (0)'}" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}" FontWeight="SemiBold"/>
+                                </Border>
+                                <Border Background="{StaticResource Brush.Background.Header}" BorderBrush="{StaticResource Brush.State.Success}" BorderThickness="1" CornerRadius="10" Padding="8,2">
+                                    <TextBlock Text="{Binding CommittedCount, StringFormat='Committed ({0})', FallbackValue='Committed (0)'}" FontSize="11" Foreground="{StaticResource Brush.State.Success}" FontWeight="SemiBold"/>
+                                </Border>
+                            </WrapPanel>
+
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center">
+                                <Button Content="Stage"
+                                    Command="{Binding StageCommand}"
+                                    Margin="0,0,6,0"
+                                    Padding="10,4"
+                                    MinWidth="108"
+                                    Background="{StaticResource Brush.Background.Header}"
+                                    Foreground="{StaticResource Brush.Text.Primary}"
+                                    BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                    BorderThickness="1"/>
+                                <Button Content="Unstage"
+                                    Command="{Binding UnstageCommand}"
+                                    Margin="0,0,8,0"
+                                    Padding="10,4"
+                                    MinWidth="118"
+                                    Background="{StaticResource Brush.Background.Header}"
+                                    Foreground="{StaticResource Brush.Text.Secondary}"
+                                    BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                    BorderThickness="1"/>
+                                <Button Content="{Binding CommitStagedButtonText, FallbackValue='Commit Staged (0)'}"
+                                    Command="{Binding CommitStagedCommand}"
+                                    Padding="14,5"
+                                    MinWidth="146"
+                                    FontWeight="SemiBold"
+                                    Background="{StaticResource Brush.Background.Pill.Selected}"
+                                    Foreground="{StaticResource Brush.Accent.Primary}"
+                                    BorderBrush="{StaticResource Brush.Border.Accent}"
+                                    BorderThickness="1"/>
+                            </StackPanel>
+                        </Grid>
+                        </Border>
+
+                        <Border Grid.Row="2" Background="{StaticResource Brush.Border.Subtle}"/>
+
+                        <Grid Grid.Row="4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0"
+                                       Text="Jama Object Navigation"
+                                       VerticalAlignment="Center"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource Brush.Accent.Primary}"/>
+
+                            <StackPanel Grid.Column="2"
+                                        Orientation="Horizontal"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="Unstaged edits are saved locally and not pushed to Jama."
+                                           VerticalAlignment="Center"
+                                           FontSize="11"
+                                           Foreground="{StaticResource Brush.Text.Tertiary}"
+                                           Margin="0,0,14,0"/>
+
+                                <Button Content="◀"
+                                        Command="{Binding PreviousRequirementCommand}"
+                                        Style="{DynamicResource SmallButtonStyle}"
+                                        Width="28"
+                                        Height="24"
+                                        Margin="0,0,6,0"
+                                        ToolTip="Previous Jama object"/>
+
+                                <ComboBox Width="280"
+                                          Height="24"
+                                          Margin="0,0,6,0"
+                                          VerticalContentAlignment="Center"
+                                          ItemsSource="{Binding Requirements}"
+                                          SelectedItem="{Binding SelectedRequirement, Mode=TwoWay}"
+                                          ToolTip="Select a Jama object">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock TextTrimming="CharacterEllipsis">
+                                                <Run Text="{Binding Item}"/>
+                                                <Run Text=" — "/>
+                                                <Run Text="{Binding Name}"/>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+
+                                <Button Content="▶"
+                                        Command="{Binding NextRequirementCommand}"
+                                        Style="{DynamicResource SmallButtonStyle}"
+                                        Width="28"
+                                        Height="24"
+                                        ToolTip="Next Jama object"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+        </TabItem>
+
+        <TabItem Header="Attachment Scraper">
+            <Grid Margin="8">
+                <Border BorderBrush="{StaticResource Brush.Border.Subtle}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="12"
+                        Background="{StaticResource Brush.Background.Menu}">
+                    <StackPanel>
+                        <TextBlock Text="Attachment Scraper"
+                                   FontWeight="Bold"
+                                   FontSize="16"
+                                   Foreground="{StaticResource Brush.Accent.Primary}"/>
+                        <TextBlock Text="Designer placeholder area for attachment selection, scrape controls, and extraction output"
+                                   Margin="0,8,0,0"
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource Brush.Text.Tertiary}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </TabItem>
+    </TabControl>
+</UserControl>

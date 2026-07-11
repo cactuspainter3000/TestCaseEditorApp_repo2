@@ -91,6 +91,13 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 return new WorkshopShellViewModel(requirementsHub, testCaseGenerator);
             });
 
+            // Workshop Repro ViewModel (SINGLETON - drives WorkshopDesignerReproView)
+            services.AddSingleton<WorkshopReproViewModel>(provider =>
+            {
+                var mediator = provider.GetRequiredService<IRequirementsMediator>();
+                return new WorkshopReproViewModel(mediator);
+            });
+
             // Main ViewModel (TRANSIENT - matches existing app lifecycle)
             services.AddTransient<MainViewModel>(provider =>
             {

@@ -143,20 +143,17 @@ namespace TestCaseEditorApp.Services
                     throw new InvalidOperationException("App.ServiceProvider is null - DI container not initialized yet");
                 }
                 
-                // Workshop shell composes requirements and test case authoring as peer areas.
-                var workshopShellViewModel = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels.WorkshopShellViewModel>();
+                // Designer-first repro mode: route workshop section directly to XAML view.
+                var workshopDesignerReproView = new TestCaseEditorApp.MVVM.Domains.Workshop.Views.WorkshopDesignerReproView();
+                var workshopReproVM = App.ServiceProvider.GetService<TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels.WorkshopReproViewModel>();
+                workshopDesignerReproView.DataContext = workshopReproVM;
                 var blankHeaderVM = new TestCaseEditorApp.MVVM.ViewModels.PlaceholderViewModel("");
-
-                if (workshopShellViewModel == null)
-                {
-                    throw new InvalidOperationException("WorkshopShellViewModel not resolved from DI container");
-                }
                 
                 return new ViewConfiguration(
                     sectionName: "Workshop",
                     titleViewModel: null, // Workshop mode handles title internally
                     headerViewModel: blankHeaderVM,
-                    contentViewModel: workshopShellViewModel,
+                    contentViewModel: workshopDesignerReproView,
                     navigationViewModel: null, // Workshop mode handles navigation internally
                     notificationViewModel: null,
                     context: context
