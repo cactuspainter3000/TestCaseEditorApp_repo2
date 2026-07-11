@@ -91,6 +91,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Events
         }
 
         /// <summary>
+        /// Published during requirement analysis to provide progress updates
+        /// Tracks analysis progress through stages: uploading, processing, extracting
+        /// </summary>
+        public class AnalysisProgress
+        {
+            public Requirement Requirement { get; set; } = null!;
+            public string Stage { get; set; } = string.Empty; // "Uploading", "Processing", "Extracting"
+            public int PercentComplete { get; set; } // 0-100
+            public string StatusMessage { get; set; } = string.Empty;
+            public DateTime UpdatedAt { get; set; } = DateTime.Now;
+        }
+
+        /// <summary>
         /// Published when the requirements collection changes (add/remove/clear)
         /// </summary>
         public class RequirementsCollectionChanged

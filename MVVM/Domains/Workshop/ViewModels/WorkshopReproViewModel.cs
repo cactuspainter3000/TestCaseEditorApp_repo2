@@ -22,7 +22,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
     public partial class WorkshopReproViewModel : ObservableObject
     {
         private readonly IRequirementsMediator _mediator;
-        private CancellationTokenSource? _statusAnimationCts;
 
         // Per-requirement lifecycle state — stored here, not on the model
         private readonly Dictionary<string, RequirementLifecycleStage> _lifecycleStates = new();
@@ -84,6 +83,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
             _mediator.Subscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelected);
             _mediator.Subscribe<RequirementsEvents.RequirementAnalysisStarted>(OnAnalysisStarted);
+            _mediator.Subscribe<RequirementsEvents.AnalysisProgress>(OnAnalysisProgress);
             _mediator.Subscribe<RequirementsEvents.RequirementAnalyzed>(OnAnalysisCompleted);
             _mediator.Subscribe<RequirementsEvents.RAGAnalysisFallback>(OnRagFallback);
             _mediator.Requirements.CollectionChanged += (_, __) =>
@@ -109,18 +109,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         {
             AnalysisStatusText = $"Analyzing…";
             AnalysisProgressValue = 0;
-            
-            // Start animated progress bar
-            _statusAnimationCts?.Cancel();
-            _statusAnimationCts = new CancellationTokenSource();
-            _ = AnimateProgressBarAsync(_statusAnimationCts.Token);
+            IsAnalyzing = true;
+        }
+
+        private void OnAnalysisProgress(RequirementsEvents.AnalysisProgress e)
+        {
+            if (e.Requirement == CurrentRequirement)
+            {
+                AnalysisStatusText = e.StatusMessage;
+                AnalysisProgressValue = e.PercentComplete;
+            }
         }
 
         private void OnAnalysisCompleted(RequirementsEvents.RequirementAnalyzed e)
         {
-            // Stop animation and complete the progress bar
-            _statusAnimationCts?.Cancel();
-            _statusAnimationCts = null;
+            // Complete the progress bar
             AnalysisProgressValue = 100;
             
             // Capture results from the event rather than polling after await
@@ -139,40 +142,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private void OnRagFallback(RequirementsEvents.RAGAnalysisFallback e)
         {
             AnalysisStatusText = $"↻ Retrying via direct LLM…";
-        }
-
-        /// <summary>
-        /// Animates a progress bar from 0% to ~95% during LLM analysis.
-        /// Simulates smooth progress even though we don't have actual progress data.
-        /// Stalls near 95% to avoid false confidence before completion.
-        /// </summary>
-        private async Task AnimateProgressBarAsync(CancellationToken ct)
-        {
-            const double targetProgress = 95.0;
-            const int totalDurationMs = 45000; // 45 seconds
-            const int updateIntervalMs = 100;  // Update every 100ms
-            
-            try
-            {
-                int elapsedMs = 0;
-                while (!ct.IsCancellationRequested && elapsedMs < totalDurationMs)
-                {
-                    // Eased progress: starts fast, slows down approaching the target
-                    double ratio = (double)elapsedMs / totalDurationMs;
-                    double easedRatio = ratio * ratio; // Quadratic ease-out for natural feel
-                    AnalysisProgressValue = easedRatio * targetProgress;
-                    
-                    await Task.Delay(updateIntervalMs, ct);
-                    elapsedMs += updateIntervalMs;
-                }
-                
-                // Hold at ~95% until actual completion
-                AnalysisProgressValue = targetProgress;
-            }
-            catch (OperationCanceledException)
-            {
-                // Animation was cancelled when analysis completed
-            }
         }
 
         private void ApplyCurrentRequirement(Requirement? req)

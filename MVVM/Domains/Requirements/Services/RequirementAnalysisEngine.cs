@@ -40,18 +40,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
 
             try
             {
-                progressCallback?.Invoke("Initializing analysis...");
+                progressCallback?.Invoke("Uploading|Initializing analysis...|0");
 
                 // Check if we already have recent analysis
                 if (requirement.Analysis?.IsAnalyzed == true && 
                     requirement.Analysis.Timestamp > DateTime.UtcNow.AddHours(-1))
                 {
                     _logger.LogDebug("[AnalysisEngine] Using cached analysis for {RequirementId}", requirement.Item);
-                    progressCallback?.Invoke("Using cached analysis result");
+                    progressCallback?.Invoke("Processing|Using cached analysis result|25");
                     return requirement.Analysis;
                 }
 
-                progressCallback?.Invoke("Running INCOSE structural check...");
+                progressCallback?.Invoke("Processing|Running INCOSE structural check...|30");
 
                 // --- Deterministic INCOSE check (no LLM, instant) ---
                 var incoseResult = _incoseChecker.Check(requirement.Name ?? requirement.Description ?? string.Empty);
@@ -61,15 +61,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     requirement.Item, incoseResult.RequirementType, incoseResult.Passed, incoseIssues.Count);
 
                 if (incoseIssues.Count > 0)
-                    progressCallback?.Invoke($"INCOSE structural issues found: {incoseIssues.Count}");
+                    progressCallback?.Invoke($"Processing|INCOSE structural issues found: {incoseIssues.Count}|40");
 
-                progressCallback?.Invoke("Analyzing requirement quality...");
+                progressCallback?.Invoke("Processing|Analyzing requirement quality with LLM...|50");
 
                 // Delegate to the existing analysis service with streaming support for timeout enforcement
                 var analysis = await _analysisService.AnalyzeRequirementWithStreamingAsync(
                     requirement, 
                     onPartialResult: null, // Engine doesn't need partial results
-                    onProgressUpdate: progress => progressCallback?.Invoke(progress),
+                    onProgressUpdate: progress => 
+                    {
+                        // Enhance the progress message with stage and percentage
+                        progressCallback?.Invoke($"Processing|{progress}|65");
+                    },
                     cancellationToken: cancellationToken);
 
                 if (analysis.IsAnalyzed)
@@ -93,7 +97,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     _logger.LogInformation("[AnalysisEngine] Analysis completed successfully for {RequirementId}. Original Quality: {OriginalScore}, Issues: {IssueCount}", 
                         requirement.Item, analysis.OriginalQualityScore, analysis.Issues?.Count ?? 0);
                     
-                    progressCallback?.Invoke($"Analysis complete. Your requirement quality: {analysis.OriginalQualityScore}/10");
+                    progressCallback?.Invoke($"Extracting|Analysis complete. Your requirement quality: {analysis.OriginalQualityScore}/10|90");
 
                     // Store the result on the requirement
                     requirement.Analysis = analysis;
@@ -103,7 +107,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     _logger.LogWarning("[AnalysisEngine] Analysis failed for {RequirementId}: {ErrorMessage}", 
                         requirement.Item, analysis.ErrorMessage);
                     
-                    progressCallback?.Invoke($"Analysis failed: {analysis.ErrorMessage}");
+                    progressCallback?.Invoke($"Extracting|Analysis failed: {analysis.ErrorMessage}|85");
                 }
 
                 return analysis;
@@ -111,7 +115,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
             catch (OperationCanceledException)
             {
                 _logger.LogWarning("[AnalysisEngine] Analysis cancelled for {RequirementId}", requirement.Item);
-                progressCallback?.Invoke("Analysis cancelled");
+                progressCallback?.Invoke("Extracting|Analysis cancelled|0");
                 
                 return new RequirementAnalysis
                 {
@@ -124,7 +128,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[AnalysisEngine] Unexpected error analyzing {RequirementId}", requirement.Item);
-                progressCallback?.Invoke("Analysis failed due to unexpected error");
+                progressCallback?.Invoke("Extracting|Analysis failed due to unexpected error|0");
                 
                 return new RequirementAnalysis
                 {

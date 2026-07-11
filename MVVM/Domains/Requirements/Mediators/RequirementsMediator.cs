@@ -523,7 +523,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 {
                     _logger.LogInformation("[RequirementsMediator] Using ENHANCED Requirements domain analysis engine (no fallback enabled)");
                     analysis = await _analysisEngine.AnalyzeRequirementAsync(requirement, 
-                        progress => UpdateProgress($"Analysis progress: {progress}", 75));
+                        progress => OnAnalysisProgressUpdate(requirement, progress));
                 }
                 else
                 {
@@ -630,6 +630,53 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     analysisAttemptId,
                     requirement.GlobalId ?? "null",
                     IsAnalyzing);
+            }
+        }
+
+        /// <summary>
+        /// Handles progress updates from the analysis engine and publishes AnalysisProgress events.
+        /// Progress format: "Stage|Message|Percentage" where Stage is one of: Uploading, Processing, Extracting
+        /// </summary>
+        private void OnAnalysisProgressUpdate(Requirement requirement, string progressMessage)
+        {
+            if (string.IsNullOrEmpty(progressMessage))
+                return;
+
+            try
+            {
+                // Parse the structured progress message
+                var parts = progressMessage.Split('|');
+                if (parts.Length < 3)
+                {
+                    // Fallback for non-structured messages
+                    UpdateProgress(progressMessage, 75);
+                    return;
+                }
+
+                var stage = parts[0].Trim(); // "Uploading", "Processing", "Extracting"
+                var message = parts[1].Trim();
+                if (!int.TryParse(parts[2].Trim(), out var percentage))
+                    percentage = 75;
+
+                // Update the UI progress bar via mediator
+                UpdateProgress(message, percentage);
+
+                // Publish the structured AnalysisProgress event
+                PublishEvent(new RequirementsEvents.AnalysisProgress
+                {
+                    Requirement = requirement,
+                    Stage = stage,
+                    PercentComplete = percentage,
+                    StatusMessage = message
+                });
+
+                _logger.LogDebug("[AnalysisProgress] Stage={Stage} Percentage={Percent}% Message={Message}", 
+                    stage, percentage, message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[AnalysisProgress] Failed to parse progress message: {Message}", progressMessage);
+                UpdateProgress(progressMessage, 75);
             }
         }
 
