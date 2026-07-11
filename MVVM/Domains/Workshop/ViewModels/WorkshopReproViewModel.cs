@@ -184,6 +184,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             AnalysisStatusText = string.Empty;
         }
 
+        [RelayCommand]
+        private void ToggleAnalysisModal()
+        {
+            IsAnalysisModalOpen = !IsAnalysisModalOpen;
+            if (!IsAnalysisModalOpen)
+            {
+                AnalysisResults = null;
+                AnalysisStatusText = string.Empty;
+            }
+        }
+
         [RelayCommand(CanExecute = nameof(CanNavigatePrevious))]
         private void PreviousRequirement()
         {

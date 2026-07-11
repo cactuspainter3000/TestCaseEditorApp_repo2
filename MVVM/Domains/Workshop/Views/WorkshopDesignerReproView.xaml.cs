@@ -1,6 +1,9 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
+using System.Globalization;
 using TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
@@ -49,6 +52,26 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
                     vm.CloseAnalysisModalCommand.Execute(null);
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Converter that displays "Hide LLM Analysis Panel" when modal is open, "Show LLM Analysis Panel" when closed
+    /// </summary>
+    public class BoolToAnalysisButtonTextConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool isOpen)
+            {
+                return isOpen ? "Hide LLM Analysis Panel" : "Show LLM Analysis Panel";
+            }
+            return "Show LLM Analysis Panel";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
         }
     }
 }
