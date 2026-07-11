@@ -159,7 +159,7 @@
                                                 </Grid.RowDefinitions>
 
                                                 <!-- Template: <ACTOR> shall <ACTION> when <CONDITION>. | Purpose: | Product State or Condition: | Input(s): | Stimulus: -->
-                                                <TextBox Text="{Binding CurrentRequirement.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, TargetNullValue=(description), FallbackValue=(description)}" FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Primary}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="120" VerticalScrollBarVisibility="Disabled" Padding="6,4" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+                                                <TextBox Text="{Binding CurrentRequirement.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, TargetNullValue=(description), FallbackValue=(description)}" FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Primary}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="120" MaxHeight="240" VerticalScrollBarVisibility="Auto" Padding="6,4" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
 
                                                 <Grid Grid.Row="2">
                                                     <Grid.ColumnDefinitions>
@@ -180,82 +180,129 @@
                                                         BorderBrush="{StaticResource Brush.Border.Default}"
                                                         BorderThickness="1"
                                                         CornerRadius="4">
-                                                    <TabControl Background="{StaticResource Brush.Background.Header}"
-                                                                BorderThickness="0">
-                                                    <TabControl.Resources>
-                                                        <Style TargetType="{x:Type TabItem}">
-                                                            <Setter Property="Background" Value="{StaticResource Brush.Background.Header}"/>
-                                                            <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
-                                                            <Setter Property="BorderBrush" Value="Transparent"/>
-                                                            <Setter Property="BorderThickness" Value="1"/>
-                                                            <Setter Property="Padding" Value="20,8"/>
-                                                            <Setter Property="Margin" Value="0,0,2,0"/>
-                                                            <Setter Property="Template">
-                                                                <Setter.Value>
-                                                                    <ControlTemplate TargetType="TabItem">
-                                                                        <Border x:Name="Root"
-                                                                                Background="{TemplateBinding Background}"
-                                                                                BorderBrush="{TemplateBinding BorderBrush}"
-                                                                                BorderThickness="{TemplateBinding BorderThickness}"
-                                                                                CornerRadius="4,4,0,0"
-                                                                                Padding="{TemplateBinding Padding}">
-                                                                            <ContentPresenter x:Name="ContentSite"
-                                                                                              ContentSource="Header"
-                                                                                              HorizontalAlignment="Center"
-                                                                                              VerticalAlignment="Center"/>
-                                                                        </Border>
-                                                                        <ControlTemplate.Triggers>
-                                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Focus}"/>
-                                                                            </Trigger>
-                                                                            <Trigger Property="IsSelected" Value="True">
-                                                                                <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Accent}"/>
-                                                                                <Setter TargetName="Root" Property="Background" Value="{StaticResource Brush.Background.Pill.Selected}"/>
-                                                                            </Trigger>
-                                                                        </ControlTemplate.Triggers>
-                                                                    </ControlTemplate>
-                                                                </Setter.Value>
-                                                            </Setter>
-                                                        </Style>
-                                                    </TabControl.Resources>
-                                                    <TabItem Header="Compliance">
-                                                        <Grid Margin="8">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="200"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <Grid.RowDefinitions>
-                                                                <RowDefinition Height="Auto"/>
-                                                                <RowDefinition Height="Auto"/>
-                                                            </Grid.RowDefinitions>
+                                                    <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto"/>
+                                                            <RowDefinition Height="Auto"/>
+                                                        </Grid.RowDefinitions>
 
-                                                            <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,6,4" Text="Statement of Compliance" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
-                                                            <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,4" Text="{Binding CurrentRequirement.StatementOfCompliance, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,2" MinHeight="22" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+                                                        <!-- Collapsible Header -->
+                                                        <Border Grid.Row="0"
+                                                                Background="{StaticResource Brush.Background.Header}"
+                                                                BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                                                BorderThickness="0,0,0,1"
+                                                                Padding="8,4">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock Text="▼" 
+                                                                           FontSize="10" 
+                                                                           Foreground="{StaticResource Brush.Accent.Primary}"
+                                                                           Margin="0,0,8,0"
+                                                                           VerticalAlignment="Center"
+                                                                           Visibility="{Binding IsComplianceExpanded, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                                                <TextBlock Text="▶" 
+                                                                           FontSize="10" 
+                                                                           Foreground="{StaticResource Brush.Accent.Primary}"
+                                                                           Margin="0,0,8,0"
+                                                                           VerticalAlignment="Center"
+                                                                           Visibility="{Binding IsComplianceExpanded, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                                                <TextBlock Grid.Column="1"
+                                                                           Text="Compliance &amp; Validation"
+                                                                           FontWeight="SemiBold"
+                                                                           Foreground="{StaticResource Brush.Accent.Primary}"
+                                                                           VerticalAlignment="Center"/>
+                                                                <Button Grid.Column="1"
+                                                                        HorizontalAlignment="Right"
+                                                                        Command="{Binding ToggleComplianceExpandedCommand}"
+                                                                        Background="Transparent"
+                                                                        BorderThickness="0"
+                                                                        Cursor="Hand"/>
+                                                            </Grid>
+                                                        </Border>
 
-                                                            <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,6,0" Text="Compliance Rationale" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
-                                                            <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,0" Text="{Binding CurrentRequirement.ComplianceRationale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,3" MinHeight="40" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Disabled" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
-                                                        </Grid>
-                                                    </TabItem>
+                                                        <!-- Collapsible Content -->
+                                                        <TabControl Grid.Row="1" 
+                                                                    Background="{StaticResource Brush.Background.Header}"
+                                                                    BorderThickness="0"
+                                                                    Visibility="{Binding IsComplianceExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                            <TabControl.Resources>
+                                                                <Style TargetType="{x:Type TabItem}">
+                                                                    <Setter Property="Background" Value="{StaticResource Brush.Background.Header}"/>
+                                                                    <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
+                                                                    <Setter Property="BorderBrush" Value="Transparent"/>
+                                                                    <Setter Property="BorderThickness" Value="1"/>
+                                                                    <Setter Property="Padding" Value="20,8"/>
+                                                                    <Setter Property="Margin" Value="0,0,2,0"/>
+                                                                    <Setter Property="Template">
+                                                                        <Setter.Value>
+                                                                            <ControlTemplate TargetType="TabItem">
+                                                                                <Border x:Name="Root"
+                                                                                        Background="{TemplateBinding Background}"
+                                                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                                                        CornerRadius="4,4,0,0"
+                                                                                        Padding="{TemplateBinding Padding}">
+                                                                                    <ContentPresenter x:Name="ContentSite"
+                                                                                                      ContentSource="Header"
+                                                                                                      HorizontalAlignment="Center"
+                                                                                                      VerticalAlignment="Center"/>
+                                                                                </Border>
+                                                                                <ControlTemplate.Triggers>
+                                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                                        <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Focus}"/>
+                                                                                    </Trigger>
+                                                                                    <Trigger Property="IsSelected" Value="True">
+                                                                                        <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Accent}"/>
+                                                                                        <Setter TargetName="Root" Property="Background" Value="{StaticResource Brush.Background.Pill.Selected}"/>
+                                                                                    </Trigger>
+                                                                                </ControlTemplate.Triggers>
+                                                                            </ControlTemplate>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </Style>
+                                                            </TabControl.Resources>
+                                                            <TabItem Header="Compliance">
+                                                                <Grid Margin="8">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="200"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Grid.RowDefinitions>
+                                                                        <RowDefinition Height="Auto"/>
+                                                                        <RowDefinition Height="Auto"/>
+                                                                    </Grid.RowDefinitions>
 
-                                                    <TabItem Header="Validation">
-                                                        <Grid Margin="8">
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="200"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                            </Grid.ColumnDefinitions>
-                                                            <Grid.RowDefinitions>
-                                                                <RowDefinition Height="Auto"/>
-                                                                <RowDefinition Height="Auto"/>
-                                                            </Grid.RowDefinitions>
+                                                                    <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,6,4" Text="Statement of Compliance" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                                    <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,4" Text="{Binding CurrentRequirement.StatementOfCompliance, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,2" MinHeight="22" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
 
-                                                            <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,6,4" Text="Validation Method/s" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
-                                                            <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,4" Text="{Binding CurrentRequirement.ValidationMethodRaw, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,2" MinHeight="22" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+                                                                    <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,6,0" Text="Compliance Rationale" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                                    <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,0" Text="{Binding CurrentRequirement.ComplianceRationale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,3" MinHeight="40" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Disabled" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+                                                                </Grid>
+                                                            </TabItem>
 
-                                                            <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,6,0" Text="Validation Evidence" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
-                                                            <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,0" Text="{Binding CurrentRequirement.ValidationEvidence, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,3" MinHeight="40" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Disabled" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
-                                                        </Grid>
-                                                    </TabItem>
-                                                    </TabControl>
+                                                            <TabItem Header="Validation">
+                                                                <Grid Margin="8">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="200"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Grid.RowDefinitions>
+                                                                        <RowDefinition Height="Auto"/>
+                                                                        <RowDefinition Height="Auto"/>
+                                                                    </Grid.RowDefinitions>
+
+                                                                    <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,6,4" Text="Validation Method/s" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                                    <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,4" Text="{Binding CurrentRequirement.ValidationMethodRaw, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,2" MinHeight="22" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+
+                                                                    <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,6,0" Text="Validation Evidence" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                                                    <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,0" Text="{Binding CurrentRequirement.ValidationEvidence, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,3" MinHeight="40" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Disabled" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+                                                                </Grid>
+                                                            </TabItem>
+                                                        </TabControl>
+                                                    </Grid>
                                                 </Border>
                                             </Grid>
                                         </Border>

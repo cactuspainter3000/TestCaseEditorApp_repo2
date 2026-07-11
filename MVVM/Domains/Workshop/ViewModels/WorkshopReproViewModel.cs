@@ -53,6 +53,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         [ObservableProperty]
         private RequirementAnalysis? analysisResults;
 
+        [ObservableProperty]
+        private bool isComplianceExpanded;
+
         public int TotalCount => _mediator.Requirements.Count;
 
         public string CommitStagedButtonText => $"Commit Staged ({StagedCount})";
@@ -228,6 +231,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 AnalysisResults = null;
                 AnalysisStatusText = string.Empty;
             }
+        }
+
+        [RelayCommand]
+        private void ToggleComplianceExpanded()
+        {
+            IsComplianceExpanded = !IsComplianceExpanded;
         }
 
         [RelayCommand(CanExecute = nameof(CanNavigatePrevious))]
