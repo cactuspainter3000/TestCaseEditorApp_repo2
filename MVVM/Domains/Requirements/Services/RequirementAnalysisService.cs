@@ -2076,6 +2076,18 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
 
             try
             {
+                var preflightDiagnostics = BuildRawResponseDiagnostics(rawResponse);
+                if (preflightDiagnostics.Contains("ParseState=InvalidJson", StringComparison.OrdinalIgnoreCase) &&
+                    LooksLikeRequirementAnalysisSchema(rawResponse))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[RequirementAnalysisService] Skipping compliance envelope validation for {requirementItem} " +
+                        "because response appears to be truncated JSON with recognizable analysis schema. " +
+                        "Parser repair path will handle it.");
+
+                    return rawResponse;
+                }
+
                 var complianceConfig = new ComplianceConfig
                 {
                     OperationName = $"RequirementAnalysis.{requirementItem}",
@@ -2171,6 +2183,19 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                     $"[RequirementAnalysisService] Compliance validation failed for {requirementItem}: {ex.Message}");
                 throw;
             }
+        }
+
+        private static bool LooksLikeRequirementAnalysisSchema(string response)
+        {
+            if (string.IsNullOrWhiteSpace(response))
+            {
+                return false;
+            }
+
+            return response.Contains("OriginalQualityScore", StringComparison.OrdinalIgnoreCase)
+                && response.Contains("Issues", StringComparison.OrdinalIgnoreCase)
+                && (response.Contains("Recommendations", StringComparison.OrdinalIgnoreCase)
+                    || response.Contains("ImprovedRequirement", StringComparison.OrdinalIgnoreCase));
         }
 
         private static EnvelopeSchema BuildRequirementAnalysisEnvelopeSchema()
