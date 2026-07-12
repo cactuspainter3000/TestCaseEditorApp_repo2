@@ -502,7 +502,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 requirement.Item ?? "null");
 
             IsAnalyzing = true;
-            ShowProgress($"Analyzing requirement {requirement.GlobalId}...", 0);
 
             PublishEvent(new RequirementsEvents.RequirementAnalysisStarted
             {
@@ -514,8 +513,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
 
             try
             {
-                UpdateProgress("Running LLM analysis...", 50);
-
                 RequirementAnalysis analysis;
 
                 // ENHANCED SYSTEM: ALWAYS use new Requirements domain analysis engine (no fallback)
@@ -564,7 +561,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 });
 
                 IsDirty = true;
-                HideProgress();
                 if (analysisSucceeded)
                 {
                     ShowNotification($"Analysis completed for {requirement.GlobalId}", DomainNotificationType.Success);
@@ -605,7 +601,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             }
             catch (Exception ex)
             {
-                HideProgress();
                 ShowNotification($"Analysis failed: {ex.Message}", DomainNotificationType.Error);
                 _logger.LogError(ex, "[ANALYSIS_TRACE] MEDIATOR_FAIL Attempt={AttemptId} Requirement={RequirementId}",
                     analysisAttemptId,
@@ -648,8 +643,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 var parts = progressMessage.Split('|');
                 if (parts.Length < 3)
                 {
-                    // Fallback for non-structured messages
-                    UpdateProgress(progressMessage, 75);
+                    // Fallback for non-structured messages: ignore coordinator updates for modal flow,
+                    // but still allow event-driven modal status updates where applicable.
                     return;
                 }
 
@@ -657,9 +652,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 var message = parts[1].Trim();
                 if (!int.TryParse(parts[2].Trim(), out var percentage))
                     percentage = 75;
-
-                // Update the UI progress bar via mediator
-                UpdateProgress(message, percentage);
 
                 // Publish the structured AnalysisProgress event
                 PublishEvent(new RequirementsEvents.AnalysisProgress
@@ -676,7 +668,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "[AnalysisProgress] Failed to parse progress message: {Message}", progressMessage);
-                UpdateProgress(progressMessage, 75);
             }
         }
 
