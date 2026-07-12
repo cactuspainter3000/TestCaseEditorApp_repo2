@@ -199,15 +199,23 @@ namespace TestCaseEditorApp.Services
                 sb.AppendLine($"Total Messages: {history.Count}");
                 sb.AppendLine($"Total Duration: {totalDuration:F2}ms ({TimeSpan.FromMilliseconds(totalDuration):hh\\:mm\\:ss\\.fff})");
 
-                // Calculate average message duration
-                var avgDuration = history.Where(t => t.DurationMs > 0).Average(t => t.DurationMs);
-                sb.AppendLine($"Average Message Duration: {avgDuration:F2}ms");
-
-                // Find longest-persisting message
-                var longestMessage = history.OrderByDescending(t => t.DurationMs).FirstOrDefault();
-                if (longestMessage != null)
+                // Calculate average message duration (guard against empty/zero-duration sequences)
+                var completedDurations = history.Where(t => t.DurationMs > 0).ToList();
+                if (completedDurations.Count > 0)
                 {
-                    sb.AppendLine($"Longest Message Duration: {longestMessage.DurationMs:F2}ms - [{longestMessage.Stage}] {longestMessage.Message}");
+                    var avgDuration = completedDurations.Average(t => t.DurationMs);
+                    sb.AppendLine($"Average Message Duration: {avgDuration:F2}ms");
+
+                    // Find longest-persisting completed message
+                    var longestMessage = completedDurations.OrderByDescending(t => t.DurationMs).FirstOrDefault();
+                    if (longestMessage != null)
+                    {
+                        sb.AppendLine($"Longest Message Duration: {longestMessage.DurationMs:F2}ms - [{longestMessage.Stage}] {longestMessage.Message}");
+                    }
+                }
+                else
+                {
+                    sb.AppendLine("Average Message Duration: n/a (no completed message durations recorded)");
                 }
 
                 // Progress rate analysis

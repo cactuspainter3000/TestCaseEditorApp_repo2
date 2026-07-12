@@ -558,8 +558,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     ErrorMessage = analysisSucceeded ? null : analysisErrorMessage
                 });
 
-                // Generate timing report for progress diagnostics
-                _progressTimer.GenerateTimingReport(requirement);
+                // Generate timing report for progress diagnostics (non-blocking)
+                try
+                {
+                    _progressTimer.GenerateTimingReport(requirement);
+                }
+                catch (Exception timerEx)
+                {
+                    _logger.LogWarning(timerEx, "[AnalysisProgress] Timing report generation failed for {RequirementId}", requirement.GlobalId ?? requirement.Item);
+                }
 
                 // Publish RequirementUpdated to mark workspace dirty
                 PublishEvent(new RequirementsEvents.RequirementUpdated
@@ -626,8 +633,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     ErrorMessage = ex.Message
                 });
 
-                // Generate timing report for progress diagnostics (even for failed analysis)
-                _progressTimer.GenerateTimingReport(requirement);
+                // Generate timing report for progress diagnostics (even for failed analysis, non-blocking)
+                try
+                {
+                    _progressTimer.GenerateTimingReport(requirement);
+                }
+                catch (Exception timerEx)
+                {
+                    _logger.LogWarning(timerEx, "[AnalysisProgress] Timing report generation failed for {RequirementId}", requirement.GlobalId ?? requirement.Item);
+                }
 
                 _logger.LogError(ex, "Requirement analysis failed for {RequirementId}", requirement.GlobalId);
                 return false;
@@ -736,8 +750,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
 
                         requirement.Analysis = analysis;
                         
-                        // Generate timing report for each requirement in batch
-                        _progressTimer.GenerateTimingReport(requirement);
+                        // Generate timing report for each requirement in batch (non-blocking)
+                        try
+                        {
+                            _progressTimer.GenerateTimingReport(requirement);
+                        }
+                        catch (Exception timerEx)
+                        {
+                            _logger.LogWarning(timerEx, "[AnalysisProgress] Timing report generation failed for batch requirement {RequirementId}", requirement.GlobalId ?? requirement.Item);
+                        }
                         
                         successful++;
                     }
@@ -747,8 +768,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                         errors.Add($"{requirement.GlobalId}: {ex.Message}");
                         _logger.LogError(ex, "Batch analysis failed for requirement {RequirementId}", requirement.GlobalId);
                         
-                        // Generate timing report even for failed analysis
-                        _progressTimer.GenerateTimingReport(requirement);
+                        // Generate timing report even for failed analysis (non-blocking)
+                        try
+                        {
+                            _progressTimer.GenerateTimingReport(requirement);
+                        }
+                        catch (Exception timerEx)
+                        {
+                            _logger.LogWarning(timerEx, "[AnalysisProgress] Timing report generation failed for batch requirement {RequirementId}", requirement.GlobalId ?? requirement.Item);
+                        }
                     }
                 }
 
