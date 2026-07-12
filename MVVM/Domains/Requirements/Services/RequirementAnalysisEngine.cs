@@ -65,14 +65,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
 
                 progressCallback?.Invoke("Processing|Analyzing requirement quality with LLM...|50");
 
+                var dynamicProgressPercent = 65;
+
                 // Delegate to the existing analysis service with streaming support for timeout enforcement
                 var analysis = await _analysisService.AnalyzeRequirementWithStreamingAsync(
                     requirement, 
                     onPartialResult: null, // Engine doesn't need partial results
                     onProgressUpdate: progress => 
                     {
-                        // Enhance the progress message with stage and percentage
-                        progressCallback?.Invoke($"Processing|{progress}|65");
+                        // Map service status updates to meaningful, monotonic progress percentages.
+                        dynamicProgressPercent = Math.Max(dynamicProgressPercent, MapServiceProgressToPercent(progress));
+                        progressCallback?.Invoke($"Processing|{progress}|{dynamicProgressPercent}");
                     },
                     cancellationToken: cancellationToken);
 
@@ -233,6 +236,41 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                 _logger.LogError(ex, "[AnalysisEngine] Failed to generate inspection prompt for {RequirementId}", requirement.Item);
                 return $"ERROR: Failed to generate prompt - {ex.Message}";
             }
+        }
+
+        private static int MapServiceProgressToPercent(string? progressMessage)
+        {
+            if (string.IsNullOrWhiteSpace(progressMessage))
+            {
+                return 65;
+            }
+
+            var text = progressMessage.Trim();
+
+            if (text.Contains("cache", StringComparison.OrdinalIgnoreCase))
+                return 68;
+            if (text.Contains("preparing", StringComparison.OrdinalIgnoreCase))
+                return 72;
+            if (text.Contains("workspace", StringComparison.OrdinalIgnoreCase))
+                return 74;
+            if (text.Contains("upload", StringComparison.OrdinalIgnoreCase))
+                return 78;
+            if (text.Contains("rag-enhanced", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("analysis session", StringComparison.OrdinalIgnoreCase))
+                return 82;
+            if (text.Contains("sending analysis request", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("analyzing requirement", StringComparison.OrdinalIgnoreCase))
+                return 85;
+            if (text.Contains("processing analysis results", StringComparison.OrdinalIgnoreCase))
+                return 90;
+            if (text.Contains("self-reflection", StringComparison.OrdinalIgnoreCase))
+                return 92;
+            if (text.Contains("caching", StringComparison.OrdinalIgnoreCase))
+                return 94;
+            if (text.Contains("analysis complete", StringComparison.OrdinalIgnoreCase))
+                return 96;
+
+            return 80;
         }
     }
 }
