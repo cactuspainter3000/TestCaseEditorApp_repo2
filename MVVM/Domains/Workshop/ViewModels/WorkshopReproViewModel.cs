@@ -32,6 +32,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private DateTime _statusStepStartedUtc;
         private string _statusBaseText = string.Empty;
         private CancellationTokenSource? _attachmentScraperCts;
+        private readonly List<string> _attachmentLogLines = new();
 
         // Per-requirement lifecycle state — stored here, not on the model
         private readonly Dictionary<string, RequirementLifecycleStage> _lifecycleStates = new();
@@ -311,7 +312,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 ExtractionOverallProgress = 0;
                 ExtractionCurrentStepProgress = 0;
                 AttachmentScraperStatusText = "Scanning Jama project attachments...";
-                AttachmentScraperOutputText = "Waiting for attachment scan results...";
+                ResetAttachmentLog("Requirement Extraction Log");
+                AppendAttachmentLog("Started attachment scan.");
                 ExtractionOverallLabel = "Overall Completeness: 0%";
                 ExtractionCurrentStepLabel = "Current Process: Scanning attachments";
 
@@ -319,6 +321,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 if (projectId <= 0)
                 {
                     AttachmentScraperStatusText = "No active Jama project found.";
+                    AppendAttachmentLog("No active Jama project found.");
                     return;
                 }
 
@@ -331,6 +334,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                     ExtractionCurrentStepProgress = percent;
                     ExtractionOverallLabel = $"Overall Completeness: {percent:F0}%";
                     ExtractionCurrentStepLabel = $"Current Process: scanning attachments ({p.Current}/{total})";
+                    AppendAttachmentLog($"Scan progress {p.Current}/{total}: {p.ProgressText}");
                 });
 
                 var attachments = await _mediator.ScanProjectAttachmentsAsync(projectId, scanProgress);
@@ -346,6 +350,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 AttachmentScraperStatusText = AvailableScraperAttachments.Count > 0
                     ? $"Found {AvailableScraperAttachments.Count} attachment(s)."
                     : "No attachments found for this project.";
+                AppendAttachmentLog(AttachmentScraperStatusText);
                 ExtractionOverallProgress = 100;
                 ExtractionCurrentStepProgress = 100;
                 ExtractionOverallLabel = "Overall Completeness: 100%";
@@ -354,6 +359,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             catch (Exception ex)
             {
                 AttachmentScraperStatusText = $"Attachment scan failed: {ex.Message}";
+                AppendAttachmentLog($"Attachment scan failed: {ex.Message}");
             }
             finally
             {
@@ -369,12 +375,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             if (SelectedScraperAttachment == null)
             {
                 AttachmentScraperStatusText = "Analyze Source Document: select an attachment first.";
+                AppendAttachmentLog(AttachmentScraperStatusText);
                 return;
             }
 
             if (!SelectedScraperAttachment.IsSupportedDocument)
             {
                 AttachmentScraperStatusText = $"Unsupported document type: {SelectedScraperAttachment.MimeType}";
+                AppendAttachmentLog(AttachmentScraperStatusText);
                 return;
             }
 
@@ -383,6 +391,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 AttachmentScraperStatusText = string.IsNullOrWhiteSpace(SelectedScraperAttachment.IndexValidationMessage)
                     ? "Attachment index is stale. Re-index before extraction."
                     : SelectedScraperAttachment.IndexValidationMessage;
+                AppendAttachmentLog(AttachmentScraperStatusText);
                 return;
             }
 
@@ -405,12 +414,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 if (projectId <= 0)
                 {
                     AttachmentScraperStatusText = "No active Jama project found.";
+                    AppendAttachmentLog(AttachmentScraperStatusText);
                     return;
                 }
 
                 var statusBuffer = "Starting attachment extraction...";
                 AttachmentScraperStatusText = statusBuffer;
-                AttachmentScraperOutputText = "Extraction Results pending...";
+                AppendAttachmentLog($"Started extraction for attachment {SelectedScraperAttachment.Id} ({SelectedScraperAttachment.FileName}).");
                 UpdateExtractionProgressFromMessage(statusBuffer);
 
                 var requirements = await _mediator.ParseAttachmentRequirementsAsync(
@@ -422,6 +432,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                         Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                         {
                             UpdateExtractionProgressFromMessage(statusBuffer);
+                            AppendAttachmentLog(statusBuffer);
                         }));
                     },
                     cancellationToken: _attachmentScraperCts.Token);
@@ -436,7 +447,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 ExtractionCurrentStepProgress = 100;
                 ExtractionOverallLabel = "Overall Completeness: 100%";
                 ExtractionCurrentStepLabel = "Current Process: extraction complete";
-                AttachmentScraperOutputText = BuildScraperOutputText(ScrapedRequirements);
+                AppendAttachmentLog(AttachmentScraperStatusText);
+                AppendAttachmentLog(BuildScraperOutputText(ScrapedRequirements), force: true);
                 OnPropertyChanged(nameof(HasScrapedRequirements));
                 OnPropertyChanged(nameof(AttachmentScraperSummary));
             }
@@ -444,11 +456,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             {
                 AttachmentScraperStatusText = "Requirement extraction canceled.";
                 ExtractionCurrentStepLabel = "Current Process: canceled";
+                AppendAttachmentLog(AttachmentScraperStatusText);
             }
             catch (Exception ex)
             {
                 AttachmentScraperStatusText = $"Requirement extraction failed: {ex.Message}";
                 ExtractionCurrentStepLabel = "Current Process: failed";
+                AppendAttachmentLog(AttachmentScraperStatusText);
             }
             finally
             {
@@ -467,18 +481,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             if (!HasScrapedRequirements)
             {
                 AttachmentScraperStatusText = "No requirement candidates available for qualification review.";
+                AppendAttachmentLog(AttachmentScraperStatusText);
                 return;
             }
 
             try
             {
                 AttachmentScraperStatusText = "Qualification Review complete. Importing accepted requirements...";
+                AppendAttachmentLog(AttachmentScraperStatusText);
                 await _mediator.ImportRequirementsAsync(ScrapedRequirements.ToList());
                 AttachmentScraperStatusText = $"Accepted Requirements imported: {ScrapedRequirements.Count}.";
+                AppendAttachmentLog(AttachmentScraperStatusText);
             }
             catch (Exception ex)
             {
                 AttachmentScraperStatusText = $"Import failed: {ex.Message}";
+                AppendAttachmentLog(AttachmentScraperStatusText);
             }
         }
 
@@ -492,6 +510,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         {
             _attachmentScraperCts?.Cancel();
             AttachmentScraperStatusText = "Cancel requested...";
+            AppendAttachmentLog(AttachmentScraperStatusText);
         }
 
         private bool CanCancelAttachmentScraper() => IsAttachmentScanning || IsAttachmentScraping;
@@ -604,6 +623,53 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             if (normalized.Contains("extract")) return 92;
             if (normalized.Contains("complete") || normalized.Contains("success")) return 100;
             return 12;
+        }
+
+        private void ResetAttachmentLog(string header)
+        {
+            _attachmentLogLines.Clear();
+            var timestamp = DateTime.Now.ToString("HH:mm:ss");
+            _attachmentLogLines.Add($"[{timestamp}] {header}");
+            _attachmentLogLines.Add(new string('-', 72));
+            AttachmentScraperOutputText = string.Join(Environment.NewLine, _attachmentLogLines);
+        }
+
+        private void AppendAttachmentLog(string message, bool force = false)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return;
+            }
+
+            // Avoid repeating noisy progress lines unless explicitly forced.
+            if (!force && _attachmentLogLines.Count > 0)
+            {
+                var last = _attachmentLogLines[^1];
+                if (last.EndsWith(message, StringComparison.Ordinal))
+                {
+                    return;
+                }
+            }
+
+            foreach (var rawLine in message.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))
+            {
+                if (string.IsNullOrWhiteSpace(rawLine))
+                {
+                    continue;
+                }
+
+                var timestamp = DateTime.Now.ToString("HH:mm:ss");
+                _attachmentLogLines.Add($"[{timestamp}] {rawLine.Trim()}");
+            }
+
+            if (_attachmentLogLines.Count > 500)
+            {
+                var keep = _attachmentLogLines.Skip(_attachmentLogLines.Count - 500).ToList();
+                _attachmentLogLines.Clear();
+                _attachmentLogLines.AddRange(keep);
+            }
+
+            AttachmentScraperOutputText = string.Join(Environment.NewLine, _attachmentLogLines);
         }
 
         [RelayCommand(CanExecute = nameof(CanStage))]

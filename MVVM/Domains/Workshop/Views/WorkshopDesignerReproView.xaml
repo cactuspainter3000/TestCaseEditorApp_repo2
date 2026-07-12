@@ -975,6 +975,10 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="10"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
 
                                 <TextBlock Text="{Binding AttachmentScraperStatusText}"
@@ -1013,6 +1017,26 @@
                                              Foreground="{StaticResource Brush.State.Success}"
                                              Background="{StaticResource Brush.Background.Header}"
                                              BorderThickness="0"/>
+
+                                <TextBlock Grid.Row="12"
+                                           Text="Analysis Log Output"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource Brush.Accent.Primary}"/>
+
+                                <TextBox Grid.Row="14"
+                                         Text="{Binding AttachmentScraperOutputText}"
+                                         IsReadOnly="True"
+                                         AcceptsReturn="True"
+                                         VerticalScrollBarVisibility="Auto"
+                                         HorizontalScrollBarVisibility="Auto"
+                                         TextWrapping="NoWrap"
+                                         FontFamily="Consolas"
+                                         FontSize="11"
+                                         Foreground="{StaticResource Brush.Text.Secondary}"
+                                         Background="{StaticResource Brush.Background.Header}"
+                                         BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                         Padding="8"/>
                             </Grid>
                         </Border>
 
