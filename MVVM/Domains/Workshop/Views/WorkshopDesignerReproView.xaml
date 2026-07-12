@@ -865,16 +865,187 @@
                         CornerRadius="6"
                         Padding="12"
                         Background="{StaticResource Brush.Background.Menu}">
-                    <StackPanel>
-                        <TextBlock Text="Attachment Scraper"
-                                   FontWeight="Bold"
-                                   FontSize="16"
-                                   Foreground="{StaticResource Brush.Accent.Primary}"/>
-                        <TextBlock Text="Designer placeholder area for attachment selection, scrape controls, and extraction output"
-                                   Margin="0,8,0,0"
-                                   TextWrapping="Wrap"
-                                   Foreground="{StaticResource Brush.Text.Tertiary}"/>
-                    </StackPanel>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="2*"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel>
+                                <TextBlock Text="Attachment Scraper"
+                                           FontWeight="Bold"
+                                           FontSize="16"
+                                           Foreground="{StaticResource Brush.Accent.Primary}"/>
+                                <TextBlock Text="Scan project attachments, scrape a source document, and import extracted requirements."
+                                           Margin="0,4,0,0"
+                                           FontSize="11"
+                                           TextWrapping="Wrap"
+                                           Foreground="{StaticResource Brush.Text.Tertiary}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="Scan Attachments"
+                                        Command="{Binding SearchAttachmentsCommand}"
+                                        Margin="0,0,8,0"
+                                        Padding="10,4"
+                                        FontSize="11"
+                                        Background="{StaticResource Brush.Background.Pill.Selected}"
+                                        Foreground="{StaticResource Brush.Accent.Primary}"
+                                        BorderBrush="{StaticResource Brush.Border.Accent}"
+                                        BorderThickness="1"/>
+                                <Button Content="Cancel"
+                                        Command="{Binding CancelAttachmentScraperCommand}"
+                                        Padding="10,4"
+                                        FontSize="11"
+                                        Background="{StaticResource Brush.Background.Header}"
+                                        Foreground="{StaticResource Brush.Text.Secondary}"
+                                        BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                        BorderThickness="1"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Border Grid.Row="2"
+                                BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Background="{StaticResource Brush.Background.Header}"
+                                Padding="10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ComboBox Width="560"
+                                          ItemsSource="{Binding AvailableScraperAttachments}"
+                                          SelectedItem="{Binding SelectedScraperAttachment, Mode=TwoWay}"
+                                          DisplayMemberPath="DisplayName"
+                                          VerticalContentAlignment="Center"
+                                          ToolTip="Select an attachment to scrape"/>
+
+                                <Button Grid.Column="1"
+                                        Content="Scrape Selected"
+                                        Command="{Binding ScrapeSelectedAttachmentCommand}"
+                                        Margin="10,0,8,0"
+                                        Padding="10,4"
+                                        FontSize="11"
+                                        Background="{StaticResource Brush.Background.Pill.Selected}"
+                                        Foreground="{StaticResource Brush.Accent.Primary}"
+                                        BorderBrush="{StaticResource Brush.Border.Accent}"
+                                        BorderThickness="1"/>
+
+                                <Button Grid.Column="2"
+                                        Content="Import Extracted"
+                                        Command="{Binding ImportScrapedRequirementsCommand}"
+                                        Padding="10,4"
+                                        FontSize="11"
+                                        Background="{StaticResource Brush.State.Success}"
+                                        Foreground="White"
+                                        BorderBrush="{StaticResource Brush.State.Success}"
+                                        BorderThickness="1"/>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="4"
+                                BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="10"
+                                Background="{StaticResource Brush.Background.Menu}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="6"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="{Binding AttachmentScraperStatusText}"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource Brush.Accent.Primary}"/>
+
+                                <TextBlock Grid.Row="2"
+                                           Text="{Binding AttachmentScraperSummary}"
+                                           FontSize="11"
+                                           Foreground="{StaticResource Brush.Text.Secondary}"/>
+
+                                <TextBox Grid.Row="4"
+                                         Text="{Binding AttachmentScraperOutputText}"
+                                         IsReadOnly="True"
+                                         AcceptsReturn="True"
+                                         VerticalScrollBarVisibility="Auto"
+                                         HorizontalScrollBarVisibility="Auto"
+                                         TextWrapping="NoWrap"
+                                         Foreground="{StaticResource Brush.Text.Secondary}"
+                                         Background="{StaticResource Brush.Background.Header}"
+                                         BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                         Padding="8"/>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="6"
+                                BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="10"
+                                Background="{StaticResource Brush.Background.Header}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="Extracted Requirement Preview"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource Brush.Accent.Primary}"/>
+
+                                <ListBox Grid.Row="2"
+                                         ItemsSource="{Binding ScrapedRequirements}"
+                                         BorderThickness="0"
+                                         Background="Transparent"
+                                         Foreground="{StaticResource Brush.Text.Secondary}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="4"
+                                                    Margin="0,0,0,6"
+                                                    Padding="8"
+                                                    Background="{StaticResource Brush.Background.Menu}">
+                                                <StackPanel>
+                                                    <TextBlock FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Primary}">
+                                                        <Run Text="{Binding Item, TargetNullValue=REQ}"/>
+                                                        <Run Text=" - "/>
+                                                        <Run Text="{Binding Name, TargetNullValue=(untitled)}"/>
+                                                    </TextBlock>
+                                                    <TextBlock Text="{Binding Description}"
+                                                               Margin="0,4,0,0"
+                                                               TextWrapping="Wrap"
+                                                               MaxHeight="48"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Foreground="{StaticResource Brush.Text.Secondary}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </Border>
             </Grid>
         </TabItem>

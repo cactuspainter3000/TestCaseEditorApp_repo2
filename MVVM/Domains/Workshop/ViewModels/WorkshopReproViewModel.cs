@@ -1,14 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.Services;
 using RequirementAnalysis = TestCaseEditorApp.MVVM.Models.RequirementAnalysis;
 
 namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
@@ -27,6 +30,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private DateTime _analysisStartedUtc;
         private DateTime _statusStepStartedUtc;
         private string _statusBaseText = string.Empty;
+        private CancellationTokenSource? _attachmentScraperCts;
 
         // Per-requirement lifecycle state — stored here, not on the model
         private readonly Dictionary<string, RequirementLifecycleStage> _lifecycleStates = new();
@@ -63,6 +67,33 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
         [ObservableProperty]
         private bool isComplianceExpanded;
+
+        [ObservableProperty]
+        private bool isAttachmentScanning;
+
+        [ObservableProperty]
+        private bool isAttachmentScraping;
+
+        [ObservableProperty]
+        private string attachmentScraperStatusText = "Ready to scan Jama attachments.";
+
+        [ObservableProperty]
+        private string attachmentScraperOutputText = "No extraction output yet.";
+
+        [ObservableProperty]
+        private JamaAttachment? selectedScraperAttachment;
+
+        [ObservableProperty]
+        private ObservableCollection<JamaAttachment> availableScraperAttachments = new();
+
+        [ObservableProperty]
+        private ObservableCollection<Requirement> scrapedRequirements = new();
+
+        public bool HasScrapedRequirements => ScrapedRequirements.Count > 0;
+
+        public string AttachmentScraperSummary => HasScrapedRequirements
+            ? $"Extracted {ScrapedRequirements.Count} requirement(s)."
+            : "No extracted requirements yet.";
 
         public RequirementLifecycleStage CurrentRequirementStage => GetCurrentStage(CurrentRequirement);
 
@@ -258,6 +289,207 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
         private bool CanAnalyze() => CurrentRequirement != null && !IsAnalyzing;
 
+        [RelayCommand(CanExecute = nameof(CanSearchAttachments))]
+        private async Task SearchAttachmentsAsync()
+        {
+            try
+            {
+                IsAttachmentScanning = true;
+                AttachmentScraperStatusText = "Scanning Jama project attachments...";
+                AttachmentScraperOutputText = "Waiting for attachment scan results...";
+
+                var projectId = await _mediator.GetCurrentProjectIdAsync();
+                if (projectId <= 0)
+                {
+                    AttachmentScraperStatusText = "No active Jama project found.";
+                    return;
+                }
+
+                var attachments = await _mediator.ScanProjectAttachmentsAsync(projectId);
+                AvailableScraperAttachments.Clear();
+                foreach (var attachment in attachments.OrderBy(a => a.FileName))
+                {
+                    AvailableScraperAttachments.Add(attachment);
+                }
+
+                SelectedScraperAttachment = AvailableScraperAttachments.FirstOrDefault(a => a.IsSupportedDocument)
+                    ?? AvailableScraperAttachments.FirstOrDefault();
+
+                AttachmentScraperStatusText = AvailableScraperAttachments.Count > 0
+                    ? $"Found {AvailableScraperAttachments.Count} attachment(s)."
+                    : "No attachments found for this project.";
+            }
+            catch (Exception ex)
+            {
+                AttachmentScraperStatusText = $"Attachment scan failed: {ex.Message}";
+            }
+            finally
+            {
+                IsAttachmentScanning = false;
+            }
+        }
+
+        private bool CanSearchAttachments() => !IsAttachmentScanning && !IsAttachmentScraping;
+
+        [RelayCommand(CanExecute = nameof(CanScrapeSelectedAttachment))]
+        private async Task ScrapeSelectedAttachmentAsync()
+        {
+            if (SelectedScraperAttachment == null)
+            {
+                AttachmentScraperStatusText = "Select an attachment before scraping.";
+                return;
+            }
+
+            if (!SelectedScraperAttachment.IsSupportedDocument)
+            {
+                AttachmentScraperStatusText = $"Unsupported document type: {SelectedScraperAttachment.MimeType}";
+                return;
+            }
+
+            if (SelectedScraperAttachment.ScrapeBlocked)
+            {
+                AttachmentScraperStatusText = string.IsNullOrWhiteSpace(SelectedScraperAttachment.IndexValidationMessage)
+                    ? "Attachment index is stale. Re-index before scraping."
+                    : SelectedScraperAttachment.IndexValidationMessage;
+                return;
+            }
+
+            try
+            {
+                _attachmentScraperCts?.Cancel();
+                _attachmentScraperCts?.Dispose();
+                _attachmentScraperCts = new CancellationTokenSource();
+
+                IsAttachmentScraping = true;
+                ScrapedRequirements.Clear();
+                OnPropertyChanged(nameof(HasScrapedRequirements));
+                OnPropertyChanged(nameof(AttachmentScraperSummary));
+
+                var projectId = await _mediator.GetCurrentProjectIdAsync();
+                if (projectId <= 0)
+                {
+                    AttachmentScraperStatusText = "No active Jama project found.";
+                    return;
+                }
+
+                var statusBuffer = "Starting attachment extraction...";
+                AttachmentScraperStatusText = statusBuffer;
+                AttachmentScraperOutputText = "Parsing attachment...";
+
+                var requirements = await _mediator.ParseAttachmentRequirementsAsync(
+                    SelectedScraperAttachment,
+                    projectId,
+                    progressCallback: message =>
+                    {
+                        statusBuffer = message;
+                        Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                        {
+                            AttachmentScraperStatusText = statusBuffer;
+                        }));
+                    },
+                    cancellationToken: _attachmentScraperCts.Token);
+
+                foreach (var requirement in requirements)
+                {
+                    ScrapedRequirements.Add(requirement);
+                }
+
+                AttachmentScraperStatusText = $"Scrape complete: {ScrapedRequirements.Count} requirement(s) extracted.";
+                AttachmentScraperOutputText = BuildScraperOutputText(ScrapedRequirements);
+                OnPropertyChanged(nameof(HasScrapedRequirements));
+                OnPropertyChanged(nameof(AttachmentScraperSummary));
+            }
+            catch (OperationCanceledException)
+            {
+                AttachmentScraperStatusText = "Attachment scrape canceled.";
+            }
+            catch (Exception ex)
+            {
+                AttachmentScraperStatusText = $"Attachment scrape failed: {ex.Message}";
+            }
+            finally
+            {
+                IsAttachmentScraping = false;
+            }
+        }
+
+        private bool CanScrapeSelectedAttachment() =>
+            !IsAttachmentScanning &&
+            !IsAttachmentScraping &&
+            SelectedScraperAttachment != null;
+
+        [RelayCommand(CanExecute = nameof(CanImportScrapedRequirements))]
+        private async Task ImportScrapedRequirementsAsync()
+        {
+            if (!HasScrapedRequirements)
+            {
+                AttachmentScraperStatusText = "No scraped requirements available to import.";
+                return;
+            }
+
+            try
+            {
+                AttachmentScraperStatusText = "Importing extracted requirements into workspace...";
+                await _mediator.ImportRequirementsAsync(ScrapedRequirements.ToList());
+                AttachmentScraperStatusText = $"Imported {ScrapedRequirements.Count} requirement(s) into workspace.";
+            }
+            catch (Exception ex)
+            {
+                AttachmentScraperStatusText = $"Import failed: {ex.Message}";
+            }
+        }
+
+        private bool CanImportScrapedRequirements() =>
+            HasScrapedRequirements &&
+            !IsAttachmentScanning &&
+            !IsAttachmentScraping;
+
+        [RelayCommand(CanExecute = nameof(CanCancelAttachmentScraper))]
+        private void CancelAttachmentScraper()
+        {
+            _attachmentScraperCts?.Cancel();
+            AttachmentScraperStatusText = "Cancel requested...";
+        }
+
+        private bool CanCancelAttachmentScraper() => IsAttachmentScanning || IsAttachmentScraping;
+
+        private static string BuildScraperOutputText(IEnumerable<Requirement> requirements)
+        {
+            var list = requirements.ToList();
+            if (list.Count == 0)
+            {
+                return "No requirements extracted from selected attachment.";
+            }
+
+            var lines = new List<string>
+            {
+                $"Extracted {list.Count} requirement(s):",
+                string.Empty
+            };
+
+            var previewLimit = Math.Min(25, list.Count);
+            for (var i = 0; i < previewLimit; i++)
+            {
+                var req = list[i];
+                var id = string.IsNullOrWhiteSpace(req.Item) ? $"REQ-{i + 1}" : req.Item;
+                var text = string.IsNullOrWhiteSpace(req.Description) ? req.Name : req.Description;
+                if (text.Length > 180)
+                {
+                    text = text[..180] + "...";
+                }
+
+                lines.Add($"{i + 1}. {id}: {text}");
+            }
+
+            if (list.Count > previewLimit)
+            {
+                lines.Add(string.Empty);
+                lines.Add($"... plus {list.Count - previewLimit} more requirement(s). Use import to bring all into workspace.");
+            }
+
+            return string.Join(Environment.NewLine, lines);
+        }
+
         [RelayCommand(CanExecute = nameof(CanStage))]
         private void Stage()
         {
@@ -404,7 +636,28 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             ((RelayCommand)UnstageCommand).NotifyCanExecuteChanged();
         }
 
+        private void NotifyAttachmentScraperCanExecute()
+        {
+            SearchAttachmentsCommand.NotifyCanExecuteChanged();
+            ScrapeSelectedAttachmentCommand.NotifyCanExecuteChanged();
+            ImportScrapedRequirementsCommand.NotifyCanExecuteChanged();
+            CancelAttachmentScraperCommand.NotifyCanExecuteChanged();
+        }
+
         partial void OnIsAnalyzingChanged(bool value) =>
             ((AsyncRelayCommand)LlmAnalyzeRequirementCommand).NotifyCanExecuteChanged();
+
+        partial void OnIsAttachmentScanningChanged(bool value) => NotifyAttachmentScraperCanExecute();
+
+        partial void OnIsAttachmentScrapingChanged(bool value) => NotifyAttachmentScraperCanExecute();
+
+        partial void OnSelectedScraperAttachmentChanged(JamaAttachment? value) => NotifyAttachmentScraperCanExecute();
+
+        partial void OnScrapedRequirementsChanged(ObservableCollection<Requirement> value)
+        {
+            OnPropertyChanged(nameof(HasScrapedRequirements));
+            OnPropertyChanged(nameof(AttachmentScraperSummary));
+            NotifyAttachmentScraperCanExecute();
+        }
     }
 }
