@@ -858,7 +858,7 @@
             </Grid>
         </TabItem>
 
-        <TabItem Header="Attachment Scraper">
+        <TabItem Header="Requirement Extraction">
             <Grid Margin="8">
                 <Border BorderBrush="{StaticResource Brush.Border.Subtle}"
                         BorderThickness="1"
@@ -883,11 +883,11 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel>
-                                <TextBlock Text="Attachment Scraper"
+                                <TextBlock Text="Requirement Extraction"
                                            FontWeight="Bold"
                                            FontSize="16"
                                            Foreground="{StaticResource Brush.Accent.Primary}"/>
-                                <TextBlock Text="Scan project attachments, scrape a source document, and import extracted requirements."
+                                <TextBlock Text="Analyze source documents, extract requirement candidates, and complete qualification review."
                                            Margin="0,4,0,0"
                                            FontSize="11"
                                            TextWrapping="Wrap"
@@ -933,10 +933,10 @@
                                           SelectedItem="{Binding SelectedScraperAttachment, Mode=TwoWay}"
                                           DisplayMemberPath="DisplayName"
                                           VerticalContentAlignment="Center"
-                                          ToolTip="Select an attachment to scrape"/>
+                                          ToolTip="Analyze Source Document"/>
 
                                 <Button Grid.Column="1"
-                                        Content="Scrape Selected"
+                                        Content="Extract Candidates"
                                         Command="{Binding ScrapeSelectedAttachmentCommand}"
                                         Margin="10,0,8,0"
                                         Padding="10,4"
@@ -947,7 +947,7 @@
                                         BorderThickness="1"/>
 
                                 <Button Grid.Column="2"
-                                        Content="Import Extracted"
+                                    Content="Accept Requirements"
                                         Command="{Binding ImportScrapedRequirementsCommand}"
                                         Padding="10,4"
                                         FontSize="11"
@@ -1009,7 +1009,7 @@
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Text="Extracted Requirement Preview"
+                                <TextBlock Text="Qualification Review"
                                            FontWeight="SemiBold"
                                            Foreground="{StaticResource Brush.Accent.Primary}"/>
 

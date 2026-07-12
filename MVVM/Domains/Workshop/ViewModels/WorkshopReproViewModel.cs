@@ -75,10 +75,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private bool isAttachmentScraping;
 
         [ObservableProperty]
-        private string attachmentScraperStatusText = "Ready to scan Jama attachments.";
+        private string attachmentScraperStatusText = "Ready for requirement extraction.";
 
         [ObservableProperty]
-        private string attachmentScraperOutputText = "No extraction output yet.";
+        private string attachmentScraperOutputText = "No extraction results yet.";
 
         [ObservableProperty]
         private JamaAttachment? selectedScraperAttachment;
@@ -92,8 +92,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         public bool HasScrapedRequirements => ScrapedRequirements.Count > 0;
 
         public string AttachmentScraperSummary => HasScrapedRequirements
-            ? $"Extracted {ScrapedRequirements.Count} requirement(s)."
-            : "No extracted requirements yet.";
+            ? $"Requirement Candidates: {ScrapedRequirements.Count}"
+            : "Requirement Candidates: 0";
 
         public RequirementLifecycleStage CurrentRequirementStage => GetCurrentStage(CurrentRequirement);
 
@@ -336,7 +336,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         {
             if (SelectedScraperAttachment == null)
             {
-                AttachmentScraperStatusText = "Select an attachment before scraping.";
+                AttachmentScraperStatusText = "Analyze Source Document: select an attachment first.";
                 return;
             }
 
@@ -349,7 +349,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             if (SelectedScraperAttachment.ScrapeBlocked)
             {
                 AttachmentScraperStatusText = string.IsNullOrWhiteSpace(SelectedScraperAttachment.IndexValidationMessage)
-                    ? "Attachment index is stale. Re-index before scraping."
+                    ? "Attachment index is stale. Re-index before extraction."
                     : SelectedScraperAttachment.IndexValidationMessage;
                 return;
             }
@@ -374,7 +374,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
                 var statusBuffer = "Starting attachment extraction...";
                 AttachmentScraperStatusText = statusBuffer;
-                AttachmentScraperOutputText = "Parsing attachment...";
+                AttachmentScraperOutputText = "Extraction Results pending...";
 
                 var requirements = await _mediator.ParseAttachmentRequirementsAsync(
                     SelectedScraperAttachment,
@@ -394,18 +394,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                     ScrapedRequirements.Add(requirement);
                 }
 
-                AttachmentScraperStatusText = $"Scrape complete: {ScrapedRequirements.Count} requirement(s) extracted.";
+                AttachmentScraperStatusText = $"Extraction complete: {ScrapedRequirements.Count} candidate(s) found.";
                 AttachmentScraperOutputText = BuildScraperOutputText(ScrapedRequirements);
                 OnPropertyChanged(nameof(HasScrapedRequirements));
                 OnPropertyChanged(nameof(AttachmentScraperSummary));
             }
             catch (OperationCanceledException)
             {
-                AttachmentScraperStatusText = "Attachment scrape canceled.";
+                AttachmentScraperStatusText = "Requirement extraction canceled.";
             }
             catch (Exception ex)
             {
-                AttachmentScraperStatusText = $"Attachment scrape failed: {ex.Message}";
+                AttachmentScraperStatusText = $"Requirement extraction failed: {ex.Message}";
             }
             finally
             {
@@ -423,15 +423,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         {
             if (!HasScrapedRequirements)
             {
-                AttachmentScraperStatusText = "No scraped requirements available to import.";
+                AttachmentScraperStatusText = "No requirement candidates available for qualification review.";
                 return;
             }
 
             try
             {
-                AttachmentScraperStatusText = "Importing extracted requirements into workspace...";
+                AttachmentScraperStatusText = "Qualification Review complete. Importing accepted requirements...";
                 await _mediator.ImportRequirementsAsync(ScrapedRequirements.ToList());
-                AttachmentScraperStatusText = $"Imported {ScrapedRequirements.Count} requirement(s) into workspace.";
+                AttachmentScraperStatusText = $"Accepted Requirements imported: {ScrapedRequirements.Count}.";
             }
             catch (Exception ex)
             {
@@ -458,12 +458,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             var list = requirements.ToList();
             if (list.Count == 0)
             {
-                return "No requirements extracted from selected attachment.";
+                return "Requirement Candidates: none extracted from selected source document.";
             }
 
             var lines = new List<string>
             {
-                $"Extracted {list.Count} requirement(s):",
+                $"Requirement Candidates ({list.Count}):",
                 string.Empty
             };
 
@@ -484,7 +484,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             if (list.Count > previewLimit)
             {
                 lines.Add(string.Empty);
-                lines.Add($"... plus {list.Count - previewLimit} more requirement(s). Use import to bring all into workspace.");
+                lines.Add($"... plus {list.Count - previewLimit} more candidate(s). Complete Qualification Review to accept all requirements.");
             }
 
             return string.Join(Environment.NewLine, lines);
