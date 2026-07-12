@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -2328,27 +2329,177 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                 return false;
             }
 
+            if (TryHasSubstantiveAnalysisContentFromRawResponse(rawResponse, out var hasSubstantiveContent))
+            {
+                return hasSubstantiveContent;
+            }
+
+            TestCaseEditorApp.Services.Logging.Log.Debug(
+                $"[RequirementAnalysisService] Parser fallback probe could not validate JSON payload for {requirementItem}");
+            return false;
+        }
+
+        private static bool TryHasSubstantiveAnalysisContentFromRawResponse(string rawResponse, out bool hasSubstantiveContent)
+        {
+            hasSubstantiveContent = false;
+
+            if (string.IsNullOrWhiteSpace(rawResponse))
+            {
+                return false;
+            }
+
+            var cleaned = ExtractJsonPayloadForProbe(rawResponse);
+            if (string.IsNullOrWhiteSpace(cleaned))
+            {
+                return false;
+            }
+
+            if (!TryParseJsonWithRepair(cleaned, out var root))
+            {
+                return false;
+            }
+
+            var issuesCount = TryGetArrayCount(root, "Issues");
+            var recommendationsCount = TryGetArrayCount(root, "Recommendations");
+            var hasImprovedRequirement = HasNonEmptyString(root, "ImprovedRequirement");
+
+            hasSubstantiveContent = issuesCount > 0 || recommendationsCount > 0 || hasImprovedRequirement;
+            return true;
+        }
+
+        private static bool TryParseJsonWithRepair(string cleaned, out JsonElement root)
+        {
+            root = default;
+
             try
             {
-                var parsed = _parserManager.ParseResponse(rawResponse, requirementItem);
-                if (parsed == null)
+                using var doc = JsonDocument.Parse(cleaned);
+                root = doc.RootElement.Clone();
+                return true;
+            }
+            catch (JsonException)
+            {
+                var repaired = TryRepairMalformedJsonForProbe(cleaned);
+                if (string.IsNullOrWhiteSpace(repaired))
                 {
                     return false;
                 }
 
-                var hasSubstantiveContent =
-                    (parsed.Issues?.Count ?? 0) > 0 ||
-                    (parsed.Recommendations?.Count ?? 0) > 0 ||
-                    !string.IsNullOrWhiteSpace(parsed.ImprovedRequirement);
+                try
+                {
+                    using var repairedDoc = JsonDocument.Parse(repaired);
+                    root = repairedDoc.RootElement.Clone();
+                    return true;
+                }
+                catch (JsonException)
+                {
+                    return false;
+                }
+            }
+        }
 
-                return hasSubstantiveContent;
-            }
-            catch (Exception ex)
+        private static string ExtractJsonPayloadForProbe(string response)
+        {
+            if (string.IsNullOrWhiteSpace(response))
+                return string.Empty;
+
+            var cleaned = response.Trim();
+
+            if (cleaned.StartsWith("```json", StringComparison.OrdinalIgnoreCase))
+                cleaned = cleaned.Substring(7);
+            else if (cleaned.StartsWith("```", StringComparison.Ordinal))
+                cleaned = cleaned.Substring(3);
+
+            if (cleaned.EndsWith("```", StringComparison.Ordinal))
+                cleaned = cleaned.Substring(0, cleaned.Length - 3);
+
+            cleaned = cleaned.Trim();
+
+            var firstBrace = cleaned.IndexOf('{');
+            var lastBrace = cleaned.LastIndexOf('}');
+            if (firstBrace >= 0 && lastBrace > firstBrace)
             {
-                TestCaseEditorApp.Services.Logging.Log.Debug(
-                    $"[RequirementAnalysisService] Parser fallback probe failed for {requirementItem}: {ex.Message}");
-                return false;
+                cleaned = cleaned.Substring(firstBrace, lastBrace - firstBrace + 1);
             }
+
+            cleaned = cleaned.Trim();
+            cleaned = cleaned.Replace("\u201c", "\"").Replace("\u201d", "\"");
+            cleaned = cleaned.Replace("\u2018", "'").Replace("\u2019", "'");
+            cleaned = Regex.Replace(cleaned, @",\s*([}\]])", "$1");
+
+            return cleaned;
+        }
+
+        private static string TryRepairMalformedJsonForProbe(string cleaned)
+        {
+            if (string.IsNullOrWhiteSpace(cleaned))
+                return string.Empty;
+
+            var repaired = cleaned;
+
+            int quoteCount = 0;
+            bool escaped = false;
+            foreach (var ch in repaired)
+            {
+                if (ch == '\\' && !escaped)
+                {
+                    escaped = true;
+                    continue;
+                }
+
+                if (ch == '"' && !escaped)
+                {
+                    quoteCount++;
+                }
+
+                escaped = false;
+            }
+
+            if (quoteCount % 2 != 0)
+            {
+                repaired += "\"";
+            }
+
+            int openBraces = 0;
+            int openBrackets = 0;
+            bool inString = false;
+            escaped = false;
+
+            foreach (var ch in repaired)
+            {
+                if (ch == '\\' && !escaped)
+                {
+                    escaped = true;
+                    continue;
+                }
+
+                if (ch == '"' && !escaped)
+                {
+                    inString = !inString;
+                }
+                else if (!inString)
+                {
+                    if (ch == '{') openBraces++;
+                    else if (ch == '}') openBraces--;
+                    else if (ch == '[') openBrackets++;
+                    else if (ch == ']') openBrackets--;
+                }
+
+                escaped = false;
+            }
+
+            if (openBrackets > 0)
+            {
+                repaired += new string(']', openBrackets);
+            }
+
+            if (openBraces > 0)
+            {
+                repaired += new string('}', openBraces);
+            }
+
+            repaired = Regex.Replace(repaired, @",\s*([}\]])", "$1");
+            return repaired;
         }
 
         private static bool IsJsonEnvelopeFailure(ComplianceResult<string> complianceResult, string responseDiagnostics)
