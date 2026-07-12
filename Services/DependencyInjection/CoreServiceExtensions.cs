@@ -79,9 +79,6 @@ namespace TestCaseEditorApp.Services.DependencyInjection
             services.AddSingleton<ChatGptExportService>();
             services.AddSingleton<IWorkspaceDiagnosticsService, WorkspaceDiagnosticsService>();
 
-            // Progress timing and diagnostics (SINGLETON - tracks analysis workflow)
-            services.AddSingleton<IProgressTimerService, ProgressTimerService>();
-
             return services;
         }
     }

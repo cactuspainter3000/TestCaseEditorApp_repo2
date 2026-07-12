@@ -62,7 +62,6 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
                 var jamaConnectService = provider.GetRequiredService<IJamaConnectService>();
                 var jamaDocumentParserService = provider.GetRequiredService<IJamaDocumentParserService>();
-                var progressTimer = provider.GetRequiredService<IProgressTimerService>();
                 var performanceMonitor = provider.GetService<PerformanceMonitoringService>();
                 var eventReplay = provider.GetService<TestCaseEditorApp.MVVM.Utils.EventReplayService>();
 
@@ -73,7 +72,7 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                     logger, uiCoordinator, analysisService,
                     workspaceContext, newProjectMediator, jamaConnectService, jamaDocumentParserService,
                     provider.GetRequiredService<SmartRequirementImporter>(),
-                    progressTimer, analysisEngine, performanceMonitor, eventReplay);
+                    analysisEngine, performanceMonitor, eventReplay);
             });
 
             // Test Case Creation Mediator (SINGLETON)
