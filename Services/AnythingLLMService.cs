@@ -2164,14 +2164,20 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                     }
                 }
 
-                // Never return partial structured output when caller timeout/cancellation fired.
-                // Let upstream timeout handlers decide whether to retry or prompt the user.
+                var finalResponse = responseBuilder.ToString();
+
+                // If timeout/cancellation occurred before [DONE], only fail hard when no data was streamed.
+                // If partial data exists, return it so existing truncated-JSON recovery can attempt salvage.
                 if (cancellationToken.IsCancellationRequested && !sawDoneToken)
                 {
-                    throw new OperationCanceledException("Streaming response cancelled before [DONE] token", cancellationToken);
-                }
+                    if (finalResponse.Length == 0)
+                    {
+                        throw new OperationCanceledException("Streaming response cancelled before any content was received", cancellationToken);
+                    }
 
-                var finalResponse = responseBuilder.ToString();
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[AnythingLLM] Streaming cancelled before [DONE], returning partial payload for recovery. Workspace={workspaceSlug} Thread={threadSlug ?? "none"} Length={finalResponse.Length}");
+                }
                 if (!sawDoneToken)
                 {
                     var openBraces = finalResponse.Count(c => c == '{');
