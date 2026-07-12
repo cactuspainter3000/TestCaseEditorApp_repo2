@@ -2113,9 +2113,10 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                     return null;
                 }
 
-                onProgressUpdate?.Invoke("Receiving streaming response...");
+                onProgressUpdate?.Invoke("Processing|Receiving streaming response...|50");
                 
                 var responseBuilder = new StringBuilder();
+                int chunkCount = 0;
                 
                 await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
                 using var reader = new StreamReader(stream);
@@ -2143,6 +2144,15 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                             {
                                 responseBuilder.Append(chunkJson.TextResponse);
                                 onChunkReceived?.Invoke(chunkJson.TextResponse);
+                                
+                                // Emit progress every 3 chunks (to avoid excessive updates)
+                                chunkCount++;
+                                if (chunkCount % 3 == 0)
+                                {
+                                    // Progress from 50% to 85% during streaming
+                                    int streamingProgress = Math.Min(85, 50 + (chunkCount * 2));
+                                    onProgressUpdate?.Invoke($"Processing|Receiving streaming response ({chunkCount} chunks)...|{streamingProgress}");
+                                }
                             }
                         }
                         catch (JsonException)
@@ -2150,11 +2160,19 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                             // Handle plain text chunks
                             responseBuilder.Append(chunkData);
                             onChunkReceived?.Invoke(chunkData);
+                            
+                            // Emit progress for plain text chunks too
+                            chunkCount++;
+                            if (chunkCount % 3 == 0)
+                            {
+                                int streamingProgress = Math.Min(85, 50 + (chunkCount * 2));
+                                onProgressUpdate?.Invoke($"Processing|Receiving streaming response ({chunkCount} chunks)...|{streamingProgress}");
+                            }
                         }
                     }
                 }
                 
-                onProgressUpdate?.Invoke("Stream complete");
+                onProgressUpdate?.Invoke("Processing|Extracting response data...|90");
                 return responseBuilder.ToString();
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
