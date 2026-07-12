@@ -2124,8 +2124,9 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 using var reader = new StreamReader(stream);
                 
                 string? line;
-                while ((line = await reader.ReadLineAsync()) != null && !cancellationToken.IsCancellationRequested)
+                while ((line = await reader.ReadLineAsync()) != null)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     totalLines++;
                     if (string.IsNullOrWhiteSpace(line)) continue;
                     
@@ -2161,6 +2162,13 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                             onChunkReceived?.Invoke(chunkData);
                         }
                     }
+                }
+
+                // Never return partial structured output when caller timeout/cancellation fired.
+                // Let upstream timeout handlers decide whether to retry or prompt the user.
+                if (cancellationToken.IsCancellationRequested && !sawDoneToken)
+                {
+                    throw new OperationCanceledException("Streaming response cancelled before [DONE] token", cancellationToken);
                 }
 
                 var finalResponse = responseBuilder.ToString();
