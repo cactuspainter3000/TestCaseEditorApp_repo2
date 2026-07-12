@@ -2119,56 +2119,73 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 var sawDoneToken = false;
                 var totalLines = 0;
                 var dataLines = 0;
+                var cancelledDuringRead = false;
                 
                 await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
                 using var reader = new StreamReader(stream);
                 
                 string? line;
-                while ((line = await reader.ReadLineAsync()) != null)
+                try
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    totalLines++;
-                    if (string.IsNullOrWhiteSpace(line)) continue;
-                    
-                    // Handle Server-Sent Events format
-                    if (line.StartsWith("data: "))
+                    while ((line = await reader.ReadLineAsync()) != null)
                     {
-                        dataLines++;
-                        var chunkData = line.Substring(6); // Remove "data: " prefix
-                        
-                        if (chunkData == "[DONE]")
+                        if (cancellationToken.IsCancellationRequested)
                         {
-                            sawDoneToken = true;
+                            cancelledDuringRead = true;
                             break;
                         }
+
+                        totalLines++;
+                        if (string.IsNullOrWhiteSpace(line)) continue;
                         
-                        try
+                        // Handle Server-Sent Events format
+                        if (line.StartsWith("data: "))
                         {
-                            var chunkJson = JsonSerializer.Deserialize<StreamChunkResponse>(chunkData, new JsonSerializerOptions 
-                            { 
-                                PropertyNameCaseInsensitive = true 
-                            });
+                            dataLines++;
+                            var chunkData = line.Substring(6); // Remove "data: " prefix
                             
-                            if (!string.IsNullOrEmpty(chunkJson?.TextResponse))
+                            if (chunkData == "[DONE]")
                             {
-                                responseBuilder.Append(chunkJson.TextResponse);
-                                onChunkReceived?.Invoke(chunkJson.TextResponse);
+                                sawDoneToken = true;
+                                break;
+                            }
+                            
+                            try
+                            {
+                                var chunkJson = JsonSerializer.Deserialize<StreamChunkResponse>(chunkData, new JsonSerializerOptions 
+                                { 
+                                    PropertyNameCaseInsensitive = true 
+                                });
+                                
+                                if (!string.IsNullOrEmpty(chunkJson?.TextResponse))
+                                {
+                                    responseBuilder.Append(chunkJson.TextResponse);
+                                    onChunkReceived?.Invoke(chunkJson.TextResponse);
+                                }
+                            }
+                            catch (JsonException)
+                            {
+                                // Handle plain text chunks
+                                responseBuilder.Append(chunkData);
+                                onChunkReceived?.Invoke(chunkData);
                             }
                         }
-                        catch (JsonException)
-                        {
-                            // Handle plain text chunks
-                            responseBuilder.Append(chunkData);
-                            onChunkReceived?.Invoke(chunkData);
-                        }
                     }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    cancelledDuringRead = true;
+                }
+                catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    cancelledDuringRead = true;
                 }
 
                 var finalResponse = responseBuilder.ToString();
 
                 // If timeout/cancellation occurred before [DONE], only fail hard when no data was streamed.
                 // If partial data exists, return it so existing truncated-JSON recovery can attempt salvage.
-                if (cancellationToken.IsCancellationRequested && !sawDoneToken)
+                if ((cancellationToken.IsCancellationRequested || cancelledDuringRead) && !sawDoneToken)
                 {
                     if (finalResponse.Length == 0)
                     {
