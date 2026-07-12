@@ -2080,10 +2080,32 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                 if (preflightDiagnostics.Contains("ParseState=InvalidJson", StringComparison.OrdinalIgnoreCase) &&
                     LooksLikeRequirementAnalysisSchema(rawResponse))
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info(
-                        $"[RequirementAnalysisService] Skipping compliance envelope validation for {requirementItem} " +
-                        "because response appears to be truncated JSON with recognizable analysis schema. " +
-                        "Parser repair path will handle it.");
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[RequirementAnalysisService] Truncated JSON detected for {requirementItem}. " +
+                        $"PreflightDiagnostics={preflightDiagnostics}");
+
+                    if (TryRepairTruncatedAnalysisJsonLocally(rawResponse, out var locallyRepairedJson))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn(
+                            $"[RequirementAnalysisService] Local truncated-JSON recovery succeeded for {requirementItem}. " +
+                            $"OriginalLength={rawResponse.Length}, RepairedLength={locallyRepairedJson.Length}");
+
+                        return locallyRepairedJson;
+                    }
+
+                    var (repairSuccess, repairedJson) = await TryJsonRepairAsync(rawResponse, requirementItem, cancellationToken);
+                    if (repairSuccess && !string.IsNullOrWhiteSpace(repairedJson))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn(
+                            $"[RequirementAnalysisService] LLM JSON repair succeeded for truncated response {requirementItem}. " +
+                            $"OriginalLength={rawResponse.Length}, RepairedLength={repairedJson.Length}");
+
+                        return repairedJson;
+                    }
+
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[RequirementAnalysisService] Truncated JSON recovery failed for {requirementItem}. " +
+                        "Proceeding with raw response to parser fallback path.");
 
                     return rawResponse;
                 }
@@ -2196,6 +2218,44 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                 && response.Contains("Issues", StringComparison.OrdinalIgnoreCase)
                 && (response.Contains("Recommendations", StringComparison.OrdinalIgnoreCase)
                     || response.Contains("ImprovedRequirement", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool TryRepairTruncatedAnalysisJsonLocally(string rawResponse, out string repairedJson)
+        {
+            repairedJson = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(rawResponse))
+            {
+                return false;
+            }
+
+            var extracted = ExtractJsonPayloadForProbe(rawResponse);
+            if (string.IsNullOrWhiteSpace(extracted))
+            {
+                return false;
+            }
+
+            var candidate = TryRepairMalformedJsonForProbe(extracted);
+            if (string.IsNullOrWhiteSpace(candidate))
+            {
+                return false;
+            }
+
+            try
+            {
+                using var doc = JsonDocument.Parse(candidate);
+                if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                {
+                    return false;
+                }
+
+                repairedJson = candidate;
+                return true;
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
         }
 
         private static EnvelopeSchema BuildRequirementAnalysisEnvelopeSchema()
