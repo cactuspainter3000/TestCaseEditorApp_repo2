@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -79,6 +80,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
         [ObservableProperty]
         private string attachmentScraperOutputText = "No extraction results yet.";
+
+        [ObservableProperty]
+        private double extractionOverallProgress;
+
+        [ObservableProperty]
+        private double extractionCurrentStepProgress;
+
+        [ObservableProperty]
+        private string extractionOverallLabel = "Overall Completeness";
+
+        [ObservableProperty]
+        private string extractionCurrentStepLabel = "Current Process";
 
         [ObservableProperty]
         private JamaAttachment? selectedScraperAttachment;
@@ -295,8 +308,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             try
             {
                 IsAttachmentScanning = true;
+                ExtractionOverallProgress = 0;
+                ExtractionCurrentStepProgress = 0;
                 AttachmentScraperStatusText = "Scanning Jama project attachments...";
                 AttachmentScraperOutputText = "Waiting for attachment scan results...";
+                ExtractionOverallLabel = "Overall Completeness: 0%";
+                ExtractionCurrentStepLabel = "Current Process: Scanning attachments";
 
                 var projectId = await _mediator.GetCurrentProjectIdAsync();
                 if (projectId <= 0)
@@ -305,7 +322,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                     return;
                 }
 
-                var attachments = await _mediator.ScanProjectAttachmentsAsync(projectId);
+                var scanProgress = new Progress<AttachmentScanProgressData>(p =>
+                {
+                    var total = Math.Max(1, p.Total);
+                    var ratio = Math.Clamp((double)p.Current / total, 0, 1);
+                    var percent = ratio * 100.0;
+                    ExtractionOverallProgress = percent;
+                    ExtractionCurrentStepProgress = percent;
+                    ExtractionOverallLabel = $"Overall Completeness: {percent:F0}%";
+                    ExtractionCurrentStepLabel = $"Current Process: scanning attachments ({p.Current}/{total})";
+                });
+
+                var attachments = await _mediator.ScanProjectAttachmentsAsync(projectId, scanProgress);
                 AvailableScraperAttachments.Clear();
                 foreach (var attachment in attachments.OrderBy(a => a.FileName))
                 {
@@ -318,6 +346,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 AttachmentScraperStatusText = AvailableScraperAttachments.Count > 0
                     ? $"Found {AvailableScraperAttachments.Count} attachment(s)."
                     : "No attachments found for this project.";
+                ExtractionOverallProgress = 100;
+                ExtractionCurrentStepProgress = 100;
+                ExtractionOverallLabel = "Overall Completeness: 100%";
+                ExtractionCurrentStepLabel = "Current Process: attachment scan complete";
             }
             catch (Exception ex)
             {
@@ -361,6 +393,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 _attachmentScraperCts = new CancellationTokenSource();
 
                 IsAttachmentScraping = true;
+                ExtractionOverallProgress = 0;
+                ExtractionCurrentStepProgress = 0;
+                ExtractionOverallLabel = "Overall Completeness: 0%";
+                ExtractionCurrentStepLabel = "Current Process: initializing";
                 ScrapedRequirements.Clear();
                 OnPropertyChanged(nameof(HasScrapedRequirements));
                 OnPropertyChanged(nameof(AttachmentScraperSummary));
@@ -375,6 +411,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 var statusBuffer = "Starting attachment extraction...";
                 AttachmentScraperStatusText = statusBuffer;
                 AttachmentScraperOutputText = "Extraction Results pending...";
+                UpdateExtractionProgressFromMessage(statusBuffer);
 
                 var requirements = await _mediator.ParseAttachmentRequirementsAsync(
                     SelectedScraperAttachment,
@@ -384,7 +421,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                         statusBuffer = message;
                         Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                         {
-                            AttachmentScraperStatusText = statusBuffer;
+                            UpdateExtractionProgressFromMessage(statusBuffer);
                         }));
                     },
                     cancellationToken: _attachmentScraperCts.Token);
@@ -395,6 +432,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 }
 
                 AttachmentScraperStatusText = $"Extraction complete: {ScrapedRequirements.Count} candidate(s) found.";
+                ExtractionOverallProgress = 100;
+                ExtractionCurrentStepProgress = 100;
+                ExtractionOverallLabel = "Overall Completeness: 100%";
+                ExtractionCurrentStepLabel = "Current Process: extraction complete";
                 AttachmentScraperOutputText = BuildScraperOutputText(ScrapedRequirements);
                 OnPropertyChanged(nameof(HasScrapedRequirements));
                 OnPropertyChanged(nameof(AttachmentScraperSummary));
@@ -402,10 +443,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             catch (OperationCanceledException)
             {
                 AttachmentScraperStatusText = "Requirement extraction canceled.";
+                ExtractionCurrentStepLabel = "Current Process: canceled";
             }
             catch (Exception ex)
             {
                 AttachmentScraperStatusText = $"Requirement extraction failed: {ex.Message}";
+                ExtractionCurrentStepLabel = "Current Process: failed";
             }
             finally
             {
@@ -488,6 +531,79 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             }
 
             return string.Join(Environment.NewLine, lines);
+        }
+
+        private void UpdateExtractionProgressFromMessage(string message)
+        {
+            var cleaned = string.IsNullOrWhiteSpace(message) ? "Processing" : message.Trim();
+
+            // Prefer explicit percentages if present in provider messages.
+            var explicitPercentMatch = Regex.Match(cleaned, @"\b(?<pct>\d{1,3})%\b");
+            if (explicitPercentMatch.Success &&
+                int.TryParse(explicitPercentMatch.Groups["pct"].Value, out var explicitPercent))
+            {
+                explicitPercent = Math.Clamp(explicitPercent, 0, 100);
+                ExtractionCurrentStepProgress = explicitPercent;
+                ExtractionOverallProgress = Math.Max(ExtractionOverallProgress, explicitPercent);
+                AttachmentScraperStatusText = BuildFriendlyExtractionStatus(cleaned);
+                ExtractionOverallLabel = $"Overall Completeness: {ExtractionOverallProgress:F0}%";
+                ExtractionCurrentStepLabel = $"Current Process: {BuildFriendlyExtractionStatus(cleaned)} ({explicitPercent:F0}%)";
+                return;
+            }
+
+            // Parse counter-style progress such as "(3/10)".
+            var fractionMatch = Regex.Match(cleaned, @"(?<current>\d+)\s*/\s*(?<total>\d+)");
+            if (fractionMatch.Success &&
+                int.TryParse(fractionMatch.Groups["current"].Value, out var current) &&
+                int.TryParse(fractionMatch.Groups["total"].Value, out var total) &&
+                total > 0)
+            {
+                var fractionPercent = Math.Clamp((double)current / total * 100.0, 0, 100);
+                ExtractionCurrentStepProgress = fractionPercent;
+                ExtractionOverallProgress = Math.Max(ExtractionOverallProgress, fractionPercent);
+                var phase = BuildFriendlyExtractionStatus(cleaned);
+                AttachmentScraperStatusText = phase;
+                ExtractionOverallLabel = $"Overall Completeness: {ExtractionOverallProgress:F0}%";
+                ExtractionCurrentStepLabel = $"Current Process: {phase} ({current}/{total})";
+                return;
+            }
+
+            // Fallback to stage-based graduation when only descriptive text exists.
+            var stagePercent = InferStagePercent(cleaned);
+            ExtractionOverallProgress = Math.Max(ExtractionOverallProgress, stagePercent);
+            ExtractionCurrentStepProgress = stagePercent;
+            var friendly = BuildFriendlyExtractionStatus(cleaned);
+            AttachmentScraperStatusText = friendly;
+            ExtractionOverallLabel = $"Overall Completeness: {ExtractionOverallProgress:F0}%";
+            ExtractionCurrentStepLabel = $"Current Process: {friendly}";
+        }
+
+        private static string BuildFriendlyExtractionStatus(string message)
+        {
+            var normalized = message.ToLowerInvariant();
+            if (normalized.Contains("preparing")) return "Preparing extraction";
+            if (normalized.Contains("downloading")) return "Downloading source document";
+            if (normalized.Contains("upload")) return "Uploading source document";
+            if (normalized.Contains("embedding")) return "Embedding content";
+            if (normalized.Contains("workspace")) return "Preparing analysis workspace";
+            if (normalized.Contains("analyzing")) return "Analyzing source document";
+            if (normalized.Contains("extract")) return "Extracting requirement candidates";
+            if (normalized.Contains("complete") || normalized.Contains("success")) return "Extraction complete";
+            return "Processing";
+        }
+
+        private static double InferStagePercent(string message)
+        {
+            var normalized = message.ToLowerInvariant();
+            if (normalized.Contains("preparing")) return 8;
+            if (normalized.Contains("downloading")) return 18;
+            if (normalized.Contains("workspace")) return 30;
+            if (normalized.Contains("upload")) return 42;
+            if (normalized.Contains("embedding")) return 62;
+            if (normalized.Contains("analyzing")) return 80;
+            if (normalized.Contains("extract")) return 92;
+            if (normalized.Contains("complete") || normalized.Contains("success")) return 100;
+            return 12;
         }
 
         [RelayCommand(CanExecute = nameof(CanStage))]

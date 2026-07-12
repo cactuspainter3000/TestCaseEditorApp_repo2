@@ -967,10 +967,14 @@
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="6"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="10"/>
-                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
                                 <TextBlock Text="{Binding AttachmentScraperStatusText}"
@@ -982,17 +986,33 @@
                                            FontSize="11"
                                            Foreground="{StaticResource Brush.Text.Secondary}"/>
 
-                                <TextBox Grid.Row="4"
-                                         Text="{Binding AttachmentScraperOutputText}"
-                                         IsReadOnly="True"
-                                         AcceptsReturn="True"
-                                         VerticalScrollBarVisibility="Auto"
-                                         HorizontalScrollBarVisibility="Auto"
-                                         TextWrapping="NoWrap"
-                                         Foreground="{StaticResource Brush.Text.Secondary}"
-                                         Background="{StaticResource Brush.Background.Header}"
-                                         BorderBrush="{StaticResource Brush.Border.Subtle}"
-                                         Padding="8"/>
+                                <TextBlock Grid.Row="4"
+                                           Text="{Binding ExtractionOverallLabel}"
+                                           FontSize="11"
+                                           Foreground="{StaticResource Brush.Text.Secondary}"/>
+
+                                <ProgressBar Grid.Row="6"
+                                             Height="8"
+                                             Minimum="0"
+                                             Maximum="100"
+                                             Value="{Binding ExtractionOverallProgress}"
+                                             Foreground="{StaticResource Brush.Accent.Primary}"
+                                             Background="{StaticResource Brush.Background.Header}"
+                                             BorderThickness="0"/>
+
+                                <TextBlock Grid.Row="8"
+                                           Text="{Binding ExtractionCurrentStepLabel}"
+                                           FontSize="11"
+                                           Foreground="{StaticResource Brush.Text.Secondary}"/>
+
+                                <ProgressBar Grid.Row="10"
+                                             Height="8"
+                                             Minimum="0"
+                                             Maximum="100"
+                                             Value="{Binding ExtractionCurrentStepProgress}"
+                                             Foreground="{StaticResource Brush.State.Success}"
+                                             Background="{StaticResource Brush.Background.Header}"
+                                             BorderThickness="0"/>
                             </Grid>
                         </Border>
 
