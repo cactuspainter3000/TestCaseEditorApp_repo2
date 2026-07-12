@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Events;
@@ -22,6 +23,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
     public partial class WorkshopReproViewModel : ObservableObject
     {
         private readonly IRequirementsMediator _mediator;
+        private readonly DispatcherTimer _analysisHeartbeatTimer;
+        private DateTime _analysisStartedUtc;
+        private DateTime _statusStepStartedUtc;
+        private string _statusBaseText = string.Empty;
 
         // Per-requirement lifecycle state — stored here, not on the model
         private readonly Dictionary<string, RequirementLifecycleStage> _lifecycleStates = new();
@@ -81,6 +86,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
 
+            _analysisHeartbeatTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(2)
+            };
+            _analysisHeartbeatTimer.Tick += (_, __) => UpdateAnalysisHeartbeatText();
+
             _mediator.Subscribe<RequirementsEvents.RequirementSelected>(OnRequirementSelected);
             _mediator.Subscribe<RequirementsEvents.RequirementAnalysisStarted>(OnAnalysisStarted);
             _mediator.Subscribe<RequirementsEvents.AnalysisProgress>(OnAnalysisProgress);
@@ -107,22 +118,35 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
         private void OnAnalysisStarted(RequirementsEvents.RequirementAnalysisStarted e)
         {
-            AnalysisStatusText = $"Analyzing…";
+            _analysisStartedUtc = DateTime.UtcNow;
+            _statusStepStartedUtc = _analysisStartedUtc;
+            _statusBaseText = "Analyzing…";
+            AnalysisStatusText = _statusBaseText;
             AnalysisProgressValue = 0;
             IsAnalyzing = true;
+            _analysisHeartbeatTimer.Start();
         }
 
         private void OnAnalysisProgress(RequirementsEvents.AnalysisProgress e)
         {
             if (e.Requirement == CurrentRequirement)
             {
-                AnalysisStatusText = e.StatusMessage;
+                var nextStatus = string.IsNullOrWhiteSpace(e.StatusMessage) ? "Analyzing…" : e.StatusMessage;
+                if (!string.Equals(_statusBaseText, nextStatus, StringComparison.Ordinal))
+                {
+                    _statusBaseText = nextStatus;
+                    _statusStepStartedUtc = DateTime.UtcNow;
+                }
+
+                AnalysisStatusText = FormatHeartbeatStatusText(_statusBaseText, DateTime.UtcNow);
                 AnalysisProgressValue = e.PercentComplete;
             }
         }
 
         private void OnAnalysisCompleted(RequirementsEvents.RequirementAnalyzed e)
         {
+            _analysisHeartbeatTimer.Stop();
+
             // Complete the progress bar
             AnalysisProgressValue = 100;
             
@@ -141,7 +165,35 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
         private void OnRagFallback(RequirementsEvents.RAGAnalysisFallback e)
         {
-            AnalysisStatusText = $"↻ Retrying via direct LLM…";
+            _statusBaseText = "↻ Retrying via direct LLM…";
+            _statusStepStartedUtc = DateTime.UtcNow;
+            AnalysisStatusText = FormatHeartbeatStatusText(_statusBaseText, _statusStepStartedUtc);
+        }
+
+        private void UpdateAnalysisHeartbeatText()
+        {
+            if (!IsAnalyzing) return;
+
+            var baseText = string.IsNullOrWhiteSpace(_statusBaseText) ? "Analyzing…" : _statusBaseText;
+            AnalysisStatusText = FormatHeartbeatStatusText(baseText, DateTime.UtcNow);
+        }
+
+        private string FormatHeartbeatStatusText(string baseText, DateTime nowUtc)
+        {
+            if (_analysisStartedUtc == default)
+            {
+                _analysisStartedUtc = nowUtc;
+            }
+
+            if (_statusStepStartedUtc == default)
+            {
+                _statusStepStartedUtc = _analysisStartedUtc;
+            }
+
+            var stepSeconds = Math.Max(0, (nowUtc - _statusStepStartedUtc).TotalSeconds);
+            var totalSeconds = Math.Max(0, (nowUtc - _analysisStartedUtc).TotalSeconds);
+
+            return $"{baseText} ({stepSeconds:F0}s in current step, {totalSeconds:F0}s total)";
         }
 
         private void ApplyCurrentRequirement(Requirement? req)
@@ -184,18 +236,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             }
             catch (OperationCanceledException)
             {
+                _analysisHeartbeatTimer.Stop();
                 AnalysisStatusText = "✗ Analysis timed out (60s limit)";
                 AnalysisResults = null;
                 System.Diagnostics.Debug.WriteLine("[Analysis] ERROR: Timed out");
             }
             catch (Exception ex)
             {
+                _analysisHeartbeatTimer.Stop();
                 AnalysisStatusText = $"✗ Error: {ex.Message}";
                 AnalysisResults = null;
                 System.Diagnostics.Debug.WriteLine($"[Analysis] ERROR: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
             }
             finally
             {
+                _analysisHeartbeatTimer.Stop();
                 IsAnalyzing = false;
                 System.Diagnostics.Debug.WriteLine("[Analysis] IsAnalyzing = false");
             }
