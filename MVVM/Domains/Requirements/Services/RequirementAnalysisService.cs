@@ -2080,18 +2080,30 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                 if (preflightDiagnostics.Contains("ParseState=InvalidJson", StringComparison.OrdinalIgnoreCase) &&
                     LooksLikeRequirementAnalysisSchema(rawResponse))
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn(
-                        $"[RequirementAnalysisService] Truncated JSON detected for {requirementItem}. " +
-                        $"PreflightDiagnostics={preflightDiagnostics}");
-
                     if (TryRepairTruncatedAnalysisJsonLocally(rawResponse, out var locallyRepairedJson))
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Warn(
-                            $"[RequirementAnalysisService] Local truncated-JSON recovery succeeded for {requirementItem}. " +
-                            $"OriginalLength={rawResponse.Length}, RepairedLength={locallyRepairedJson.Length}");
+                        var lengthDelta = Math.Abs(rawResponse.Length - locallyRepairedJson.Length);
+                        if (lengthDelta <= 32)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Info(
+                                $"[RequirementAnalysisService] Analysis JSON normalized for {requirementItem}. " +
+                                $"PreflightDiagnostics={preflightDiagnostics}, OriginalLength={rawResponse.Length}, " +
+                                $"NormalizedLength={locallyRepairedJson.Length}, LengthDelta={lengthDelta}");
+                        }
+                        else
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Warn(
+                                $"[RequirementAnalysisService] Truncated JSON detected and recovered for {requirementItem}. " +
+                                $"PreflightDiagnostics={preflightDiagnostics}, OriginalLength={rawResponse.Length}, " +
+                                $"RepairedLength={locallyRepairedJson.Length}, LengthDelta={lengthDelta}");
+                        }
 
                         return locallyRepairedJson;
                     }
+
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[RequirementAnalysisService] Malformed/truncated JSON detected for {requirementItem}. " +
+                        $"PreflightDiagnostics={preflightDiagnostics}");
 
                     var (repairSuccess, repairedJson) = await TryJsonRepairAsync(rawResponse, requirementItem, cancellationToken);
                     if (repairSuccess && !string.IsNullOrWhiteSpace(repairedJson))
