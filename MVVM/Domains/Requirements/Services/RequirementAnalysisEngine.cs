@@ -71,8 +71,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     onPartialResult: null, // Engine doesn't need partial results
                     onProgressUpdate: progress => 
                     {
-                        // Enhance the progress message with stage and percentage
-                        progressCallback?.Invoke($"Processing|{progress}|65");
+                        // Pass through structured progress messages from streaming (already in Stage|Message|Percentage format)
+                        progressCallback?.Invoke(progress);
                     },
                     cancellationToken: cancellationToken);
 
@@ -97,7 +97,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     _logger.LogInformation("[AnalysisEngine] Analysis completed successfully for {RequirementId}. Original Quality: {OriginalScore}, Issues: {IssueCount}", 
                         requirement.Item, analysis.OriginalQualityScore, analysis.Issues?.Count ?? 0);
                     
-                    progressCallback?.Invoke($"Extracting|Analysis complete. Your requirement quality: {analysis.OriginalQualityScore}/10|90");
+                    progressCallback?.Invoke($"Extracting|Analysis complete. Your requirement quality: {analysis.OriginalQualityScore}/10|100");
 
                     // Store the result on the requirement
                     requirement.Analysis = analysis;
@@ -107,7 +107,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     _logger.LogWarning("[AnalysisEngine] Analysis failed for {RequirementId}: {ErrorMessage}", 
                         requirement.Item, analysis.ErrorMessage);
                     
-                    progressCallback?.Invoke($"Extracting|Analysis failed: {analysis.ErrorMessage}|85");
+                    progressCallback?.Invoke($"Extracting|Analysis failed: {analysis.ErrorMessage}|100");
                 }
 
                 return analysis;
@@ -115,7 +115,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
             catch (OperationCanceledException)
             {
                 _logger.LogWarning("[AnalysisEngine] Analysis cancelled for {RequirementId}", requirement.Item);
-                progressCallback?.Invoke("Extracting|Analysis cancelled|0");
+                progressCallback?.Invoke("Extracting|Analysis cancelled|100");
                 
                 return new RequirementAnalysis
                 {
