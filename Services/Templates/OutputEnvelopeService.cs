@@ -431,6 +431,30 @@ namespace TestCaseEditorApp.Services.Templates
                             });
                             return result;
                         }
+
+                        // If direct parse fails due minor truncation/formatting issues,
+                        // try a conservative JSON repair before giving up.
+                        var repairedJson = TryRepairMalformedJson(extractedJson);
+                        if (!string.IsNullOrWhiteSpace(repairedJson) &&
+                            !string.Equals(repairedJson, extractedJson, StringComparison.Ordinal))
+                        {
+                            var repairedEnvelope = await TryDirectParseAsync(repairedJson, expectedSchema);
+                            if (repairedEnvelope != null)
+                            {
+                                result.RepairSuccessful = true;
+                                result.RepairedEnvelope = repairedEnvelope;
+                                result.RepairConfidence = 0.7;
+                                result.ActionsPerformed.Add(new EnvelopeRepairAction
+                                {
+                                    ActionType = "JsonRepaired",
+                                    Description = "Repaired malformed JSON after extraction",
+                                    OriginalValue = extractedJson,
+                                    RepairedValue = repairedJson,
+                                    Confidence = 0.7
+                                });
+                                return result;
+                            }
+                        }
                     }
                     catch (JsonException)
                     {
@@ -442,6 +466,80 @@ namespace TestCaseEditorApp.Services.Templates
             result.RepairSuccessful = false;
             result.FailureReason = "Could not extract valid JSON from response";
             return result;
+        }
+
+        private static string TryRepairMalformedJson(string cleaned)
+        {
+            if (string.IsNullOrWhiteSpace(cleaned))
+                return string.Empty;
+
+            var repaired = cleaned;
+
+            // Close unterminated quote if count is odd.
+            int quoteCount = 0;
+            bool escaped = false;
+            foreach (var ch in repaired)
+            {
+                if (ch == '\\' && !escaped)
+                {
+                    escaped = true;
+                    continue;
+                }
+
+                if (ch == '"' && !escaped)
+                {
+                    quoteCount++;
+                }
+
+                escaped = false;
+            }
+
+            if (quoteCount % 2 != 0)
+            {
+                repaired += "\"";
+            }
+
+            // Close missing braces/brackets while respecting quoted strings.
+            int openBraces = 0;
+            int openBrackets = 0;
+            bool inString = false;
+            escaped = false;
+
+            foreach (var ch in repaired)
+            {
+                if (ch == '\\' && !escaped)
+                {
+                    escaped = true;
+                    continue;
+                }
+
+                if (ch == '"' && !escaped)
+                {
+                    inString = !inString;
+                }
+                else if (!inString)
+                {
+                    if (ch == '{') openBraces++;
+                    else if (ch == '}') openBraces--;
+                    else if (ch == '[') openBrackets++;
+                    else if (ch == ']') openBrackets--;
+                }
+
+                escaped = false;
+            }
+
+            if (openBrackets > 0)
+            {
+                repaired += new string(']', openBrackets);
+            }
+
+            if (openBraces > 0)
+            {
+                repaired += new string('}', openBraces);
+            }
+
+            repaired = Regex.Replace(repaired, @",\s*([}\]])", "$1");
+            return repaired;
         }
 
         private async Task<EnvelopeRepairResult> AttemptBestEffortRecovery(string malformedResponse, EnvelopeSchema expectedSchema)
