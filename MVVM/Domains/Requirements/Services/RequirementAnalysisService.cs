@@ -2434,8 +2434,10 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                         onProgressUpdate?.Invoke($"⚠️ RAG unavailable: {failureMessage}");
                         onProgressUpdate?.Invoke("Using fallback LLM analysis...");
                         
-                        // Use AnythingLLM with workspace-configured system prompt
-                        if (_llmService is AnythingLLMService anythingLlmService)
+                        // Prefer AnythingLLM fallback path when available.
+                        // This avoids hard failures from unrelated local-model validation (e.g., Ollama) when RAG is unavailable.
+                        var anythingLlmService = _anythingLLMService ?? (_llmService as AnythingLLMService);
+                        if (anythingLlmService != null)
                         {
                             // Use RAG-optimized prompt with supplemental information for workspace optimization
                             var ragPromptForWorkspace = BuildRagOptimizedPrompt(requirement);

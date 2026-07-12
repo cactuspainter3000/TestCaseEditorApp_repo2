@@ -2117,6 +2117,11 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 
                 var responseBuilder = new StringBuilder();
                 int chunkCount = 0;
+                int lineCount = 0;
+                int dataLineCount = 0;
+                int parsedTextChunkCount = 0;
+                int nonTextChunkCount = 0;
+                const int maxSampleDataLinesToLog = 10;
                 
                 await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
                 using var reader = new StreamReader(stream);
@@ -2124,26 +2129,64 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 string? line;
                 while ((line = await reader.ReadLineAsync()) != null && !cancellationToken.IsCancellationRequested)
                 {
+                    lineCount++;
                     if (string.IsNullOrWhiteSpace(line)) continue;
                     
                     // Handle Server-Sent Events format
                     if (line.StartsWith("data: "))
                     {
+                        dataLineCount++;
                         var chunkData = line.Substring(6); // Remove "data: " prefix
+
+                        if (dataLineCount <= maxSampleDataLinesToLog)
+                        {
+                            var sample = chunkData.Length > 240 ? chunkData.Substring(0, 240) + "..." : chunkData;
+                            TestCaseEditorApp.Services.Logging.Log.Debug($"[AnythingLLM] Stream sample #{dataLineCount}: {sample}");
+                        }
                         
                         if (chunkData == "[DONE]") break;
                         
                         try
                         {
-                            var chunkJson = JsonSerializer.Deserialize<StreamChunkResponse>(chunkData, new JsonSerializerOptions 
-                            { 
-                                PropertyNameCaseInsensitive = true 
-                            });
-                            
-                            if (!string.IsNullOrEmpty(chunkJson?.TextResponse))
+                            string? extractedText = null;
+                            string? chunkType = null;
+                            bool chunkDone = false;
+
+                            // Parse chunk as JSON document for flexible field handling across AnythingLLM versions.
+                            using (var doc = JsonDocument.Parse(chunkData))
                             {
-                                responseBuilder.Append(chunkJson.TextResponse);
-                                onChunkReceived?.Invoke(chunkJson.TextResponse);
+                                if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                                {
+                                    var root = doc.RootElement;
+
+                                    if (root.TryGetProperty("type", out var typeProp))
+                                        chunkType = typeProp.GetString();
+
+                                    if (root.TryGetProperty("done", out var doneProp) &&
+                                        (doneProp.ValueKind == JsonValueKind.True || doneProp.ValueKind == JsonValueKind.False))
+                                    {
+                                        chunkDone = doneProp.GetBoolean();
+                                    }
+
+                                    // Primary field observed in existing implementation.
+                                    if (root.TryGetProperty("textResponse", out var tr) && tr.ValueKind == JsonValueKind.String)
+                                        extractedText = tr.GetString();
+
+                                    // Compatibility fallbacks for alternate payload shapes.
+                                    if (string.IsNullOrEmpty(extractedText) && root.TryGetProperty("response", out var resp) && resp.ValueKind == JsonValueKind.String)
+                                        extractedText = resp.GetString();
+                                    if (string.IsNullOrEmpty(extractedText) && root.TryGetProperty("token", out var token) && token.ValueKind == JsonValueKind.String)
+                                        extractedText = token.GetString();
+                                    if (string.IsNullOrEmpty(extractedText) && root.TryGetProperty("content", out var contentToken) && contentToken.ValueKind == JsonValueKind.String)
+                                        extractedText = contentToken.GetString();
+                                }
+                            }
+
+                            if (!string.IsNullOrEmpty(extractedText))
+                            {
+                                responseBuilder.Append(extractedText);
+                                onChunkReceived?.Invoke(extractedText);
+                                parsedTextChunkCount++;
                                 
                                 // Emit progress every 3 chunks (to avoid excessive updates)
                                 chunkCount++;
@@ -2154,12 +2197,24 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                                     onProgressUpdate?.Invoke($"Processing|Receiving streaming response ({chunkCount} chunks)...|{streamingProgress}");
                                 }
                             }
+                            else
+                            {
+                                nonTextChunkCount++;
+                                if (!string.IsNullOrEmpty(chunkType))
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Debug($"[AnythingLLM] Non-text stream chunk type='{chunkType}', done={chunkDone}");
+                                }
+                            }
+
+                            if (chunkDone)
+                                break;
                         }
                         catch (JsonException)
                         {
                             // Handle plain text chunks
                             responseBuilder.Append(chunkData);
                             onChunkReceived?.Invoke(chunkData);
+                            parsedTextChunkCount++;
                             
                             // Emit progress for plain text chunks too
                             chunkCount++;
@@ -2171,6 +2226,8 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                         }
                     }
                 }
+
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] Stream summary workspace='{workspaceSlug}' lines={lineCount} dataLines={dataLineCount} textChunks={parsedTextChunkCount} nonTextChunks={nonTextChunkCount} responseLength={responseBuilder.Length}");
                 
                 onProgressUpdate?.Invoke("Processing|Extracting response data...|90");
                 return responseBuilder.ToString();
