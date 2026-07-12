@@ -2634,6 +2634,10 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
             Action<string>? onProgressUpdate = null)
         {
             var timeoutSeconds = Math.Max(1, (int)Math.Ceiling(AnalysisTimeout.TotalSeconds));
+            // RAG requests include workspace checks and supplemental upload before token generation starts.
+            // Preserve full model generation time by adding a setup buffer to the overall attempt timeout.
+            const int ragSetupBufferSeconds = 30;
+            var attemptTimeoutSeconds = timeoutSeconds + ragSetupBufferSeconds;
             var attempt = 0;
             
             while (!cancellationToken.IsCancellationRequested)
@@ -2643,14 +2647,14 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                 try
                 {
                     // Create timeout for this attempt
-                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(attemptTimeoutSeconds));
                     using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
                     var timeoutToken = combinedCts.Token;
                     
                     // Update progress with timeout info
                     var timeoutMsg = attempt == 1 
-                        ? $"Analyzing requirement ({timeoutSeconds}s timeout)..."
-                        : $"Continuing analysis (attempt {attempt}, {timeoutSeconds}s timeout)...";
+                        ? $"Analyzing requirement ({timeoutSeconds}s model budget + {ragSetupBufferSeconds}s RAG setup buffer)..."
+                        : $"Continuing analysis (attempt {attempt}, {timeoutSeconds}s model budget + {ragSetupBufferSeconds}s setup buffer)...";
                     onProgressUpdate?.Invoke(timeoutMsg);
                     
                     // Try RAG-based analysis first (faster and more context-aware)
