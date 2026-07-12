@@ -2075,6 +2075,8 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
 
             try
             {
+                var normalizedResponse = NormalizeResponseForCompliance(rawResponse);
+
                 var complianceConfig = new ComplianceConfig
                 {
                     OperationName = $"RequirementAnalysis.{requirementItem}",
@@ -2086,35 +2088,35 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                 };
 
                 var complianceResult = await _complianceWrapper.ExecuteWithComplianceAsync(
-                    () => Task.FromResult(rawResponse),
+                    () => Task.FromResult(normalizedResponse),
                     complianceConfig);
 
                 if (!complianceResult.Success)
                 {
                     var violationCount = complianceResult.Validation?.Violations?.Count ?? 0;
                     var detailedViolations = BuildComplianceFailureDiagnostics(complianceResult);
-                    var responseDiagnostics = BuildRawResponseDiagnostics(rawResponse);
+                    var responseDiagnostics = BuildRawResponseDiagnostics(normalizedResponse);
                     var hasJsonEnvelopeFailure = IsJsonEnvelopeFailure(complianceResult, responseDiagnostics);
 
                     // If envelope validation fails only because the model returned non-JSON text,
                     // allow parser-manager fallback rather than failing closed immediately.
                     // This protects scrape-derived requirements where the model sometimes emits
                     // structured prose that the natural-language parser can still consume.
-                    if (CanUseParserFallbackForComplianceFailure(complianceResult, rawResponse, requirementItem, responseDiagnostics))
+                    if (CanUseParserFallbackForComplianceFailure(complianceResult, normalizedResponse, requirementItem, responseDiagnostics))
                     {
                         TestCaseEditorApp.Services.Logging.Log.Warn(
                             $"[RequirementAnalysisService] Compliance envelope validation failed for {requirementItem}, " +
-                            "but parser fallback succeeded. Proceeding with raw response parse. " +
+                            "allowing parser fallback. Proceeding with normalized response parse. " +
                             $"Violations={violationCount}, Diagnostics={detailedViolations}, ResponseDiagnostics={responseDiagnostics}");
 
-                        return rawResponse;
+                        return normalizedResponse;
                     }
 
                     // Second-stage recovery for non-JSON outputs: request strict JSON repair,
                     // then re-run compliance validation against the repaired payload.
                     if (hasJsonEnvelopeFailure)
                     {
-                        var (repairSuccess, repairedJson) = await TryJsonRepairAsync(rawResponse, requirementItem, cancellationToken);
+                        var (repairSuccess, repairedJson) = await TryJsonRepairAsync(normalizedResponse, requirementItem, cancellationToken);
                         if (repairSuccess && !string.IsNullOrWhiteSpace(repairedJson))
                         {
                             var repairedComplianceResult = await _complianceWrapper.ExecuteWithComplianceAsync(
@@ -2328,27 +2330,83 @@ Return ONLY the corrected JSON, no explanations or markdown formatting.";
                 return false;
             }
 
-            try
-            {
-                var parsed = _parserManager.ParseResponse(rawResponse, requirementItem);
-                if (parsed == null)
-                {
-                    return false;
-                }
+            // Avoid probing parser-manager here to prevent duplicate parser warnings.
+            // Parser-manager will run once in the main flow after compliance handling.
+            return LooksLikeRequirementAnalysisPayload(rawResponse);
+        }
 
-                var hasSubstantiveContent =
-                    (parsed.Issues?.Count ?? 0) > 0 ||
-                    (parsed.Recommendations?.Count ?? 0) > 0 ||
-                    !string.IsNullOrWhiteSpace(parsed.ImprovedRequirement);
-
-                return hasSubstantiveContent;
-            }
-            catch (Exception ex)
+        private static bool LooksLikeRequirementAnalysisPayload(string rawResponse)
+        {
+            if (string.IsNullOrWhiteSpace(rawResponse))
             {
-                TestCaseEditorApp.Services.Logging.Log.Debug(
-                    $"[RequirementAnalysisService] Parser fallback probe failed for {requirementItem}: {ex.Message}");
                 return false;
             }
+
+            return rawResponse.Contains("OriginalQualityScore", StringComparison.OrdinalIgnoreCase)
+                && rawResponse.Contains("Issues", StringComparison.OrdinalIgnoreCase)
+                && (rawResponse.Contains("Recommendations", StringComparison.OrdinalIgnoreCase)
+                    || rawResponse.Contains("ImprovedRequirement", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string NormalizeResponseForCompliance(string rawResponse)
+        {
+            if (string.IsNullOrWhiteSpace(rawResponse))
+            {
+                return rawResponse;
+            }
+
+            var normalized = rawResponse.Trim();
+
+            if (normalized.StartsWith("```", StringComparison.Ordinal))
+            {
+                var lines = normalized.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None).ToList();
+                if (lines.Count > 0 && lines[0].StartsWith("```", StringComparison.Ordinal))
+                {
+                    lines.RemoveAt(0);
+                }
+                if (lines.Count > 0 && lines[^1].Trim() == "```")
+                {
+                    lines.RemoveAt(lines.Count - 1);
+                }
+                normalized = string.Join("\n", lines).Trim();
+            }
+
+            if (normalized.StartsWith("json\n", StringComparison.OrdinalIgnoreCase))
+            {
+                normalized = normalized.Substring(5).TrimStart();
+            }
+
+            var firstBrace = normalized.IndexOf('{');
+            if (firstBrace > 0)
+            {
+                normalized = normalized.Substring(firstBrace);
+            }
+
+            normalized = AppendMissingJsonClosers(normalized);
+            return normalized;
+        }
+
+        private static string AppendMissingJsonClosers(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return input;
+            }
+
+            var openCurly = input.Count(c => c == '{');
+            var closeCurly = input.Count(c => c == '}');
+            var openSquare = input.Count(c => c == '[');
+            var closeSquare = input.Count(c => c == ']');
+
+            var missingSquare = Math.Clamp(openSquare - closeSquare, 0, 8);
+            var missingCurly = Math.Clamp(openCurly - closeCurly, 0, 8);
+
+            if (missingSquare == 0 && missingCurly == 0)
+            {
+                return input;
+            }
+
+            return input + new string(']', missingSquare) + new string('}', missingCurly);
         }
 
         private static bool IsJsonEnvelopeFailure(ComplianceResult<string> complianceResult, string responseDiagnostics)
