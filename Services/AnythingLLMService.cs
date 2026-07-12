@@ -2202,11 +2202,21 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                     var openBrackets = finalResponse.Count(c => c == '[');
                     var closeBrackets = finalResponse.Count(c => c == ']');
                     var looksImbalanced = openBraces != closeBraces || openBrackets != closeBrackets;
-
-                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                    var hasJsonShape = openBraces > 0 || openBrackets > 0;
+                    var likelyCompletePayload = !looksImbalanced && hasJsonShape;
+                    var diagnosticsMessage =
                         $"[AnythingLLM] Streaming response ended without [DONE] token. Workspace={workspaceSlug} Thread={threadSlug ?? "none"} " +
                         $"Lines={totalLines} DataLines={dataLines} Length={finalResponse.Length} " +
-                        $"BraceBalance={openBraces}:{closeBraces} BracketBalance={openBrackets}:{closeBrackets} Imbalanced={looksImbalanced}");
+                        $"BraceBalance={openBraces}:{closeBraces} BracketBalance={openBrackets}:{closeBrackets} Imbalanced={looksImbalanced}";
+
+                    if (likelyCompletePayload)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info(diagnosticsMessage);
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn(diagnosticsMessage);
+                    }
                 }
                 else
                 {
