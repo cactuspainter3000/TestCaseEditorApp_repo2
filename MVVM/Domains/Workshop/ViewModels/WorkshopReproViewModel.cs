@@ -27,6 +27,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
     public partial class WorkshopReproViewModel : ObservableObject
     {
         private readonly IRequirementsMediator _mediator;
+        private readonly IWorkspaceDiagnosticsService _workspaceDiagnosticsService;
         private readonly DispatcherTimer _analysisHeartbeatTimer;
         private DateTime _analysisStartedUtc;
         private DateTime _statusStepStartedUtc;
@@ -127,9 +128,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             }
         }
 
-        public WorkshopReproViewModel(IRequirementsMediator mediator)
+        public WorkshopReproViewModel(
+            IRequirementsMediator mediator,
+            IWorkspaceDiagnosticsService workspaceDiagnosticsService)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+            _workspaceDiagnosticsService = workspaceDiagnosticsService ?? throw new ArgumentNullException(nameof(workspaceDiagnosticsService));
 
             _analysisHeartbeatTimer = new DispatcherTimer
             {
@@ -514,6 +518,23 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         }
 
         private bool CanCancelAttachmentScraper() => IsAttachmentScanning || IsAttachmentScraping;
+
+        [RelayCommand]
+        private async Task ExportExtractionLogsAsync()
+        {
+            try
+            {
+                AppendAttachmentLog("Exporting analysis logs to diagnostics report.");
+                await _workspaceDiagnosticsService.ExportAnalysisLogsAsync();
+                AttachmentScraperStatusText = "Analysis logs exported and git sync attempted.";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+            }
+            catch (Exception ex)
+            {
+                AttachmentScraperStatusText = $"Log export failed: {ex.Message}";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+            }
+        }
 
         private static string BuildScraperOutputText(IEnumerable<Requirement> requirements)
         {

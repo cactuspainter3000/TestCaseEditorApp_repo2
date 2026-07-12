@@ -95,7 +95,8 @@ namespace TestCaseEditorApp.Services.DependencyInjection
             services.AddSingleton<WorkshopReproViewModel>(provider =>
             {
                 var mediator = provider.GetRequiredService<IRequirementsMediator>();
-                return new WorkshopReproViewModel(mediator);
+                var workspaceDiagnosticsService = provider.GetRequiredService<IWorkspaceDiagnosticsService>();
+                return new WorkshopReproViewModel(mediator, workspaceDiagnosticsService);
             });
 
             // Main ViewModel (TRANSIENT - matches existing app lifecycle)
@@ -206,8 +207,9 @@ namespace TestCaseEditorApp.Services.DependencyInjection
             {
                 var reqMediator = provider.GetRequiredService<IRequirementsMediator>();
                 var jamaService = provider.GetRequiredService<JamaConnectService>();
+                var workspaceDiagnosticsService = provider.GetRequiredService<IWorkspaceDiagnosticsService>();
                 var logger = provider.GetRequiredService<ILogger<RequirementsUtilitiesViewModel>>();
-                return new RequirementsUtilitiesViewModel(reqMediator, jamaService, logger);
+                return new RequirementsUtilitiesViewModel(reqMediator, jamaService, workspaceDiagnosticsService, logger);
             });
 
             // Document Scraper (TRANSIENT - per-use instance)

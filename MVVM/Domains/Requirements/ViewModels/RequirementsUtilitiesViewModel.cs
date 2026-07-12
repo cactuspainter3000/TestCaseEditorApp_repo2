@@ -21,6 +21,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
     {
         private readonly IRequirementsMediator _mediator;
         private readonly JamaConnectService _jamaService;
+        private readonly IWorkspaceDiagnosticsService _workspaceDiagnosticsService;
         private readonly ILogger<RequirementsUtilitiesViewModel> _logger;
 
         [ObservableProperty]
@@ -48,10 +49,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public RequirementsUtilitiesViewModel(
             IRequirementsMediator mediator,
             JamaConnectService jamaService,
+            IWorkspaceDiagnosticsService workspaceDiagnosticsService,
             ILogger<RequirementsUtilitiesViewModel> logger)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _jamaService = jamaService ?? throw new ArgumentNullException(nameof(jamaService));
+            _workspaceDiagnosticsService = workspaceDiagnosticsService ?? throw new ArgumentNullException(nameof(workspaceDiagnosticsService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -103,44 +106,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             try
             {
                 IsLoading = true;
-                StatusMessage = "Exporting logs...";
-                LogOutput = "[Log Export]\n";
+                StatusMessage = "Exporting analysis logs and pushing to git...";
+                LogOutput = "[Log Export]\nUsing workspace diagnostics export pipeline (zip + repo export + git push)\n";
 
-                var logsFolder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    "TestCaseEditorApp", "logs");
+                await _workspaceDiagnosticsService.ExportAnalysisLogsAsync();
 
-                if (!Directory.Exists(logsFolder))
-                {
-                    LogOutput += "✓ No logs directory found (first run?)\n";
-                    StatusMessage = "No logs to export";
-                    return;
-                }
-
-                var logFiles = Directory.GetFiles(logsFolder, "*.log");
-                var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                var exportPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                    $"TestCaseEditorApp_logs_{timestamp}.zip");
-
-                LogOutput += $"Found {logFiles.Length} log file(s)\n";
-                LogOutput += $"Exporting to: {exportPath}\n";
-
-                if (logFiles.Length > 0)
-                {
-                    // In production, create a zip file
-                    // For now, just document what would happen
-                    LogOutput += $"✓ Exported {logFiles.Length} log file(s)\n";
-                    StatusMessage = $"✅ Exported {logFiles.Length} log(s) to Desktop";
-                    _logger.LogInformation("[RequirementsUtilitiesViewModel] Exported {Count} logs", logFiles.Length);
-                }
-                else
-                {
-                    StatusMessage = "No logs found";
-                    LogOutput += "No log files to export\n";
-                }
-
-                await Task.Delay(100);
+                StatusMessage = "✅ Analysis logs exported. See export summary for git commit/push status.";
+                LogOutput += "✓ Export finished. Check the generated export summary for commit hash and push details.\n";
+                _logger.LogInformation("[RequirementsUtilitiesViewModel] Exported analysis logs via WorkspaceDiagnosticsService");
             }
             catch (Exception ex)
             {
