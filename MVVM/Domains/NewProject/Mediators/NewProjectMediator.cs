@@ -264,20 +264,26 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             }
         }
 
-        public async Task SaveProjectAsync()
+        public async Task SaveProjectAsync(bool showUiFeedback = true)
         {
             try
             {
                 if (_currentWorkspaceInfo == null)
                 {
-                    ShowNotification("No active workspace to save", DomainNotificationType.Warning);
+                    if (showUiFeedback)
+                    {
+                        ShowNotification("No active workspace to save", DomainNotificationType.Warning);
+                    }
                     return;
                 }
                 
                 // Ensure proper async behavior
                 await Task.CompletedTask;
 
-                ShowProgress("Saving Requirements Workshop...", 50);
+                if (showUiFeedback)
+                {
+                    ShowProgress("Saving Requirements Workshop...", 50);
+                }
                 
                 _logger.LogInformation("Saving project: {WorkspacePath}", _currentWorkspaceInfo.Path);
                 
@@ -325,7 +331,10 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 var validationService = App.ServiceProvider?.GetService<IWorkspaceValidationService>();
                 if (validationService != null)
                 {
-                    UpdateProgress("Validating workspace data...", 50);
+                    if (showUiFeedback)
+                    {
+                        UpdateProgress("Validating workspace data...", 50);
+                    }
                     var validationResult = validationService.ValidateWorkspace(workspace);
                     
                     if (!validationResult.IsValid)
@@ -340,19 +349,28 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                             Exception = new InvalidOperationException(validationResult.ErrorMessage)
                         });
                         
-                        ShowNotification(errorMsg, DomainNotificationType.Error);
-                        HideProgress();
+                        if (showUiFeedback)
+                        {
+                            ShowNotification(errorMsg, DomainNotificationType.Error);
+                            HideProgress();
+                        }
                         return;
                     }
                     
                     if (validationResult.Severity == ValidationSeverity.Warning)
                     {
                         _logger.LogWarning("Workspace validation warning: {Warning}", validationResult.ErrorMessage);
-                        ShowNotification($"Warning: {validationResult.ErrorMessage}", DomainNotificationType.Warning);
+                        if (showUiFeedback)
+                        {
+                            ShowNotification($"Warning: {validationResult.ErrorMessage}", DomainNotificationType.Warning);
+                        }
                     }
                 }
                 
-                UpdateProgress("Saving workspace data...", 85);
+                if (showUiFeedback)
+                {
+                    UpdateProgress("Saving workspace data...", 85);
+                }
                 
                 // 4. Create workspace directory if it doesn't exist
                 var workspaceDir = Path.GetDirectoryName(_currentWorkspaceInfo.Path);
@@ -365,7 +383,10 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 _persistenceService.Save(_currentWorkspaceInfo.Path, workspace);
                 _logger.LogInformation("💾 Workspace file saved: {WorkspacePath}", _currentWorkspaceInfo.Path);
                 
-                UpdateProgress("Save completed", 100);
+                if (showUiFeedback)
+                {
+                    UpdateProgress("Save completed", 100);
+                }
                 
                 _currentWorkspaceInfo.HasUnsavedChanges = false;
                 _currentWorkspaceInfo.LastModified = DateTime.Now;
@@ -381,8 +402,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 // Broadcast to all domains for cross-domain coordination
                 BroadcastToAllDomains(projectSavedEvent);
                 
-                ShowNotification("Requirements Workshop saved successfully", DomainNotificationType.Success);
-                HideProgress();
+                if (showUiFeedback)
+                {
+                    ShowNotification("Requirements Workshop saved successfully", DomainNotificationType.Success);
+                    HideProgress();
+                }
                 
             }
             catch (Exception ex)
@@ -396,8 +420,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                     Exception = ex 
                 });
                 
-                ShowNotification($"Error saving Requirements Workshop: {ex.Message}", DomainNotificationType.Error);
-                HideProgress();
+                if (showUiFeedback)
+                {
+                    ShowNotification($"Error saving Requirements Workshop: {ex.Message}", DomainNotificationType.Error);
+                    HideProgress();
+                }
             }
         }
 

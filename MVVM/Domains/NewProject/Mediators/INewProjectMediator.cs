@@ -114,7 +114,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
         /// <summary>
         /// Save the current project
         /// </summary>
-        Task SaveProjectAsync();
+        Task SaveProjectAsync(bool showUiFeedback = true);
         
         /// <summary>
         /// Undo the last save operation by restoring from backup

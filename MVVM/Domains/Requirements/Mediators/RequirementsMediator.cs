@@ -588,7 +588,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 // Auto-save after successful analysis
                 try
                 {
-                    await _newProjectMediator.SaveProjectAsync();
+                    await _newProjectMediator.SaveProjectAsync(showUiFeedback: false);
                     _logger.LogInformation("Auto-saved workspace after requirement analysis for {RequirementId}", requirement.GlobalId);
                 }
                 catch (Exception saveEx)
