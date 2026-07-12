@@ -2116,6 +2116,9 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 onProgressUpdate?.Invoke("Receiving streaming response...");
                 
                 var responseBuilder = new StringBuilder();
+                var sawDoneToken = false;
+                var totalLines = 0;
+                var dataLines = 0;
                 
                 await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
                 using var reader = new StreamReader(stream);
@@ -2123,14 +2126,20 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                 string? line;
                 while ((line = await reader.ReadLineAsync()) != null && !cancellationToken.IsCancellationRequested)
                 {
+                    totalLines++;
                     if (string.IsNullOrWhiteSpace(line)) continue;
                     
                     // Handle Server-Sent Events format
                     if (line.StartsWith("data: "))
                     {
+                        dataLines++;
                         var chunkData = line.Substring(6); // Remove "data: " prefix
                         
-                        if (chunkData == "[DONE]") break;
+                        if (chunkData == "[DONE]")
+                        {
+                            sawDoneToken = true;
+                            break;
+                        }
                         
                         try
                         {
@@ -2153,9 +2162,30 @@ IMPORTANT: Begin analysis immediately. Do NOT refuse or ask for clarification.";
                         }
                     }
                 }
+
+                var finalResponse = responseBuilder.ToString();
+                if (!sawDoneToken)
+                {
+                    var openBraces = finalResponse.Count(c => c == '{');
+                    var closeBraces = finalResponse.Count(c => c == '}');
+                    var openBrackets = finalResponse.Count(c => c == '[');
+                    var closeBrackets = finalResponse.Count(c => c == ']');
+                    var looksImbalanced = openBraces != closeBraces || openBrackets != closeBrackets;
+
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[AnythingLLM] Streaming response ended without [DONE] token. Workspace={workspaceSlug} Thread={threadSlug ?? "none"} " +
+                        $"Lines={totalLines} DataLines={dataLines} Length={finalResponse.Length} " +
+                        $"BraceBalance={openBraces}:{closeBraces} BracketBalance={openBrackets}:{closeBrackets} Imbalanced={looksImbalanced}");
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Debug(
+                        $"[AnythingLLM] Streaming response completed with [DONE]. Workspace={workspaceSlug} Thread={threadSlug ?? "none"} " +
+                        $"Lines={totalLines} DataLines={dataLines} Length={finalResponse.Length}");
+                }
                 
                 onProgressUpdate?.Invoke("Stream complete");
-                return responseBuilder.ToString();
+                return finalResponse;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
