@@ -234,10 +234,16 @@
                                             <TextBlock Text="{Binding CurrentRequirement.GlobalId, StringFormat=Global ID: {0}, TargetNullValue=Global ID: (not set), FallbackValue=Global ID: (not set)}" Foreground="{StaticResource Brush.Text.Secondary}" FontSize="11"/>
                                         </Border>
                                         <Border Background="{StaticResource Brush.Background.Header}" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="12" Margin="0,0,8,0" Padding="8,3">
-                                            <TextBlock Text="{Binding CurrentRequirement.Status, StringFormat=Status: {0}, TargetNullValue=Status: (not set), FallbackValue=Status: (not set)}" Foreground="{StaticResource Brush.Text.Secondary}" FontSize="11"/>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="Status:" Margin="0,0,6,0" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Brush.Accent.Primary}" VerticalAlignment="Center"/>
+                                                <TextBox Width="90" Text="{Binding CurrentRequirement.Status, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4,1" MinHeight="20" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+                                            </StackPanel>
                                         </Border>
                                         <Border Background="{StaticResource Brush.Background.Header}" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="12" Margin="0,0,8,0" Padding="8,3">
-                                            <TextBlock Text="{Binding CurrentRequirement.RequirementType, StringFormat=Requirement Type: {0}, TargetNullValue=Requirement Type: (not set), FallbackValue=Requirement Type: (not set)}" Foreground="{StaticResource Brush.Text.Secondary}" FontSize="11"/>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="Req Type:" Margin="0,0,6,0" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Brush.Accent.Primary}" VerticalAlignment="Center"/>
+                                                <TextBox Width="100" Text="{Binding CurrentRequirement.RequirementType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4,1" MinHeight="20" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+                                            </StackPanel>
                                         </Border>
                                         <Border Background="{StaticResource Brush.Background.Header}" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="12" Margin="0,0,8,0" Padding="8,3">
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
