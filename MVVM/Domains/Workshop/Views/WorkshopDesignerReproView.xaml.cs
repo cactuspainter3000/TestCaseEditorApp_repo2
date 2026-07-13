@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 using System.Globalization;
 using TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels;
@@ -104,6 +105,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
                 return;
             }
 
+            var thumb = sender as Thumb;
+            var resizeMode = thumb?.Tag as string ?? "BottomRight";
+
             var minWidth = RequirementEditorModalBorder.MinWidth > 0 ? RequirementEditorModalBorder.MinWidth : 640;
             var minHeight = RequirementEditorModalBorder.MinHeight > 0 ? RequirementEditorModalBorder.MinHeight : 480;
             var maxWidth = RequirementEditorModalBorder.MaxWidth > 0 ? RequirementEditorModalBorder.MaxWidth : 1400;
@@ -116,11 +120,35 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
                 ? RequirementEditorModalBorder.ActualHeight
                 : RequirementEditorModalBorder.Height;
 
-            var newWidth = Math.Clamp(currentWidth + e.HorizontalChange, minWidth, maxWidth);
-            var newHeight = Math.Clamp(currentHeight + e.VerticalChange, minHeight, maxHeight);
+            var newWidth = currentWidth;
+            var newHeight = currentHeight;
+
+            if (resizeMode == "Right" || resizeMode == "BottomRight")
+            {
+                newWidth = Math.Clamp(currentWidth + e.HorizontalChange, minWidth, maxWidth);
+            }
+
+            if (resizeMode == "Bottom" || resizeMode == "BottomRight")
+            {
+                newHeight = Math.Clamp(currentHeight + e.VerticalChange, minHeight, maxHeight);
+            }
 
             RequirementEditorModalBorder.Width = newWidth;
             RequirementEditorModalBorder.Height = newHeight;
+        }
+
+        private void RequirementEditorHeaderThumb_DragDelta(object sender, DragDeltaEventArgs e)
+        {
+            if (RequirementEditorPanelTranslate == null)
+            {
+                return;
+            }
+
+            var currentX = RequirementEditorPanelTranslate.X;
+            var currentY = RequirementEditorPanelTranslate.Y;
+
+            RequirementEditorPanelTranslate.X = currentX + e.HorizontalChange;
+            RequirementEditorPanelTranslate.Y = currentY + e.VerticalChange;
         }
 
     }

@@ -13,22 +13,69 @@
         <!-- Slightly darker border for this view only - override app-level Brush.Border.Subtle -->
         <SolidColorBrush x:Key="Brush.Border.Subtle" Color="#333333"/>
 
-        <Style x:Key="HoverBorderOnlyButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Style x:Key="HoverBorderOnlyButtonStyle" TargetType="Button">
             <Setter Property="BorderThickness" Value="1"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="BorderThickness" Value="2"/>
-                </Trigger>
-            </Style.Triggers>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="RootBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="3"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"
+                                              RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="RootBorder" Property="BorderThickness" Value="2"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="RootBorder" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="RootBorder" Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
-        <Style x:Key="HoverBorderOnlyToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+        <Style x:Key="HoverBorderOnlyToggleButtonStyle" TargetType="ToggleButton">
             <Setter Property="BorderThickness" Value="1"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="BorderThickness" Value="2"/>
-                </Trigger>
-            </Style.Triggers>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="RootBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="3"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"
+                                              RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="RootBorder" Property="BorderThickness" Value="2"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="RootBorder" Property="BorderBrush" Value="{StaticResource Brush.Border.Accent}"/>
+                                <Setter TargetName="RootBorder" Property="BorderThickness" Value="2"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="RootBorder" Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         
         <!-- Converters for modal panel -->
@@ -783,24 +830,28 @@
                                 </Grid>
                             </Border>
 
-                            <!-- Requirement editor modal overlay -->
-                            <Border Grid.ColumnSpan="2"
-                                    Background="#99000000"
-                                    Visibility="{Binding IsRequirementEditorOpen, Converter={StaticResource BoolToVisibilityConverter}}"
-                                    Panel.ZIndex="200">
-                                <Grid>
+                            <!-- Requirement editor floating non-modal panel -->
+                            <Grid Grid.ColumnSpan="2"
+                                  Visibility="{Binding IsRequirementEditorOpen, Converter={StaticResource BoolToVisibilityConverter}}"
+                                  IsHitTestVisible="False"
+                                  Panel.ZIndex="200">
                                     <Border x:Name="RequirementEditorModalBorder"
-                                        Background="{StaticResource Brush.Background.Menu}"
+                                            Background="{StaticResource Brush.Background.Menu}"
                                             BorderBrush="{StaticResource Brush.Border.Accent}"
                                             BorderThickness="1"
                                             CornerRadius="8"
                                             Padding="12"
-                                        MinWidth="720"
-                                        MinHeight="520"
+                                            MinWidth="720"
+                                            MinHeight="520"
                                             MaxWidth="1100"
                                             MaxHeight="760"
-                                            HorizontalAlignment="Center"
-                                            VerticalAlignment="Center">
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Top"
+                                            Margin="0,12,16,12"
+                                            IsHitTestVisible="True">
+                                        <Border.RenderTransform>
+                                            <TranslateTransform x:Name="RequirementEditorPanelTranslate"/>
+                                        </Border.RenderTransform>
                                         <Grid>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
@@ -817,6 +868,14 @@
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
+                                                <Thumb Grid.Column="0"
+                                                       Height="28"
+                                                       HorizontalAlignment="Stretch"
+                                                       VerticalAlignment="Top"
+                                                       Background="Transparent"
+                                                       Cursor="SizeAll"
+                                                       DragDelta="RequirementEditorHeaderThumb_DragDelta"
+                                                       ToolTip="Drag to move editor panel."/>
                                                 <StackPanel>
                                                     <TextBlock Text="Requirement Editor"
                                                                FontWeight="Bold"
@@ -953,19 +1012,39 @@
                                                         BorderThickness="1"/>
                                             </StackPanel>
 
-                                            <Thumb Grid.RowSpan="7"
-                                                   HorizontalAlignment="Right"
-                                                   VerticalAlignment="Bottom"
-                                                   Width="16"
-                                                   Height="16"
-                                                   Margin="0,0,2,2"
-                                                   Cursor="SizeNWSE"
-                                                   DragDelta="RequirementEditorResizeThumb_DragDelta"
-                                                   ToolTip="Drag to resize editor window."/>
+                                              <Thumb Grid.RowSpan="7"
+                                                  Tag="Right"
+                                                  HorizontalAlignment="Right"
+                                                  VerticalAlignment="Stretch"
+                                                  Width="8"
+                                                  Margin="0,8,-4,18"
+                                                  Cursor="SizeWE"
+                                                  DragDelta="RequirementEditorResizeThumb_DragDelta"
+                                                  ToolTip="Drag right edge to resize editor."/>
+
+                                              <Thumb Grid.RowSpan="7"
+                                                  Tag="Bottom"
+                                                  HorizontalAlignment="Stretch"
+                                                  VerticalAlignment="Bottom"
+                                                  Height="8"
+                                                  Margin="8,0,18,-4"
+                                                  Cursor="SizeNS"
+                                                  DragDelta="RequirementEditorResizeThumb_DragDelta"
+                                                  ToolTip="Drag bottom edge to resize editor."/>
+
+                                              <Thumb Grid.RowSpan="7"
+                                                  Tag="BottomRight"
+                                                  HorizontalAlignment="Right"
+                                                  VerticalAlignment="Bottom"
+                                                  Width="16"
+                                                  Height="16"
+                                                  Margin="0,0,2,2"
+                                                  Cursor="SizeNWSE"
+                                                  DragDelta="RequirementEditorResizeThumb_DragDelta"
+                                                  ToolTip="Drag corner to resize editor."/>
                                         </Grid>
                                     </Border>
-                                </Grid>
-                            </Border>
+                                    </Grid>
                         </Grid>
                     </Border>
                     </TabItem>
