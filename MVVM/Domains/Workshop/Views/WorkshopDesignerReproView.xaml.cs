@@ -86,6 +86,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
                 WorkshopNavDropdownButton.IsChecked = false;
             }
         }
+
+        private void ExtractionAttachmentList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Mirror Jama Object navigation behavior: auto-close after selection.
+            if (ExtractionAttachmentDropdownButton?.IsChecked == true && e.AddedItems.Count > 0)
+            {
+                ExtractionAttachmentDropdownButton.IsChecked = false;
+            }
+        }
+
     }
 
     /// <summary>

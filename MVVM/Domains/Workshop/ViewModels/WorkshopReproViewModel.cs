@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,6 +18,24 @@ using RequirementAnalysis = TestCaseEditorApp.MVVM.Models.RequirementAnalysis;
 
 namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 {
+    public partial class RequirementEditorTableDraft : ObservableObject
+    {
+        [ObservableProperty]
+        private string title = string.Empty;
+
+        [ObservableProperty]
+        private string tableText = string.Empty;
+    }
+
+    public partial class ScrapedRequirementCandidate : ObservableObject
+    {
+        [ObservableProperty]
+        private Requirement requirement = new();
+
+        [ObservableProperty]
+        private bool isSelected = true;
+    }
+
     public enum RequirementLifecycleStage
     {
         Edit,
@@ -42,7 +61,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private Requirement? currentRequirement;
 
         [ObservableProperty]
+        private TestCase? selectedTestCase;
+
+        [ObservableProperty]
+        private int activeObjectTabIndex;
+
+        [ObservableProperty]
         private string requirementNameDisplay = "Requirement: (Name (not set))";
+
+        [ObservableProperty]
+        private bool isRequirementEditorOpen;
+
+        [ObservableProperty]
+        private string requirementEditorDescription = string.Empty;
+
+        [ObservableProperty]
+        private ObservableCollection<RequirementEditorTableDraft> requirementEditorTables = new();
 
         [ObservableProperty]
         private int editCount;
@@ -102,19 +136,57 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private ObservableCollection<JamaAttachment> availableScraperAttachments = new();
 
         [ObservableProperty]
-        private ObservableCollection<Requirement> scrapedRequirements = new();
+        private ObservableCollection<ScrapedRequirementCandidate> scrapedRequirements = new();
 
         public bool HasScrapedRequirements => ScrapedRequirements.Count > 0;
 
+        public int SelectedScrapedRequirementCount => ScrapedRequirements.Count(c => c.IsSelected);
+
+        public bool HasSelectedScrapedRequirements => SelectedScrapedRequirementCount > 0;
+
         public string AttachmentScraperSummary => HasScrapedRequirements
-            ? $"Requirement Candidates: {ScrapedRequirements.Count}"
+            ? $"Requirement Candidates: {ScrapedRequirements.Count} (Selected: {SelectedScrapedRequirementCount})"
             : "Requirement Candidates: 0";
 
         public RequirementLifecycleStage CurrentRequirementStage => GetCurrentStage(CurrentRequirement);
 
+        public RequirementLifecycleStage CurrentTestCaseStage => GetCurrentStage(SelectedTestCase);
+
+        public bool IsTestCaseTabActive => ActiveObjectTabIndex == 1;
+
+        public string CurrentObjectLabel => IsTestCaseTabActive ? "Current Test Case" : "Current Requirement";
+
         public int TotalCount => _mediator.Requirements.Count;
 
         public string CommitStagedButtonText => $"Commit Staged ({StagedCount})";
+
+        public int StagedTestCaseCount => _mediator.Requirements
+            .SelectMany(req => req.GeneratedTestCases ?? Enumerable.Empty<TestCase>())
+            .Count(tc => GetCurrentStage(tc) == RequirementLifecycleStage.StagedForCommit);
+
+        public string StagedGlobalSummaryText =>
+            $"Staged Requirements ({StagedCount}) and Test Cases ({StagedTestCaseCount})";
+
+        public string StageToggleButtonText => GetActiveStage() switch
+        {
+            RequirementLifecycleStage.StagedForCommit => "Click to Edit",
+            RequirementLifecycleStage.Committed => "Committed",
+            _ => "Click to Stage"
+        };
+
+        public string StageToggleDescription => GetActiveStage() switch
+        {
+            RequirementLifecycleStage.StagedForCommit => "Currently staged and ready for Jama import. Click to switch back to Edit Mode.",
+            RequirementLifecycleStage.Committed => "Committed objects are locked from stage/draft toggling.",
+            _ => "Currently in Edit Mode. Click to stage this object for Jama import."
+        };
+
+        public string StageToggleToolTip => GetActiveStage() switch
+        {
+            RequirementLifecycleStage.StagedForCommit => "Switch selected item to Edit Mode.",
+            RequirementLifecycleStage.Committed => "Committed items cannot be moved back to Draft or Staged.",
+            _ => "Stage selected item for Jama import."
+        };
 
         public ObservableCollection<Requirement> Requirements => _mediator.Requirements;
 
@@ -248,13 +320,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private void ApplyCurrentRequirement(Requirement? req)
         {
             CurrentRequirement = req;
+            SelectedTestCase = req?.GeneratedTestCases?.FirstOrDefault();
             RequirementNameDisplay = req != null
                 ? $"Requirement: {(!string.IsNullOrWhiteSpace(req.Name) ? req.Name : req.Item ?? "(not set)")}"
                 : "Requirement: (Name (not set))";
 
             NotifyNavigationCanExecute();
             OnPropertyChanged(nameof(SelectedRequirement));
-            OnPropertyChanged(nameof(CurrentRequirementStage));
+            NotifyLifecycleStateUiChanged();
         }
 
         // ===== Commands =====
@@ -307,6 +380,47 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
         private bool CanAnalyze() => CurrentRequirement != null && !IsAnalyzing;
 
+        [RelayCommand(CanExecute = nameof(CanOpenRequirementEditor))]
+        private void OpenRequirementEditor()
+        {
+            if (CurrentRequirement == null)
+            {
+                return;
+            }
+
+            RequirementEditorDescription = CurrentRequirement.Description ?? string.Empty;
+            RequirementEditorTables = BuildTableDrafts(CurrentRequirement.Tables);
+            IsRequirementEditorOpen = true;
+        }
+
+        private bool CanOpenRequirementEditor() => CurrentRequirement != null;
+
+        [RelayCommand]
+        private void CloseRequirementEditor()
+        {
+            IsRequirementEditorOpen = false;
+        }
+
+        [RelayCommand(CanExecute = nameof(CanUpdateRequirementFromEditor))]
+        private void UpdateRequirementFromEditor()
+        {
+            if (CurrentRequirement == null)
+            {
+                return;
+            }
+
+            CurrentRequirement.Description = RequirementEditorDescription ?? string.Empty;
+            CurrentRequirement.Tables = BuildTablesFromDrafts(RequirementEditorTables);
+
+            _mediator.UpdateRequirement(CurrentRequirement, new[] { nameof(Requirement.Description), nameof(Requirement.Tables) });
+            RequirementNameDisplay = !string.IsNullOrWhiteSpace(CurrentRequirement.Name)
+                ? $"Requirement: {CurrentRequirement.Name}"
+                : $"Requirement: {CurrentRequirement.Item}";
+            IsRequirementEditorOpen = false;
+        }
+
+        private bool CanUpdateRequirementFromEditor() => CurrentRequirement != null;
+
         [RelayCommand(CanExecute = nameof(CanSearchAttachments))]
         private async Task SearchAttachmentsAsync()
         {
@@ -315,9 +429,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 IsAttachmentScanning = true;
                 ExtractionOverallProgress = 0;
                 ExtractionCurrentStepProgress = 0;
-                AttachmentScraperStatusText = "Scanning Jama project attachments...";
+                AttachmentScraperStatusText = "Searching for Jama project attachments...";
                 ResetAttachmentLog("Requirement Extraction Log");
-                AppendAttachmentLog("Started attachment scan.");
+                AppendAttachmentLog("Started attachment search.");
                 ExtractionOverallLabel = "Overall Completeness: 0%";
                 ExtractionCurrentStepLabel = "Current Process: Scanning attachments";
 
@@ -360,10 +474,23 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 ExtractionOverallLabel = "Overall Completeness: 100%";
                 ExtractionCurrentStepLabel = "Current Process: attachment scan complete";
             }
+            catch (HttpRequestException httpEx) when (httpEx.InnerException is System.Net.Sockets.SocketException socketEx && socketEx.SocketErrorCode == System.Net.Sockets.SocketError.HostNotFound)
+            {
+                var configuredBaseUrl = Environment.GetEnvironmentVariable("JAMA_BASE_URL") ?? "(not set)";
+                AttachmentScraperStatusText = "Cannot resolve Jama server host. Check VPN and Jama Base URL.";
+                AppendAttachmentLog("Network connectivity error: Jama host name could not be resolved.");
+                AppendAttachmentLog($"Configured JAMA_BASE_URL: {configuredBaseUrl}");
+                AppendAttachmentLog("Verify VPN connection and the Jama Base URL in settings.");
+            }
+            catch (HttpRequestException httpEx)
+            {
+                AttachmentScraperStatusText = $"Attachment search failed: {httpEx.Message}";
+                AppendAttachmentLog($"Attachment search failed: {httpEx.Message}");
+            }
             catch (Exception ex)
             {
-                AttachmentScraperStatusText = $"Attachment scan failed: {ex.Message}";
-                AppendAttachmentLog($"Attachment scan failed: {ex.Message}");
+                AttachmentScraperStatusText = $"Attachment search failed: {ex.Message}";
+                AppendAttachmentLog($"Attachment search failed: {ex.Message}");
             }
             finally
             {
@@ -443,7 +570,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
                 foreach (var requirement in requirements)
                 {
-                    ScrapedRequirements.Add(requirement);
+                    var candidate = new ScrapedRequirementCandidate
+                    {
+                        Requirement = requirement,
+                        IsSelected = true
+                    };
+                    candidate.PropertyChanged += OnScrapedCandidatePropertyChanged;
+                    ScrapedRequirements.Add(candidate);
                 }
 
                 AttachmentScraperStatusText = $"Extraction complete: {ScrapedRequirements.Count} candidate(s) found.";
@@ -452,8 +585,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 ExtractionOverallLabel = "Overall Completeness: 100%";
                 ExtractionCurrentStepLabel = "Current Process: extraction complete";
                 AppendAttachmentLog(AttachmentScraperStatusText);
-                AppendAttachmentLog(BuildScraperOutputText(ScrapedRequirements), force: true);
+                AppendAttachmentLog(BuildScraperOutputText(ScrapedRequirements.Select(c => c.Requirement)), force: true);
                 OnPropertyChanged(nameof(HasScrapedRequirements));
+                OnPropertyChanged(nameof(SelectedScrapedRequirementCount));
+                OnPropertyChanged(nameof(HasSelectedScrapedRequirements));
                 OnPropertyChanged(nameof(AttachmentScraperSummary));
             }
             catch (OperationCanceledException)
@@ -489,12 +624,31 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 return;
             }
 
+            var selectedRequirements = ScrapedRequirements
+                .Where(c => c.IsSelected)
+                .Select(c => c.Requirement)
+                .ToList();
+
+            if (selectedRequirements.Count == 0)
+            {
+                AttachmentScraperStatusText = "No candidates selected for import.";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+                return;
+            }
+
             try
             {
                 AttachmentScraperStatusText = "Qualification Review complete. Importing accepted requirements...";
                 AppendAttachmentLog(AttachmentScraperStatusText);
-                await _mediator.ImportRequirementsAsync(ScrapedRequirements.ToList());
-                AttachmentScraperStatusText = $"Accepted Requirements imported: {ScrapedRequirements.Count}.";
+
+                // Imported candidates start as Unstaged for Jama Object workflow.
+                foreach (var req in selectedRequirements)
+                {
+                    req.Status = "Unstaged";
+                }
+
+                await _mediator.ImportRequirementsAsync(selectedRequirements);
+                AttachmentScraperStatusText = $"Accepted Requirements imported: {selectedRequirements.Count}.";
                 AppendAttachmentLog(AttachmentScraperStatusText);
             }
             catch (Exception ex)
@@ -505,7 +659,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         }
 
         private bool CanImportScrapedRequirements() =>
-            HasScrapedRequirements &&
+            HasSelectedScrapedRequirements &&
             !IsAttachmentScanning &&
             !IsAttachmentScraping;
 
@@ -700,12 +854,98 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             var key = GetKey(CurrentRequirement);
             _lifecycleStates[key] = RequirementLifecycleStage.StagedForCommit;
             RefreshLifecycleCounts();
-            OnPropertyChanged(nameof(CurrentRequirementStage));
+            NotifyLifecycleStateUiChanged();
         }
 
         private bool CanStage() =>
             CurrentRequirement != null &&
             GetCurrentStage(CurrentRequirement) == RequirementLifecycleStage.Edit;
+
+        [RelayCommand(CanExecute = nameof(CanToggleStage))]
+        private void ToggleStage()
+        {
+            var stage = GetActiveStage();
+
+            if (stage == RequirementLifecycleStage.Edit)
+            {
+                SetActiveStage(RequirementLifecycleStage.StagedForCommit);
+            }
+            else if (stage == RequirementLifecycleStage.StagedForCommit)
+            {
+                SetActiveStage(RequirementLifecycleStage.Edit);
+            }
+            else
+            {
+                return;
+            }
+
+            RefreshLifecycleCounts();
+            NotifyLifecycleStateUiChanged();
+        }
+
+        private bool CanToggleStage() =>
+            GetActiveObjectExists() &&
+            GetActiveStage() != RequirementLifecycleStage.Committed;
+
+        [RelayCommand(CanExecute = nameof(CanDeleteCurrentRequirement))]
+        private void DeleteCurrentRequirement()
+        {
+            if (!GetActiveObjectExists())
+            {
+                return;
+            }
+
+            var isTestCase = IsTestCaseTabActive;
+            var objectTypeLabel = isTestCase ? "test case" : "requirement";
+            var objectLabel = isTestCase
+                ? (!string.IsNullOrWhiteSpace(SelectedTestCase?.Name) ? SelectedTestCase?.Name : SelectedTestCase?.Id ?? "(unnamed test case)")
+                : (!string.IsNullOrWhiteSpace(CurrentRequirement?.Name) ? CurrentRequirement?.Name : CurrentRequirement?.Item ?? "(unnamed requirement)");
+
+            var confirm = MessageBox.Show(
+                $"Delete this {objectTypeLabel}?\n\n{objectLabel}\n\nThis cannot be undone.",
+                $"Delete {objectTypeLabel[..1].ToUpper()}{objectTypeLabel[1..]}",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+
+            if (confirm != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            if (isTestCase)
+            {
+                if (CurrentRequirement == null || SelectedTestCase == null)
+                {
+                    return;
+                }
+
+                var deleted = SelectedTestCase;
+                _lifecycleStates.Remove(GetKey(deleted));
+                CurrentRequirement.GeneratedTestCases.Remove(deleted);
+                SelectedTestCase = CurrentRequirement.GeneratedTestCases.FirstOrDefault();
+                _mediator.UpdateRequirement(CurrentRequirement, new[] { nameof(Requirement.GeneratedTestCases) });
+            }
+            else
+            {
+                if (CurrentRequirement == null)
+                {
+                    return;
+                }
+
+                var requirementToDelete = CurrentRequirement;
+                _lifecycleStates.Remove(GetKey(requirementToDelete));
+                _mediator.RemoveRequirement(requirementToDelete);
+
+                // Keep Workshop selection in sync because mediator does not publish RequirementSelected on remove.
+                ApplyCurrentRequirement(_mediator.CurrentRequirement);
+            }
+
+            RefreshLifecycleCounts();
+            NotifyLifecycleStateUiChanged();
+        }
+
+        private bool CanDeleteCurrentRequirement() => CurrentRequirement != null;
 
         [RelayCommand(CanExecute = nameof(CanUnstage))]
         private void Unstage()
@@ -714,7 +954,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             var key = GetKey(CurrentRequirement);
             _lifecycleStates[key] = RequirementLifecycleStage.Edit;
             RefreshLifecycleCounts();
-            OnPropertyChanged(nameof(CurrentRequirementStage));
+            NotifyLifecycleStateUiChanged();
         }
 
         private bool CanUnstage() =>
@@ -731,7 +971,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                     _lifecycleStates[key] = RequirementLifecycleStage.Committed;
             }
             RefreshLifecycleCounts();
-            OnPropertyChanged(nameof(CurrentRequirementStage));
+                    NotifyLifecycleStateUiChanged();
         }
 
         private bool CanCommitStaged() => StagedCount > 0;
@@ -802,11 +1042,49 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private static string GetKey(Requirement req) =>
             req.GlobalId ?? req.Item ?? req.GetHashCode().ToString();
 
+        private static string GetKey(TestCase testCase) =>
+            !string.IsNullOrWhiteSpace(testCase.Id)
+                ? $"TC:{testCase.Id}"
+                : (!string.IsNullOrWhiteSpace(testCase.Name)
+                    ? $"TC:{testCase.Name}"
+                    : $"TC:{testCase.GetHashCode()}");
+
         private RequirementLifecycleStage GetCurrentStage(Requirement? req)
         {
             if (req == null) return RequirementLifecycleStage.Edit;
             var key = GetKey(req);
             return _lifecycleStates.TryGetValue(key, out var stage) ? stage : RequirementLifecycleStage.Edit;
+        }
+
+        private RequirementLifecycleStage GetCurrentStage(TestCase? testCase)
+        {
+            if (testCase == null) return RequirementLifecycleStage.Edit;
+            var key = GetKey(testCase);
+            return _lifecycleStates.TryGetValue(key, out var stage) ? stage : RequirementLifecycleStage.Edit;
+        }
+
+        private RequirementLifecycleStage GetActiveStage() =>
+            IsTestCaseTabActive ? GetCurrentStage(SelectedTestCase) : GetCurrentStage(CurrentRequirement);
+
+        private bool GetActiveObjectExists() =>
+            IsTestCaseTabActive ? SelectedTestCase != null : CurrentRequirement != null;
+
+        private void SetActiveStage(RequirementLifecycleStage stage)
+        {
+            if (IsTestCaseTabActive)
+            {
+                if (SelectedTestCase == null) return;
+                _lifecycleStates[GetKey(SelectedTestCase)] = stage;
+                if (CurrentRequirement != null)
+                {
+                    _mediator.UpdateRequirement(CurrentRequirement, new[] { nameof(Requirement.GeneratedTestCases) });
+                }
+            }
+            else
+            {
+                if (CurrentRequirement == null) return;
+                _lifecycleStates[GetKey(CurrentRequirement)] = stage;
+            }
         }
 
         private void RefreshLifecycleCounts()
@@ -825,8 +1103,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             StagedCount = staged;
             CommittedCount = committed;
             OnPropertyChanged(nameof(CommitStagedButtonText));
+            OnPropertyChanged(nameof(StagedTestCaseCount));
+            OnPropertyChanged(nameof(StagedGlobalSummaryText));
             ((RelayCommand)StageCommand).NotifyCanExecuteChanged();
             ((RelayCommand)UnstageCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)ToggleStageCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)DeleteCurrentRequirementCommand).NotifyCanExecuteChanged();
             ((RelayCommand)CommitStagedCommand).NotifyCanExecuteChanged();
         }
 
@@ -835,8 +1117,104 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             ((RelayCommand)PreviousRequirementCommand).NotifyCanExecuteChanged();
             ((RelayCommand)NextRequirementCommand).NotifyCanExecuteChanged();
             ((AsyncRelayCommand)LlmAnalyzeRequirementCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)OpenRequirementEditorCommand).NotifyCanExecuteChanged();
             ((RelayCommand)StageCommand).NotifyCanExecuteChanged();
             ((RelayCommand)UnstageCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)ToggleStageCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)DeleteCurrentRequirementCommand).NotifyCanExecuteChanged();
+        }
+
+        private void NotifyLifecycleStateUiChanged()
+        {
+            OnPropertyChanged(nameof(CurrentObjectLabel));
+            OnPropertyChanged(nameof(CurrentRequirementStage));
+            OnPropertyChanged(nameof(CurrentTestCaseStage));
+            OnPropertyChanged(nameof(StageToggleButtonText));
+            OnPropertyChanged(nameof(StageToggleDescription));
+            OnPropertyChanged(nameof(StageToggleToolTip));
+            ((RelayCommand)ToggleStageCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)DeleteCurrentRequirementCommand).NotifyCanExecuteChanged();
+        }
+
+        partial void OnActiveObjectTabIndexChanged(int value) => NotifyLifecycleStateUiChanged();
+
+        partial void OnSelectedTestCaseChanged(TestCase? value) => NotifyLifecycleStateUiChanged();
+
+        private static ObservableCollection<RequirementEditorTableDraft> BuildTableDrafts(List<RequirementTable>? sourceTables)
+        {
+            var drafts = new ObservableCollection<RequirementEditorTableDraft>();
+            if (sourceTables == null)
+            {
+                return drafts;
+            }
+
+            foreach (var table in sourceTables)
+            {
+                drafts.Add(new RequirementEditorTableDraft
+                {
+                    Title = table.EditableTitle ?? string.Empty,
+                    TableText = SerializeTableRows(table.Table)
+                });
+            }
+
+            return drafts;
+        }
+
+        private static List<RequirementTable> BuildTablesFromDrafts(IEnumerable<RequirementEditorTableDraft> drafts)
+        {
+            var tables = new List<RequirementTable>();
+
+            foreach (var draft in drafts ?? Enumerable.Empty<RequirementEditorTableDraft>())
+            {
+                var table = new RequirementTable
+                {
+                    EditableTitle = draft.Title ?? string.Empty,
+                    Table = ParseTableRows(draft.TableText)
+                };
+                table.AnalyzeConfidence();
+                tables.Add(table);
+            }
+
+            return tables;
+        }
+
+        private static string SerializeTableRows(List<List<string>>? rows)
+        {
+            if (rows == null || rows.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            return string.Join(Environment.NewLine,
+                rows.Select(r => string.Join("\t", (r ?? new List<string>()).Select(c => c ?? string.Empty))));
+        }
+
+        private static List<List<string>> ParseTableRows(string? text)
+        {
+            var result = new List<List<string>>();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return result;
+            }
+
+            var lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            foreach (var raw in lines)
+            {
+                if (raw == null)
+                {
+                    continue;
+                }
+
+                var cells = raw.Split('\t').Select(c => c.TrimEnd('\r')).ToList();
+                if (cells.Count == 1 && string.IsNullOrWhiteSpace(cells[0]))
+                {
+                    continue;
+                }
+
+                result.Add(cells);
+            }
+
+            return result;
         }
 
         private void NotifyAttachmentScraperCanExecute()
@@ -845,6 +1223,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             ScrapeSelectedAttachmentCommand.NotifyCanExecuteChanged();
             ImportScrapedRequirementsCommand.NotifyCanExecuteChanged();
             CancelAttachmentScraperCommand.NotifyCanExecuteChanged();
+        }
+
+        private void OnScrapedCandidatePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ScrapedRequirementCandidate.IsSelected))
+            {
+                OnPropertyChanged(nameof(SelectedScrapedRequirementCount));
+                OnPropertyChanged(nameof(HasSelectedScrapedRequirements));
+                OnPropertyChanged(nameof(AttachmentScraperSummary));
+                NotifyAttachmentScraperCanExecute();
+            }
         }
 
         partial void OnIsAnalyzingChanged(bool value) =>
@@ -856,9 +1245,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
         partial void OnSelectedScraperAttachmentChanged(JamaAttachment? value) => NotifyAttachmentScraperCanExecute();
 
-        partial void OnScrapedRequirementsChanged(ObservableCollection<Requirement> value)
+        partial void OnScrapedRequirementsChanged(ObservableCollection<ScrapedRequirementCandidate> value)
         {
             OnPropertyChanged(nameof(HasScrapedRequirements));
+            OnPropertyChanged(nameof(SelectedScrapedRequirementCount));
+            OnPropertyChanged(nameof(HasSelectedScrapedRequirements));
             OnPropertyChanged(nameof(AttachmentScraperSummary));
             NotifyAttachmentScraperCanExecute();
         }
