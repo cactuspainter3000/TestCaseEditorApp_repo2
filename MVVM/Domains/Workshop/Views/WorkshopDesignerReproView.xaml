@@ -959,6 +959,7 @@
                                                 MaxHeight="340">
                                             <ListBox ItemsSource="{Binding Requirements}"
                                                      SelectedItem="{Binding SelectedRequirement, Mode=TwoWay}"
+                                                     SelectionChanged="WorkshopNavList_SelectionChanged"
                                                      BorderThickness="0"
                                                      Background="Transparent"
                                                      Foreground="{StaticResource Brush.Text.Primary}"

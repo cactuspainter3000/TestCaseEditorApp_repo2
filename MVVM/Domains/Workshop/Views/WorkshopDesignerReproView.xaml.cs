@@ -77,6 +77,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
                 AnalysisPanelColumn.Width = new GridLength(_targetWidth);
             }
         }
+
+        private void WorkshopNavList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Close the popup immediately after a user selection for faster navigation flow.
+            if (WorkshopNavDropdownButton?.IsChecked == true && e.AddedItems.Count > 0)
+            {
+                WorkshopNavDropdownButton.IsChecked = false;
+            }
+        }
     }
 
     /// <summary>
