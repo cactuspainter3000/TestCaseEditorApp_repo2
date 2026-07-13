@@ -892,24 +892,95 @@
                                     BorderThickness="1"
                                         ToolTip="Previous Jama object"/>
 
-                                <ComboBox Width="280"
-                                          Height="30"
-                                          Margin="0,0,6,0"
-                                          Style="{StaticResource CardComboBoxStyle}"
-                                          VerticalContentAlignment="Center"
-                                          ItemsSource="{Binding Requirements}"
-                                          SelectedItem="{Binding SelectedRequirement, Mode=TwoWay}"
-                                          ToolTip="Select a Jama object">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock TextTrimming="CharacterEllipsis">
-                                                <Run Text="{Binding Item}"/>
+                                <Grid Width="320"
+                                      Margin="0,0,6,0"
+                                      VerticalAlignment="Center">
+                                    <ToggleButton x:Name="WorkshopNavDropdownButton"
+                                                  Height="30"
+                                                  Background="{StaticResource Brush.Background.Header}"
+                                                  BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                                  BorderThickness="1"
+                                                  Foreground="{StaticResource Brush.Text.Primary}"
+                                                  Padding="8,4"
+                                                  HorizontalContentAlignment="Stretch"
+                                                  ToolTip="Select a Jama object">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="24"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center">
+                                                <Run Text="{Binding SelectedRequirement.Item, TargetNullValue=Select Jama object}"/>
                                                 <Run Text=" — "/>
-                                                <Run Text="{Binding Name}"/>
+                                                <Run Text="{Binding SelectedRequirement.Name}"/>
                                             </TextBlock>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="▼"
+                                                       FontSize="11"
+                                                       Foreground="{StaticResource Brush.Accent.Primary}"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                                                        <Setter Property="RenderTransform">
+                                                            <Setter.Value>
+                                                                <RotateTransform Angle="0"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsChecked, ElementName=WorkshopNavDropdownButton}" Value="True">
+                                                                <Setter Property="RenderTransform">
+                                                                    <Setter.Value>
+                                                                        <RotateTransform Angle="180"/>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
+                                    </ToggleButton>
+
+                                    <Popup IsOpen="{Binding IsChecked, ElementName=WorkshopNavDropdownButton, Mode=TwoWay}"
+                                           PlacementTarget="{Binding ElementName=WorkshopNavDropdownButton}"
+                                           Placement="Bottom"
+                                           AllowsTransparency="True"
+                                           PopupAnimation="Slide"
+                                           StaysOpen="False">
+                                        <Border Background="{StaticResource Brush.Background.Menu}"
+                                                BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                MinWidth="{Binding ActualWidth, ElementName=WorkshopNavDropdownButton}"
+                                                MaxHeight="340">
+                                            <ListBox ItemsSource="{Binding Requirements}"
+                                                     SelectedItem="{Binding SelectedRequirement, Mode=TwoWay}"
+                                                     BorderThickness="0"
+                                                     Background="Transparent"
+                                                     Foreground="{StaticResource Brush.Text.Primary}"
+                                                     ScrollViewer.CanContentScroll="True"
+                                                     VirtualizingPanel.IsVirtualizing="True"
+                                                     VirtualizingPanel.VirtualizationMode="Recycling"
+                                                     VirtualizingPanel.ScrollUnit="Item"
+                                                     MaxHeight="320">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock TextTrimming="CharacterEllipsis"
+                                                                   Padding="6,4">
+                                                            <Run Text="{Binding Item}"/>
+                                                            <Run Text=" — "/>
+                                                            <Run Text="{Binding Name}"/>
+                                                        </TextBlock>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                        </Border>
+                                    </Popup>
+                                </Grid>
 
                                 <Button Content="▶"
                                         Command="{Binding NextRequirementCommand}"
