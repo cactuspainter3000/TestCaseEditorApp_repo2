@@ -893,13 +893,9 @@
                                         ToolTip="Previous Jama object"/>
 
                                 <ComboBox Width="280"
-                                          Height="24"
+                                          Height="30"
                                           Margin="0,0,6,0"
-                                          Padding="6,2"
-                                          Background="{StaticResource Brush.Background.Header}"
-                                          Foreground="{StaticResource Brush.Text.Primary}"
-                                          BorderBrush="{StaticResource Brush.Border.Subtle}"
-                                          BorderThickness="1"
+                                          Style="{StaticResource CardComboBoxStyle}"
                                           VerticalContentAlignment="Center"
                                           ItemsSource="{Binding Requirements}"
                                           SelectedItem="{Binding SelectedRequirement, Mode=TwoWay}"
