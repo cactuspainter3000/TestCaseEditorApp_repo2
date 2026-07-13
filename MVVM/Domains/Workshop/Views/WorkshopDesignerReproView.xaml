@@ -223,8 +223,6 @@
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="8"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="8"/>
                                         <RowDefinition Height="*"/>
                                     </Grid.RowDefinitions>
 
@@ -241,24 +239,21 @@
                                         <Border Background="{StaticResource Brush.Background.Header}" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="12" Margin="0,0,8,0" Padding="8,3">
                                             <TextBlock Text="{Binding CurrentRequirement.RequirementType, StringFormat=Requirement Type: {0}, TargetNullValue=Requirement Type: (not set), FallbackValue=Requirement Type: (not set)}" Foreground="{StaticResource Brush.Text.Secondary}" FontSize="11"/>
                                         </Border>
+                                        <Border Background="{StaticResource Brush.Background.Header}" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="12" Margin="0,0,8,0" Padding="8,3">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="Export Controlled:" Margin="0,0,6,0" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Brush.Accent.Primary}" VerticalAlignment="Center"/>
+                                                <TextBox Width="84" Text="{Binding CurrentRequirement.ExportControlled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4,1" MinHeight="20" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Background="{StaticResource Brush.Background.Header}" BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="12" Margin="0,0,8,0" Padding="8,3">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="Verification:" Margin="0,0,6,0" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Brush.Accent.Primary}" VerticalAlignment="Center"/>
+                                                <TextBox Width="110" Text="{Binding CurrentRequirement.VerificationMethodRaw, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="4,1" MinHeight="20" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+                                            </StackPanel>
+                                        </Border>
                                     </WrapPanel>
 
                                     <Grid Grid.Row="2">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="160"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="160"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-
-                                        <TextBlock Grid.Column="0" Margin="0,0,6,0" Text="Export Controlled" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}" VerticalAlignment="Center"/>
-                                        <TextBox Grid.Column="1" Margin="0,0,12,0" Text="{Binding CurrentRequirement.ExportControlled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,2" MinHeight="22" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
-
-                                        <TextBlock Grid.Column="2" Margin="0,0,6,0" Text="Verification Method/s" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}" VerticalAlignment="Center"/>
-                                        <TextBox Grid.Column="3" Margin="0,0,0,0" Text="{Binding CurrentRequirement.VerificationMethodRaw, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,2" MinHeight="22" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
-                                    </Grid>
-
-                                    <Grid Grid.Row="4">
                                         <Border BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="4" Padding="8" Background="{StaticResource Brush.Background.Header}">
                                             <Grid>
                                                 <Grid.RowDefinitions>
