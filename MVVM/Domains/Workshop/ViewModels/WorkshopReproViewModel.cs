@@ -53,6 +53,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private string _statusBaseText = string.Empty;
         private CancellationTokenSource? _attachmentScraperCts;
         private readonly List<string> _attachmentLogLines = new();
+        private DateTime _lastAttachmentScanLogUtc = DateTime.MinValue;
+        private int _lastAttachmentScanLogCount = -1;
 
         // Per-requirement lifecycle state — stored here, not on the model
         private readonly Dictionary<string, RequirementLifecycleStage> _lifecycleStates = new();
@@ -434,6 +436,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 AppendAttachmentLog("Started attachment search.");
                 ExtractionOverallLabel = "Overall Completeness: 0%";
                 ExtractionCurrentStepLabel = "Current Process: Scanning attachments";
+                _lastAttachmentScanLogUtc = DateTime.MinValue;
+                _lastAttachmentScanLogCount = -1;
 
                 var projectId = await _mediator.GetCurrentProjectIdAsync();
                 if (projectId <= 0)
@@ -452,7 +456,19 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                     ExtractionCurrentStepProgress = percent;
                     ExtractionOverallLabel = $"Overall Completeness: {percent:F0}%";
                     ExtractionCurrentStepLabel = $"Current Process: scanning attachments ({p.Current}/{total})";
-                    AppendAttachmentLog($"Scan progress {p.Current}/{total}: {p.ProgressText}");
+
+                    var now = DateTime.UtcNow;
+                    var shouldLog = p.Current <= 1 ||
+                                    p.Current >= total ||
+                                    p.Current - _lastAttachmentScanLogCount >= 5 ||
+                                    (now - _lastAttachmentScanLogUtc).TotalMilliseconds >= 500;
+
+                    if (shouldLog)
+                    {
+                        AppendAttachmentLog($"Scan progress {p.Current}/{total}: {p.ProgressText}");
+                        _lastAttachmentScanLogUtc = now;
+                        _lastAttachmentScanLogCount = p.Current;
+                    }
                 });
 
                 var attachments = await _mediator.ScanProjectAttachmentsAsync(projectId, scanProgress);

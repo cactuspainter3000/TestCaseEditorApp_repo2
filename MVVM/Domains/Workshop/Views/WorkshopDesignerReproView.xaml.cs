@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -94,6 +95,32 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
             {
                 ExtractionAttachmentDropdownButton.IsChecked = false;
             }
+        }
+
+        private void RequirementEditorResizeThumb_DragDelta(object sender, DragDeltaEventArgs e)
+        {
+            if (RequirementEditorModalBorder == null)
+            {
+                return;
+            }
+
+            var minWidth = RequirementEditorModalBorder.MinWidth > 0 ? RequirementEditorModalBorder.MinWidth : 640;
+            var minHeight = RequirementEditorModalBorder.MinHeight > 0 ? RequirementEditorModalBorder.MinHeight : 480;
+            var maxWidth = RequirementEditorModalBorder.MaxWidth > 0 ? RequirementEditorModalBorder.MaxWidth : 1400;
+            var maxHeight = RequirementEditorModalBorder.MaxHeight > 0 ? RequirementEditorModalBorder.MaxHeight : 900;
+
+            var currentWidth = double.IsNaN(RequirementEditorModalBorder.Width)
+                ? RequirementEditorModalBorder.ActualWidth
+                : RequirementEditorModalBorder.Width;
+            var currentHeight = double.IsNaN(RequirementEditorModalBorder.Height)
+                ? RequirementEditorModalBorder.ActualHeight
+                : RequirementEditorModalBorder.Height;
+
+            var newWidth = Math.Clamp(currentWidth + e.HorizontalChange, minWidth, maxWidth);
+            var newHeight = Math.Clamp(currentHeight + e.VerticalChange, minHeight, maxHeight);
+
+            RequirementEditorModalBorder.Width = newWidth;
+            RequirementEditorModalBorder.Height = newHeight;
         }
 
     }

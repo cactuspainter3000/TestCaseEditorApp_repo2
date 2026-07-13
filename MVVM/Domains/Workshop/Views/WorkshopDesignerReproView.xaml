@@ -12,6 +12,24 @@
     <UserControl.Resources>
         <!-- Slightly darker border for this view only - override app-level Brush.Border.Subtle -->
         <SolidColorBrush x:Key="Brush.Border.Subtle" Color="#333333"/>
+
+        <Style x:Key="HoverBorderOnlyButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="BorderThickness" Value="1"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="BorderThickness" Value="2"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="HoverBorderOnlyToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+            <Setter Property="BorderThickness" Value="1"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="BorderThickness" Value="2"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
         
         <!-- Converters for modal panel -->
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
@@ -139,8 +157,8 @@
                                             BorderThickness="1"
                                             ToolTip="{Binding StageToggleToolTip}">
                                         <Button.Style>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Background" Value="{StaticResource Brush.Background.Pill.Selected}"/>
+                                            <Style TargetType="Button" BasedOn="{StaticResource HoverBorderOnlyButtonStyle}">
+                                                <Setter Property="Background" Value="{StaticResource Brush.Background.Header}"/>
                                                 <Setter Property="Foreground" Value="{StaticResource Brush.Accent.Primary}"/>
                                                 <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Accent}"/>
                                                 <Style.Triggers>
@@ -160,6 +178,7 @@
                                             VerticalAlignment="Center"/>
                                         <Button Content="Delete"
                                             Command="{Binding DeleteCurrentRequirementCommand}"
+                                            Style="{StaticResource HoverBorderOnlyButtonStyle}"
                                             Padding="10,5"
                                             MinWidth="88"
                                             FontSize="11"
@@ -203,11 +222,12 @@
                                             Grid.Column="2"
                                             Content="Commit"
                                             Command="{Binding CommitStagedCommand}"
+                                            Style="{StaticResource HoverBorderOnlyButtonStyle}"
                                             Padding="12,5"
                                             MinWidth="150"
                                             FontSize="11"
                                             FontWeight="SemiBold"
-                                            Background="{StaticResource Brush.Background.Pill.Selected}"
+                                            Background="{StaticResource Brush.Background.Header}"
                                             Foreground="{StaticResource Brush.Accent.Primary}"
                                             BorderBrush="{StaticResource Brush.Border.Accent}"
                                             BorderThickness="1"
@@ -769,11 +789,14 @@
                                     Visibility="{Binding IsRequirementEditorOpen, Converter={StaticResource BoolToVisibilityConverter}}"
                                     Panel.ZIndex="200">
                                 <Grid>
-                                    <Border Background="{StaticResource Brush.Background.Menu}"
+                                    <Border x:Name="RequirementEditorModalBorder"
+                                        Background="{StaticResource Brush.Background.Menu}"
                                             BorderBrush="{StaticResource Brush.Border.Accent}"
                                             BorderThickness="1"
                                             CornerRadius="8"
                                             Padding="12"
+                                        MinWidth="720"
+                                        MinHeight="520"
                                             MaxWidth="1100"
                                             MaxHeight="760"
                                             HorizontalAlignment="Center"
@@ -929,6 +952,16 @@
                                                         BorderBrush="{StaticResource Brush.Border.Accent}"
                                                         BorderThickness="1"/>
                                             </StackPanel>
+
+                                            <Thumb Grid.RowSpan="7"
+                                                   HorizontalAlignment="Right"
+                                                   VerticalAlignment="Bottom"
+                                                   Width="16"
+                                                   Height="16"
+                                                   Margin="0,0,2,2"
+                                                   Cursor="SizeNWSE"
+                                                   DragDelta="RequirementEditorResizeThumb_DragDelta"
+                                                   ToolTip="Drag to resize editor window."/>
                                         </Grid>
                                     </Border>
                                 </Grid>
@@ -1113,6 +1146,7 @@
 
                                 <Button Content="◀"
                                         Command="{Binding PreviousRequirementCommand}"
+                                    Style="{StaticResource HoverBorderOnlyButtonStyle}"
                                     Width="30"
                                     Height="24"
                                         Margin="0,0,6,0"
@@ -1128,6 +1162,7 @@
                                       Margin="0,0,6,0"
                                       VerticalAlignment="Center">
                                     <ToggleButton x:Name="WorkshopNavDropdownButton"
+                                                  Style="{StaticResource HoverBorderOnlyToggleButtonStyle}"
                                                   Height="30"
                                                   Background="{StaticResource Brush.Background.Header}"
                                                   BorderBrush="{StaticResource Brush.Border.Subtle}"
@@ -1217,6 +1252,7 @@
 
                                 <Button Content="▶"
                                         Command="{Binding NextRequirementCommand}"
+                                    Style="{StaticResource HoverBorderOnlyButtonStyle}"
                                     Width="30"
                                     Height="24"
                                     FontSize="12"
@@ -1272,6 +1308,7 @@
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                 <Button Content="Search for Attachments"
                                         Command="{Binding SearchAttachmentsCommand}"
+                                    Style="{StaticResource HoverBorderOnlyButtonStyle}"
                                         Margin="0,0,8,0"
                                         Padding="10,4"
                                         FontSize="11"
@@ -1281,6 +1318,7 @@
                                         BorderThickness="1"/>
                                 <Button Content="Export Logs"
                                     Command="{Binding ExportExtractionLogsCommand}"
+                                    Style="{StaticResource HoverBorderOnlyButtonStyle}"
                                     Margin="0,0,8,0"
                                     Padding="10,4"
                                     FontSize="11"
@@ -1290,6 +1328,7 @@
                                     BorderThickness="1"/>
                                 <Button Content="Cancel"
                                         Command="{Binding CancelAttachmentScraperCommand}"
+                                    Style="{StaticResource HoverBorderOnlyButtonStyle}"
                                         Padding="10,4"
                                         FontSize="11"
                                         Background="{StaticResource Brush.Background.Header}"
@@ -1314,6 +1353,7 @@
                                 <Grid Width="560"
                                       VerticalAlignment="Center">
                                     <ToggleButton x:Name="ExtractionAttachmentDropdownButton"
+                                                  Style="{StaticResource HoverBorderOnlyToggleButtonStyle}"
                                                   Height="30"
                                                   Background="{StaticResource Brush.Background.Header}"
                                                   BorderBrush="{StaticResource Brush.Border.Subtle}"
@@ -1400,6 +1440,7 @@
                                 <Button Grid.Column="1"
                                         Content="Extract Candidates"
                                         Command="{Binding ScrapeSelectedAttachmentCommand}"
+                                    Style="{StaticResource HoverBorderOnlyButtonStyle}"
                                         Margin="10,0,0,0"
                                         Padding="10,4"
                                         FontSize="11"
@@ -1517,6 +1558,7 @@
                                 <Button Grid.Column="1"
                                         Content="Add Selected to Workspace"
                                         Command="{Binding ImportScrapedRequirementsCommand}"
+                                    Style="{StaticResource HoverBorderOnlyButtonStyle}"
                                         Padding="10,4"
                                         FontSize="11"
                                         Background="{StaticResource Brush.Background.Pill.Selected}"
