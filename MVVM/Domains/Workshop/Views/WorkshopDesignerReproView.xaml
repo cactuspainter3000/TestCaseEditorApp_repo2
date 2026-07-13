@@ -223,6 +223,8 @@
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="8"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="8"/>
                                         <RowDefinition Height="*"/>
                                     </Grid.RowDefinitions>
 
@@ -242,11 +244,24 @@
                                     </WrapPanel>
 
                                     <Grid Grid.Row="2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="160"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="160"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0" Margin="0,0,6,0" Text="Export Controlled" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Column="1" Margin="0,0,12,0" Text="{Binding CurrentRequirement.ExportControlled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,2" MinHeight="22" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+
+                                        <TextBlock Grid.Column="2" Margin="0,0,6,0" Text="Verification Method/s" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Column="3" Margin="0,0,0,0" Text="{Binding CurrentRequirement.VerificationMethodRaw, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,2" MinHeight="22" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+                                    </Grid>
+
+                                    <Grid Grid.Row="4">
                                         <Border BorderBrush="{StaticResource Brush.Border.Subtle}" BorderThickness="1" CornerRadius="4" Padding="8" Background="{StaticResource Brush.Background.Header}">
                                             <Grid>
                                                 <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto"/>
-                                                    <RowDefinition Height="8"/>
                                                     <RowDefinition Height="Auto"/>
                                                     <RowDefinition Height="8"/>
                                                     <RowDefinition Height="*"/>
@@ -255,22 +270,7 @@
                                                 <!-- Template: <ACTOR> shall <ACTION> when <CONDITION>. | Purpose: | Product State or Condition: | Input(s): | Stimulus: -->
                                                 <TextBox Text="{Binding CurrentRequirement.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, TargetNullValue=(description), FallbackValue=(description)}" FontWeight="SemiBold" Foreground="{StaticResource Brush.Text.Primary}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="120" MaxHeight="240" VerticalScrollBarVisibility="Auto" Padding="6,4" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
 
-                                                <Grid Grid.Row="2">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="160"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="160"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                    </Grid.ColumnDefinitions>
-
-                                                    <TextBlock Grid.Column="0" Margin="0,0,6,0" Text="Export Controlled" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
-                                                    <TextBox Grid.Column="1" Margin="0,0,12,0" Text="{Binding CurrentRequirement.ExportControlled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,2" MinHeight="22" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
-
-                                                    <TextBlock Grid.Column="2" Margin="0,0,6,0" Text="Verification Method/s" FontWeight="SemiBold" FontSize="11" Foreground="{StaticResource Brush.Accent.Primary}"/>
-                                                    <TextBox Grid.Column="3" Margin="0,0,0,0" Text="{Binding CurrentRequirement.VerificationMethodRaw, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="5,2" MinHeight="22" TextWrapping="NoWrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
-                                                </Grid>
-
-                                                <Border Grid.Row="4"
+                                                <Border Grid.Row="2"
                                                         BorderBrush="{StaticResource Brush.Border.Default}"
                                                         BorderThickness="1"
                                                         CornerRadius="4">
