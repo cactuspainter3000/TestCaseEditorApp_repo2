@@ -77,7 +77,7 @@
                                 </Trigger>
                                 <Trigger Property="IsSelected" Value="True">
                                     <Setter Property="Panel.ZIndex" Value="10"/>
-                                    <Setter Property="Margin" Value="0,0,-2,0"/>
+                                    <Setter Property="Margin" Value="0,0,4,0"/>
                                     <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Accent}"/>
                                     <Setter TargetName="Root" Property="Background" Value="{StaticResource Brush.Background.Pill.Selected}"/>
                                 </Trigger>
@@ -125,7 +125,7 @@
                                             </Trigger>
                                             <Trigger Property="IsSelected" Value="True">
                                                 <Setter Property="Panel.ZIndex" Value="10"/>
-                                                <Setter Property="Margin" Value="0,0,-2,0"/>
+                                                <Setter Property="Margin" Value="0,0,4,0"/>
                                                 <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Accent}"/>
                                                 <Setter TargetName="Root" Property="Background" Value="{StaticResource Brush.Background.Pill.Selected}"/>
                                             </Trigger>
@@ -350,7 +350,7 @@
                                                                                     </Trigger>
                                                                                     <Trigger Property="IsSelected" Value="True">
                                                                                         <Setter Property="Panel.ZIndex" Value="10"/>
-                                                                                        <Setter Property="Margin" Value="0,0,-2,0"/>
+                                                                                        <Setter Property="Margin" Value="0,0,4,0"/>
                                                                                         <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource Brush.Border.Accent}"/>
                                                                                         <Setter TargetName="Root" Property="Background" Value="{StaticResource Brush.Background.Pill.Selected}"/>
                                                                                     </Trigger>
