@@ -16,6 +16,7 @@ namespace TestCaseEditorApp.Services.Extraction
     {
         private const double AcceptedConfidenceThreshold = 0.75;
         private const double ReviewPromotionThreshold = 0.25;
+        private const int MaxLlmReverseValidationCandidates = 40;
 
         private static readonly Regex ModalVerbRegex = new(@"\b(shall|must|will|should)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex HeadingRegex = new(@"^(?:section\s*[:\-]?\s*)?(?<prefix>\d+(?:\.\d+)+|[A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -103,19 +104,46 @@ namespace TestCaseEditorApp.Services.Extraction
                 return Array.Empty<ReverseValidationVerdict>();
             }
 
+            var groundingBySubject = requirementList
+                .ToDictionary(
+                    requirement => GetRequirementSubjectId(requirement),
+                    requirement => AssessSourceGrounding(requirement, documentContent),
+                    StringComparer.OrdinalIgnoreCase);
+
+            var llmValidationTargets = requirementList;
+            if (requirementList.Count > MaxLlmReverseValidationCandidates)
+            {
+                llmValidationTargets = requirementList
+                    .OrderBy(requirement => groundingBySubject[GetRequirementSubjectId(requirement)].IsGrounded)
+                    .ThenBy(requirement => groundingBySubject[GetRequirementSubjectId(requirement)].MatchScore)
+                    .ThenBy(requirement => GetRequirementSubjectId(requirement), StringComparer.OrdinalIgnoreCase)
+                    .Take(MaxLlmReverseValidationCandidates)
+                    .ToList();
+
+                _logger.LogInformation(
+                    "[ExtractionFoundation] Reverse validation sampling enabled for {DocumentName}: validating {ValidatedCount}/{TotalCount} requirements with LLM (deterministic grounding still runs for all).",
+                    documentName,
+                    llmValidationTargets.Count,
+                    requirementList.Count);
+            }
+
             if (_textGenerationService == null)
             {
-                return requirementList.Select(BuildRuleBasedVerdict).ToList();
+                return requirementList
+                    .Select(requirement => ApplyGroundingToVerdict(
+                        BuildRuleBasedVerdict(requirement),
+                        groundingBySubject[GetRequirementSubjectId(requirement)]))
+                    .ToList();
             }
 
             var verdicts = new List<ReverseValidationVerdict>();
             const int batchSize = 8;
 
-            foreach (var batch in requirementList.Chunk(batchSize))
+            foreach (var batch in llmValidationTargets.Chunk(batchSize))
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var prompt = BuildReverseValidationPrompt(batch, documentContent, documentName);
+                var prompt = BuildReverseValidationPrompt(batch, documentContent, documentName, groundingBySubject);
                 string? response = null;
                 try
                 {
@@ -127,7 +155,28 @@ namespace TestCaseEditorApp.Services.Extraction
                 }
 
                 var parsed = TryParseReverseValidationResponse(response, batch);
-                verdicts.AddRange(parsed ?? batch.Select(BuildRuleBasedVerdict));
+                var batchVerdicts = parsed ?? batch.Select(BuildRuleBasedVerdict).ToList();
+                verdicts.AddRange(batchVerdicts.Select(verdict =>
+                {
+                    if (!groundingBySubject.TryGetValue(verdict.SubjectId, out var grounding))
+                    {
+                        return verdict;
+                    }
+
+                    return ApplyGroundingToVerdict(verdict, grounding);
+                }));
+            }
+
+            var validatedSubjects = verdicts
+                .Select(verdict => verdict.SubjectId)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var requirement in requirementList.Where(requirement => !validatedSubjects.Contains(GetRequirementSubjectId(requirement))))
+            {
+                var subjectId = GetRequirementSubjectId(requirement);
+                var grounding = groundingBySubject[subjectId];
+                var fallbackVerdict = ApplyGroundingToVerdict(BuildRuleBasedVerdict(requirement), grounding);
+                verdicts.Add(fallbackVerdict);
             }
 
             return verdicts;
@@ -649,6 +698,56 @@ namespace TestCaseEditorApp.Services.Extraction
             };
         }
 
+        private static ReverseValidationVerdict ApplyGroundingToVerdict(ReverseValidationVerdict verdict, SourceGroundingAssessment grounding)
+        {
+            if (grounding.IsGrounded)
+            {
+                verdict.Evidence = string.IsNullOrWhiteSpace(verdict.Evidence)
+                    ? grounding.EvidenceSnippet
+                    : $"{verdict.Evidence} | source_grounding: {grounding.EvidenceSnippet}";
+
+                if (string.IsNullOrWhiteSpace(verdict.Summary))
+                {
+                    verdict.Summary = "Source grounding confirmed";
+                }
+                else if (!verdict.Summary.Contains("grounding", StringComparison.OrdinalIgnoreCase))
+                {
+                    verdict.Summary = $"{verdict.Summary}; source grounding confirmed";
+                }
+
+                verdict.Confidence = Math.Clamp(Math.Max(verdict.Confidence, grounding.MatchScore), 0.0, 1.0);
+                return verdict;
+            }
+
+            if (verdict.Action == ReverseValidationAction.Accept)
+            {
+                verdict.Action = ReverseValidationAction.Review;
+                verdict.IsLegit = false;
+            }
+
+            verdict.Confidence = Math.Min(verdict.Confidence, Math.Max(0.15, grounding.MatchScore));
+            verdict.Issues ??= new List<string>();
+            if (!verdict.Issues.Any(issue => issue.Contains("source grounding", StringComparison.OrdinalIgnoreCase)))
+            {
+                verdict.Issues.Add("No direct source grounding match found in attachment text");
+            }
+
+            if (string.IsNullOrWhiteSpace(verdict.Summary))
+            {
+                verdict.Summary = "Source grounding not found; manual review required";
+            }
+            else if (!verdict.Summary.Contains("grounding", StringComparison.OrdinalIgnoreCase))
+            {
+                verdict.Summary = $"{verdict.Summary}; source grounding not found";
+            }
+
+            verdict.Evidence = string.IsNullOrWhiteSpace(verdict.Evidence)
+                ? grounding.EvidenceSnippet
+                : $"{verdict.Evidence} | source_grounding: {grounding.EvidenceSnippet}";
+
+            return verdict;
+        }
+
         private static string GetRequirementSubjectId(Requirement requirement)
         {
             return !string.IsNullOrWhiteSpace(requirement.TraceReference)
@@ -660,11 +759,16 @@ namespace TestCaseEditorApp.Services.Extraction
                         : requirement.Name;
         }
 
-        private string BuildReverseValidationPrompt(IReadOnlyList<Requirement> requirements, string documentContent, string documentName)
+        private string BuildReverseValidationPrompt(
+            IReadOnlyList<Requirement> requirements,
+            string documentContent,
+            string documentName,
+            IReadOnlyDictionary<string, SourceGroundingAssessment>? groundingBySubject = null)
         {
             var sb = new StringBuilder();
             sb.AppendLine("You are performing reverse validation on extracted requirements.");
             sb.AppendLine("Your task is to determine whether each candidate is fully supported by the source document and whether any part is suspicious, fabricated, or missing evidence.");
+            sb.AppendLine("Primary check: confirm the attachment text contains supporting source language for each requirement (exact or semantically close). If source grounding is weak/absent, use action=review or reject.");
             sb.AppendLine("Do NOT invent missing data. If evidence is weak, mark the requirement for review.");
             sb.AppendLine();
             sb.AppendLine($"DOCUMENT: {documentName}");
@@ -683,6 +787,12 @@ namespace TestCaseEditorApp.Services.Extraction
                 sb.AppendLine($"source_prefix: {requirement.SourcePrefix ?? "UNK"}");
                 sb.AppendLine($"source_evidence: {Truncate(requirement.SourcePrefixEvidence, 250)}");
                 sb.AppendLine($"trace_reference: {requirement.TraceReference}");
+
+                if (groundingBySubject != null && groundingBySubject.TryGetValue(GetRequirementSubjectId(requirement), out var grounding))
+                {
+                    sb.AppendLine($"grounding_hint_match_score: {grounding.MatchScore:F2}");
+                    sb.AppendLine($"grounding_hint_evidence: {Truncate(grounding.EvidenceSnippet, 250)}");
+                }
             }
 
             sb.AppendLine();
@@ -789,9 +899,112 @@ namespace TestCaseEditorApp.Services.Extraction
             return text.Length <= maxChars ? text : text[..maxChars] + "...";
         }
 
+        private static SourceGroundingAssessment AssessSourceGrounding(Requirement requirement, string documentContent)
+        {
+            if (string.IsNullOrWhiteSpace(documentContent))
+            {
+                return new SourceGroundingAssessment
+                {
+                    IsGrounded = false,
+                    MatchScore = 0.0,
+                    EvidenceSnippet = "Document content unavailable for grounding"
+                };
+            }
+
+            var clause = ExtractRequirementClauseForGrounding(requirement);
+            if (string.IsNullOrWhiteSpace(clause))
+            {
+                return new SourceGroundingAssessment
+                {
+                    IsGrounded = false,
+                    MatchScore = 0.0,
+                    EvidenceSnippet = "Requirement clause unavailable for grounding"
+                };
+            }
+
+            var normalizedClause = NormalizeForGrounding(clause);
+            var normalizedDoc = NormalizeForGrounding(documentContent);
+
+            if (normalizedClause.Length >= 24 && normalizedDoc.Contains(normalizedClause, StringComparison.Ordinal))
+            {
+                return new SourceGroundingAssessment
+                {
+                    IsGrounded = true,
+                    MatchScore = 0.95,
+                    EvidenceSnippet = $"Exact normalized clause match: {Truncate(clause, 180)}"
+                };
+            }
+
+            var tokens = normalizedClause
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Where(token => token.Length >= 4)
+                .Distinct(StringComparer.Ordinal)
+                .Take(16)
+                .ToList();
+
+            if (tokens.Count == 0)
+            {
+                return new SourceGroundingAssessment
+                {
+                    IsGrounded = false,
+                    MatchScore = 0.1,
+                    EvidenceSnippet = "Insufficient lexical tokens for grounding"
+                };
+            }
+
+            var matched = tokens.Where(token => normalizedDoc.Contains(token, StringComparison.Ordinal)).ToList();
+            var score = (double)matched.Count / tokens.Count;
+            var grounded = score >= 0.60;
+
+            return new SourceGroundingAssessment
+            {
+                IsGrounded = grounded,
+                MatchScore = score,
+                EvidenceSnippet = grounded
+                    ? $"Token overlap grounded ({matched.Count}/{tokens.Count}): {string.Join(", ", matched.Take(6))}"
+                    : $"Weak token overlap ({matched.Count}/{tokens.Count}); top tokens: {string.Join(", ", tokens.Take(6))}"
+            };
+        }
+
+        private static string ExtractRequirementClauseForGrounding(Requirement requirement)
+        {
+            var raw = requirement.Description ?? requirement.Name ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                return string.Empty;
+            }
+
+            var firstLine = raw
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(line => line.Trim())
+                .FirstOrDefault(line => !line.StartsWith("Source:", StringComparison.OrdinalIgnoreCase)
+                    && !line.StartsWith("From:", StringComparison.OrdinalIgnoreCase)
+                    && !line.StartsWith("Confidence:", StringComparison.OrdinalIgnoreCase));
+
+            var clause = firstLine ?? raw.Trim();
+            clause = Regex.Replace(clause, @"^\s*[A-Za-z0-9][A-Za-z0-9_.\-]{2,80}\s*[:\-]\s*", string.Empty);
+            clause = Regex.Replace(clause, @"\s+", " ").Trim();
+            return clause;
+        }
+
+        private static string NormalizeForGrounding(string text)
+        {
+            var lower = text.ToLowerInvariant();
+            lower = Regex.Replace(lower, @"[^a-z0-9\s]", " ");
+            lower = Regex.Replace(lower, @"\s+", " ").Trim();
+            return lower;
+        }
+
         private sealed class ReverseValidationEnvelope
         {
             public List<ReverseValidationCandidate> Verdicts { get; set; } = new();
+        }
+
+        private sealed class SourceGroundingAssessment
+        {
+            public bool IsGrounded { get; set; }
+            public double MatchScore { get; set; }
+            public string EvidenceSnippet { get; set; } = string.Empty;
         }
 
         private sealed class ReverseValidationCandidate
