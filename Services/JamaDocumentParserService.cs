@@ -1529,7 +1529,8 @@ But thoroughly scan all sections first before concluding.";
                 {
                     // Use Template Form Architecture for structured extraction with quality validation
                     TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Using Template Form Architecture for structured extraction");
-                    extractedRequirements = await ExtractRequirementsWithTemplateFormAsync(documentContent, attachment, projectId, progressCallback, cancellationToken);
+                    var templateInputContent = BuildTemplateExtractionInput(documentContent, contextContent);
+                    extractedRequirements = await ExtractRequirementsWithTemplateFormAsync(templateInputContent, attachment, projectId, progressCallback, cancellationToken);
                 }
                 else
                 {
@@ -2775,6 +2776,23 @@ Extract all legitimate requirements:";
             }
 
             return selected;
+        }
+
+        private static string BuildTemplateExtractionInput(string documentContent, string contextContent)
+        {
+            var structuralExcerpt = BuildRequirementFocusedExcerpt(documentContent, 10000);
+
+            if (string.IsNullOrWhiteSpace(structuralExcerpt))
+            {
+                return string.IsNullOrWhiteSpace(contextContent) ? documentContent : contextContent;
+            }
+
+            if (string.IsNullOrWhiteSpace(contextContent))
+            {
+                return structuralExcerpt;
+            }
+
+            return $"{structuralExcerpt}\n\n[Context]\n{contextContent}";
         }
 
         private static RequirementExtractionEnvelope? TryRecoverEnvelopeFromLooseJson(string llmResponse, string documentName)

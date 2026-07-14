@@ -6593,8 +6593,15 @@ namespace TestCaseEditorApp.Services
                 requirement.Item
             };
 
-            var chosen = candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c) && !LooksLikeSourcePrefix(c, requirement.SourceSection)) ?? "Requirement";
+            var chosen = candidates.FirstOrDefault(c =>
+                !string.IsNullOrWhiteSpace(c)
+                && !LooksLikeSourcePrefix(c, requirement.SourceSection)
+                && !LooksLikeSourcePrefix(c, requirement.SourcePrefix)
+                && !LooksLikeSyntheticDocumentId(c)) ?? "Requirement";
+
             var cleanedTitle = RemoveSourcePrefix(chosen);
+            cleanedTitle = RemoveSourcePrefix(cleanedTitle);
+            cleanedTitle = RemoveDuplicateLeadingToken(cleanedTitle);
             var normalized = NormalizeRequirementName(cleanedTitle);
 
             var description = requirement.Description?.Trim();
@@ -6607,8 +6614,28 @@ namespace TestCaseEditorApp.Services
             return string.IsNullOrWhiteSpace(normalized) ? "Requirement" : normalized;
         }
 
+        private static bool LooksLikeSyntheticDocumentId(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            return Regex.IsMatch(value.Trim(), @"^DOC-\d{2,}$", RegexOptions.IgnoreCase);
+        }
+
         private static string GetNormalizedSectionKey(Requirement requirement)
         {
+            var isDeterministicFallback = requirement.TagList?.Any(tag =>
+                    tag.Equals("DeterministicFallback", StringComparison.OrdinalIgnoreCase)) == true
+                || (!string.IsNullOrWhiteSpace(requirement.RequirementType)
+                    && requirement.RequirementType.StartsWith("Deterministic", StringComparison.OrdinalIgnoreCase));
+
+            if (isDeterministicFallback)
+            {
+                return "UNK";
+            }
+
             var candidates = new[]
             {
                 requirement.SourcePrefix,
@@ -6705,6 +6732,23 @@ namespace TestCaseEditorApp.Services
             var trimmed = value.Trim();
             var stripped = Regex.Replace(trimmed, @"^(?:source|section|sec\.?|clause|id)?\s*[:\-–—]?\s*(?:\d+(?:\.\d+)+|[A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+)[\s:\-–—]+", string.Empty, RegexOptions.IgnoreCase);
             return string.IsNullOrWhiteSpace(stripped) ? trimmed : stripped;
+        }
+
+        private static string RemoveDuplicateLeadingToken(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var trimmed = value.Trim();
+            var deduped = Regex.Replace(
+                trimmed,
+                @"^(?<token>[A-Za-z][A-Za-z0-9_-]{1,})\s*[-:–—]\s*\k<token>\b\s*[-:–—]?\s*",
+                "${token} - ",
+                RegexOptions.IgnoreCase);
+
+            return deduped.Trim();
         }
 
         private static string NormalizeRequirementName(string? value)
