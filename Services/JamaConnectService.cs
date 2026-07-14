@@ -6589,8 +6589,7 @@ namespace TestCaseEditorApp.Services
                 requirement.SetName,
                 GetFolderLeafName(requirement.FolderPath),
                 requirement.RequirementType,
-                requirement.Heading,
-                requirement.Item
+                requirement.Heading
             };
 
             var chosen = candidates.FirstOrDefault(c =>
@@ -6642,8 +6641,7 @@ namespace TestCaseEditorApp.Services
                 requirement.SourceSection,
                 requirement.Heading,
                 requirement.SetName,
-                requirement.FolderPath,
-                requirement.Item
+                requirement.FolderPath
             };
 
             foreach (var candidate in candidates)

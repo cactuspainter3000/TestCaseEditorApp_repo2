@@ -1578,62 +1578,11 @@ But thoroughly scan all sections first before concluding.";
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Final result: {extractedRequirements.Count} extracted + {derivedRequirements.Count} derived = {allRequirements.Count} total requirements from {attachment.FileName}");
 
-                var expectedMinimum = EstimateMinimumRequirements(attachment);
-                var shouldRunDeterministicFallback = allRequirements.Count == 0 && !string.IsNullOrWhiteSpace(documentContent);
-                if (shouldRunDeterministicFallback)
+                if (allRequirements.Count == 0)
                 {
-                    var deterministic = ExtractDeterministicRequirementCandidates(documentContent, attachment, projectId);
-                    if (deterministic.Count > 0)
-                    {
-                        var promotedDeterministic = deterministic
-                            .Where(c => c.IsPromoted && c.Requirement != null)
-                            .ToList();
-
-                        var deterministicExistingIds = new HashSet<string>(
-                            allRequirements
-                                .Where(r => !string.IsNullOrWhiteSpace(r.GlobalId))
-                                .Select(r => r.GlobalId!),
-                            StringComparer.OrdinalIgnoreCase);
-
-                        var existingDescriptions = new HashSet<string>(
-                            allRequirements
-                                .Select(r => (r.Description ?? string.Empty).Trim())
-                                .Where(d => !string.IsNullOrWhiteSpace(d)),
-                            StringComparer.OrdinalIgnoreCase);
-
-                        var addedCount = 0;
-                        foreach (var candidate in promotedDeterministic)
-                        {
-                            var candidateReq = candidate.Requirement!;
-                            var candidateId = candidateReq.GlobalId ?? string.Empty;
-                            var candidateDescription = (candidateReq.Description ?? string.Empty).Trim();
-
-                            var duplicateById = !string.IsNullOrWhiteSpace(candidateId) && deterministicExistingIds.Contains(candidateId);
-                            var duplicateByDescription = !string.IsNullOrWhiteSpace(candidateDescription) && existingDescriptions.Contains(candidateDescription);
-
-                            if (duplicateById || duplicateByDescription)
-                            {
-                                continue;
-                            }
-
-                            allRequirements.Add(candidateReq);
-                            if (!string.IsNullOrWhiteSpace(candidateId))
-                            {
-                                deterministicExistingIds.Add(candidateId);
-                            }
-                            if (!string.IsNullOrWhiteSpace(candidateDescription))
-                            {
-                                existingDescriptions.Add(candidateDescription);
-                            }
-                            addedCount++;
-                        }
-
-                        await WriteDeterministicTraceabilityReportAsync(attachment, projectId, documentContent, deterministic, cancellationToken);
-                        TestCaseEditorApp.Services.Logging.Log.Warn(
-                            $"[DirectRag] Primary extraction returned zero requirements; deterministic fallback found {deterministic.Count} candidates, qualification promoted {promotedDeterministic.Count}, augmentation added {addedCount} unique candidates.");
-                        progressCallback?.Invoke(
-                            $"⚠️ Primary extraction returned zero requirements; deterministic fallback promoted {addedCount} of {deterministic.Count} candidates.");
-                    }
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[DirectRag] Extraction returned zero requirements for {attachment.FileName}. Synthetic deterministic fallback is disabled by design.");
+                    progressCallback?.Invoke("⚠️ No requirements extracted. Synthetic deterministic fallback is disabled.");
                 }
 
                 var rewrittenTotal = NormalizeRequirementsToTestSolutionPerspective(allRequirements, attachment);
@@ -3809,7 +3758,7 @@ Extract all legitimate requirements:";
 
                 var generatedItem = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId)
                     ? structuredMetadata.RequirementId
-                    : $"DOC-{i + 1:D3}";
+                    : $"DER-{attachment.Id}-{i + 1:D3}";
 
                 // Remove echoed requirement ID prefix from generated description text,
                 // e.g. "C4B_ATR-121 The MFD shall ...".
@@ -3833,7 +3782,7 @@ Extract all legitimate requirements:";
                 {
                     GlobalId = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId)
                         ? structuredMetadata.RequirementId
-                        : $"DOC-{attachment.Id}-{i + 1:D3}", // DOC-12345-001, DOC-12345-002, etc.
+                        : $"DER-{attachment.Id}-{i + 1:D3}",
                     Item = generatedItem,
                     TraceReference = traceReference,
                     Name = GenerateRequirementNameFromCapability(normalizedDescription, capability.TaxonomyCategory),
