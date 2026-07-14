@@ -807,16 +807,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private void PopulateChips(Requirement requirement)
         {
             var chips = new List<ChipViewModel>();
+            var displayType = !string.IsNullOrWhiteSpace(requirement.ItemType)
+                ? requirement.ItemType
+                : requirement.RequirementType;
+            var displayStatus = !string.IsNullOrWhiteSpace(requirement.RelationshipStatus)
+                ? requirement.RelationshipStatus
+                : requirement.Status;
 
             // Core chips (always visible when available)
             if (!string.IsNullOrEmpty(requirement.Item))
                 chips.Add(new ChipViewModel { Label = "ID", Value = requirement.Item, IsCore = true, DisplayOrder = 1 });
             
-            if (!string.IsNullOrEmpty(requirement.ItemType))
-                chips.Add(new ChipViewModel { Label = "Type", Value = requirement.ItemType, IsCore = true, DisplayOrder = 2 });
+            if (!string.IsNullOrEmpty(displayType))
+                chips.Add(new ChipViewModel { Label = "Type", Value = displayType, IsCore = true, DisplayOrder = 2 });
 
-            if (!string.IsNullOrEmpty(requirement.RelationshipStatus))
-                chips.Add(new ChipViewModel { Label = "Status", Value = requirement.RelationshipStatus, IsCore = true, DisplayOrder = 3 });
+            if (!string.IsNullOrEmpty(displayStatus))
+                chips.Add(new ChipViewModel { Label = "Status", Value = displayStatus, IsCore = true, DisplayOrder = 3 });
 
             // Optional chips
             if (!string.IsNullOrEmpty(requirement.Project))

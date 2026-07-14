@@ -4908,18 +4908,31 @@ namespace TestCaseEditorApp.Services
             var createdCount = 0;
             var failedCount = 0;
             const int maxAttemptsPerRequirement = 3;
-            var reservedRequirementNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var sectionKeys = requirements
+                .Select(GetNormalizedSectionKey)
+                .ToList();
+            var sectionTotals = sectionKeys
+                .GroupBy(k => k, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+            var sectionOrdinals = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var requirement in requirements)
+            for (var reqIndex = 0; reqIndex < requirements.Count; reqIndex++)
             {
+                var requirement = requirements[reqIndex];
                 if (cancellationToken.IsCancellationRequested)
                 {
                     break;
                 }
 
-                requirement.Name = EnsureUniqueRequirementName(
-                    BuildSectionDerivedRequirementName(requirement),
-                    reservedRequirementNames);
+                var sectionKey = sectionKeys[reqIndex];
+                sectionOrdinals.TryGetValue(sectionKey, out var currentOrdinal);
+                var sectionOrdinal = currentOrdinal + 1;
+                sectionOrdinals[sectionKey] = sectionOrdinal;
+                requirement.Name = BuildSectionTraceRequirementName(
+                    requirement,
+                    sectionKey,
+                    sectionOrdinal,
+                    sectionTotals[sectionKey]);
 
                 var created = false;
                 string? lastFailureMessage = null;
@@ -6548,57 +6561,110 @@ namespace TestCaseEditorApp.Services
             return value is not Array && value is not IEnumerable<int>;
         }
 
-        private static string BuildSectionDerivedRequirementName(Requirement requirement)
+        private static string BuildSectionTraceRequirementName(
+            Requirement requirement,
+            string sectionKey,
+            int sectionOrdinal,
+            int sectionTotal)
+        {
+            var prefix = sectionKey.Equals("UNK", StringComparison.OrdinalIgnoreCase)
+                ? $"UNK {sectionOrdinal}"
+                : sectionTotal > 1
+                    ? $"{sectionKey}.{sectionOrdinal}"
+                    : sectionKey;
+
+            var title = BuildSectionTitle(requirement);
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return prefix;
+            }
+
+            return NormalizeRequirementName($"{prefix} - {title}");
+        }
+
+        private static string BuildSectionTitle(Requirement requirement)
         {
             var candidates = new[]
             {
-                requirement.Name,
                 requirement.Heading,
                 requirement.SetName,
                 GetFolderLeafName(requirement.FolderPath),
                 requirement.RequirementType,
-                requirement.Item,
-                "Extracted Requirement"
+                requirement.Item
             };
 
-            var chosen = candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c)) ?? "Extracted Requirement";
-            var normalized = NormalizeRequirementName(chosen);
+            var chosen = candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c)) ?? "Requirement";
+            var cleanedTitle = RemoveSectionPrefix(chosen);
+            var normalized = NormalizeRequirementName(cleanedTitle);
 
             var description = requirement.Description?.Trim();
             if (!string.IsNullOrWhiteSpace(description) &&
                 string.Equals(normalized, NormalizeRequirementName(description), StringComparison.OrdinalIgnoreCase))
             {
-                var fallback = !string.IsNullOrWhiteSpace(requirement.Heading)
-                    ? requirement.Heading
-                    : !string.IsNullOrWhiteSpace(requirement.SetName)
-                        ? requirement.SetName
-                        : !string.IsNullOrWhiteSpace(requirement.RequirementType)
-                            ? requirement.RequirementType
-                            : "Extracted Requirement";
-                normalized = NormalizeRequirementName(fallback);
+                return "Requirement";
             }
 
-            return string.IsNullOrWhiteSpace(normalized) ? "Extracted Requirement" : normalized;
+            return string.IsNullOrWhiteSpace(normalized) ? "Requirement" : normalized;
         }
 
-        private static string EnsureUniqueRequirementName(string baseName, HashSet<string> reservedNames)
+        private static string GetNormalizedSectionKey(Requirement requirement)
         {
-            var normalizedBase = NormalizeRequirementName(baseName);
-            if (string.IsNullOrWhiteSpace(normalizedBase))
+            var candidates = new[]
             {
-                normalizedBase = "Extracted Requirement";
+                requirement.Heading,
+                requirement.TraceReference,
+                requirement.Rationale,
+                requirement.Name,
+                requirement.Description,
+                requirement.SetName,
+                requirement.FolderPath,
+                requirement.Item
+            };
+
+            foreach (var candidate in candidates)
+            {
+                var section = ExtractSectionIdentifier(candidate);
+                if (!string.IsNullOrWhiteSpace(section))
+                {
+                    return section!;
+                }
             }
 
-            var candidate = normalizedBase;
-            var suffix = 2;
-            while (reservedNames.Contains(candidate))
+            return "UNK";
+        }
+
+        private static string? ExtractSectionIdentifier(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
             {
-                candidate = $"{normalizedBase} {suffix}";
-                suffix++;
+                return null;
             }
 
-            reservedNames.Add(candidate);
-            return candidate;
+            var explicitSection = Regex.Match(value, @"\b(?:section|sec\.?|clause)\s*(?<sec>\d+(?:\.\d+)+)\b", RegexOptions.IgnoreCase);
+            if (explicitSection.Success)
+            {
+                return explicitSection.Groups["sec"].Value.Trim().Trim('.');
+            }
+
+            var headingStyle = Regex.Match(value, @"(?:^|[\r\n])\s*(?<sec>\d+(?:\.\d+)+)\b", RegexOptions.IgnoreCase);
+            if (headingStyle.Success)
+            {
+                return headingStyle.Groups["sec"].Value.Trim().Trim('.');
+            }
+
+            return null;
+        }
+
+        private static string RemoveSectionPrefix(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var trimmed = value.Trim();
+            var stripped = Regex.Replace(trimmed, @"^(?:section|sec\.?|clause)?\s*\d+(?:\.\d+)+[\s:\-–—]+", string.Empty, RegexOptions.IgnoreCase);
+            return string.IsNullOrWhiteSpace(stripped) ? trimmed : stripped;
         }
 
         private static string NormalizeRequirementName(string? value)

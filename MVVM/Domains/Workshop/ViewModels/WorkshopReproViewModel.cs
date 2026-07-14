@@ -661,6 +661,18 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 foreach (var req in selectedRequirements)
                 {
                     req.Status = "Unstaged";
+
+                    if (string.IsNullOrWhiteSpace(req.RelationshipStatus))
+                    {
+                        req.RelationshipStatus = req.Status;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(req.ItemType))
+                    {
+                        req.ItemType = !string.IsNullOrWhiteSpace(req.RequirementType)
+                            ? req.RequirementType
+                            : "Requirement";
+                    }
                 }
 
                 await _mediator.ImportRequirementsAsync(selectedRequirements);
