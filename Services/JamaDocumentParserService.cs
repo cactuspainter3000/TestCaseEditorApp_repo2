@@ -45,6 +45,10 @@ namespace TestCaseEditorApp.Services
         private readonly ITelemetryDashboardService? _telemetryService;
         private readonly IDocumentRequirementExtractionService? _documentExtractionService;
         private bool _ollamaStatusMonitoringStarted;
+
+        // Policy: ATP parsing should only extract requirements explicitly present in the source document.
+        // Derived/gap requirements must be produced manually by systems engineering review.
+        private const bool ENABLE_AUTOMATIC_DERIVED_REQUIREMENTS = false;
         
         private const string PARSING_WORKSPACE_PREFIX = "jama-doc-parse";
 
@@ -1649,10 +1653,9 @@ But thoroughly scan all sections first before concluding.";
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Extracted {extractedRequirements.Count} requirements");
                 
-                // Step 6: ENHANCE with ATP derivation system (5-phase implementation)
-                // Use the sophisticated derivation system to derive additional requirements from document content
+                // Step 6: Optional ATP derivation (manual/advisory policy)
                 List<Requirement> derivedRequirements = new List<Requirement>();
-                if (_derivationService != null)
+                if (ENABLE_AUTOMATIC_DERIVED_REQUIREMENTS && _derivationService != null)
                 {
                     progressCallback?.Invoke($"🚀 Enhancing with AI capability derivation system...");
                     try
@@ -1667,7 +1670,15 @@ But thoroughly scan all sections first before concluding.";
                 }
                 else
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] SystemCapabilityDerivationService not available - using basic extraction only");
+                    if (_derivationService != null)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info("[DirectRag] Automatic derived-requirement creation is disabled by policy. Returning extraction-only results.");
+                        progressCallback?.Invoke("ℹ️ Derivation is advisory/manual only. Returning extracted requirements from the document.");
+                    }
+                    else
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn("[DirectRag] SystemCapabilityDerivationService not available - using extraction-only path");
+                    }
                 }
                 
                 // Step 8: Combine extracted and derived requirements (avoid duplicates by ID)
