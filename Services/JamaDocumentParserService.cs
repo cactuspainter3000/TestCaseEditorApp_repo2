@@ -908,6 +908,17 @@ For a technical ATP/SRS document, expect 15-50+ requirements minimum.";
                 var purpose = ExtractFieldValue(reqData, new[] { "Purpose" });
                 var productStateOrCondition = ExtractFieldValue(reqData, new[] { "Product State or Condition", "Product State", "State or Condition" });
                 var inputsAndStimulus = ExtractFieldValue(reqData, new[] { "Input(s) and Stimulus", "Inputs and Stimulus", "Inputs", "Stimulus" });
+                var section = ExtractFieldValue(reqData, new[] { "Section" });
+                var source = ExtractFieldValue(reqData, new[] { "Source" });
+                var sourcePrefix = ResolvePreferredSourcePrefix(
+                    ExtractFieldValue(reqData, new[] { "Source Prefix", "Prefix", "Unique Identifier", "Identifier" }),
+                    ExtractFieldValue(reqData, new[] { "Source Prefix Evidence", "Prefix Evidence" }),
+                    section,
+                    source);
+                var sourcePrefixType = ExtractFieldValue(reqData, new[] { "Source Prefix Type", "Prefix Type" });
+                var sourcePrefixEvidence = ExtractFieldValue(reqData, new[] { "Source Prefix Evidence", "Prefix Evidence" });
+                var sourcePrefixConfidence = ExtractNullableDouble(
+                    ExtractFieldValue(reqData, new[] { "Source Prefix Confidence", "Prefix Confidence" }));
 
                 var descriptionSections = new List<string> { text };
                 if (!string.IsNullOrWhiteSpace(purpose))
@@ -930,7 +941,12 @@ For a technical ATP/SRS document, expect 15-50+ requirements minimum.";
                     Item = id,
                     Name = reqData.TryGetValue("Category", out var cat) ? cat : "Extracted Requirement",
                     Description = string.Join("\n\n", descriptionSections),
-                    Heading = reqData.TryGetValue("Source", out var headingSource) ? headingSource : string.Empty,
+                    Heading = source ?? string.Empty,
+                    SourcePrefix = sourcePrefix ?? string.Empty,
+                    SourcePrefixType = sourcePrefixType ?? string.Empty,
+                    SourcePrefixEvidence = sourcePrefixEvidence ?? string.Empty,
+                    SourcePrefixConfidence = sourcePrefixConfidence,
+                    SourceSection = sourcePrefix ?? string.Empty,
                     TraceReference = BuildRequirementTraceReference(attachment.Id, id, 0),
                     SourceDocumentName = attachment.FileName,
                     SourceAttachmentId = attachment.Id,
@@ -1969,10 +1985,16 @@ Find requirements like:
 - ""Temperature range shall be -40°C to +85°C""  
 - ""Interface shall support RS-485 protocol""
 
+For every requirement, choose the best unique naming prefix visible in the document. Prefer explicit document identifiers and numbered clauses over generic headings. Do not invent prefixes. If nothing reliable exists, use ""UNK"".
+
 Format each requirement as:
 ID: REQ-001
 Text: [Complete requirement statement]
 Category: [Functional/Performance/Interface/Environmental]
+Source Prefix: [Best unique identifier for naming, e.g. 4.1.2.1, C4B_ATR-121, Table 7A, Step 14, or UNK]
+Source Prefix Type: [section|document_id|table|figure|step|heading|unknown]
+Source Prefix Evidence: [Exact text snippet proving the prefix]
+Source Prefix Confidence: [0.0-1.0 confidence that the prefix is the right naming key]
 ---
 
 Extract all legitimate requirements:";
@@ -2606,6 +2628,8 @@ Extract all legitimate requirements:";
                     var lines = section.Trim().Split('\n', StringSplitOptions.RemoveEmptyEntries);
                     
                     string? id = null, text = null, category = null, page = null, sectionRef = null;
+                    string? sourcePrefix = null, sourcePrefixType = null, sourcePrefixEvidence = null;
+                    double? sourcePrefixConfidence = null;
                     
                     foreach (var line in lines)
                     {
@@ -2620,6 +2644,14 @@ Extract all legitimate requirements:";
                             page = trimmedLine.Substring(5).Trim();
                         else if (trimmedLine.StartsWith("Section:", StringComparison.OrdinalIgnoreCase))
                             sectionRef = trimmedLine.Substring(8).Trim();
+                        else if (trimmedLine.StartsWith("Source Prefix:", StringComparison.OrdinalIgnoreCase))
+                            sourcePrefix = trimmedLine.Substring(14).Trim();
+                        else if (trimmedLine.StartsWith("Source Prefix Type:", StringComparison.OrdinalIgnoreCase))
+                            sourcePrefixType = trimmedLine.Substring(19).Trim();
+                        else if (trimmedLine.StartsWith("Source Prefix Evidence:", StringComparison.OrdinalIgnoreCase))
+                            sourcePrefixEvidence = trimmedLine.Substring(23).Trim();
+                        else if (trimmedLine.StartsWith("Source Prefix Confidence:", StringComparison.OrdinalIgnoreCase))
+                            sourcePrefixConfidence = ExtractNullableDouble(trimmedLine.Substring(25).Trim());
                     }
                     
                     if (!string.IsNullOrEmpty(text) && IsValidRequirement(text))
@@ -2634,12 +2666,19 @@ Extract all legitimate requirements:";
                         
                         var sourceLine = sourceInfo.Count > 0 ? string.Join(", ", sourceInfo) : "Source not specified";
                         
+                        var resolvedSourcePrefix = ResolvePreferredSourcePrefix(sourcePrefix, sourcePrefixEvidence, sectionRef, page);
+
                         var requirement = new Requirement
                         {
                             GlobalId = id ?? $"SYS-REQ-{requirements.Count + 1:D3}",
                             Item = id ?? $"SYS-REQ-{requirements.Count + 1:D3}",
                             Name = category ?? "System Requirement",
                             Description = $"{text}\n\nSource: {sourceLine}\nFrom: {attachment.FileName}",
+                            SourcePrefix = resolvedSourcePrefix ?? string.Empty,
+                            SourcePrefixType = sourcePrefixType ?? string.Empty,
+                            SourcePrefixEvidence = sourcePrefixEvidence ?? string.Empty,
+                            SourcePrefixConfidence = sourcePrefixConfidence,
+                            SourceSection = resolvedSourcePrefix ?? string.Empty,
                             TraceReference = BuildRequirementTraceReference(attachment.Id, id, requirements.Count + 1),
                             SourceDocumentName = attachment.FileName,
                             SourceAttachmentId = attachment.Id,
@@ -2727,6 +2766,10 @@ Extract all legitimate requirements:";
                     Category = ExtractJsonStringValue(rawObject, "category"),
                     Page = ExtractJsonStringValue(rawObject, "page"),
                     Section = ExtractJsonStringValue(rawObject, "section"),
+                    SourcePrefix = ExtractJsonStringValue(rawObject, "source_prefix"),
+                    SourcePrefixType = ExtractJsonStringValue(rawObject, "source_prefix_type"),
+                    SourcePrefixEvidence = ExtractJsonStringValue(rawObject, "source_prefix_evidence"),
+                    SourcePrefixConfidence = ExtractJsonDoubleValue(rawObject, "source_prefix_confidence"),
                     Confidence = ExtractJsonDoubleValue(rawObject, "confidence") ?? 0.7
                 });
             }
@@ -4271,6 +4314,10 @@ Extract all legitimate requirements:";
                             category = "string (Functional|Performance|Interface|Environmental|Safety|Security)",
                             page = "string (optional, page number or section reference)",
                             section = "string (optional, document section)",
+                            source_prefix = "string (best unique naming key such as 4.1.2.1, C4B_ATR-121, Table 7A, Step 14, or UNK)",
+                            source_prefix_type = "string (section|document_id|table|figure|step|heading|unknown)",
+                            source_prefix_evidence = "string (exact text snippet proving the prefix choice)",
+                            source_prefix_confidence = "number (0.0-1.0, confidence that the prefix is correct)",
                             confidence = "number (0.0-1.0, extraction confidence)"
                         }
                     },
@@ -4443,6 +4490,7 @@ Extract requirements now (JSON only):";
                         sourceInfo.Add(req.Section);
                     
                     var sourceLine = sourceInfo.Count > 0 ? string.Join(", ", sourceInfo) : "Source not specified";
+                    var resolvedSourcePrefix = ResolvePreferredSourcePrefix(req.SourcePrefix, req.SourcePrefixEvidence, req.Section, sourceLine, req.Page);
 
                     var requirement = new Requirement
                     {
@@ -4450,6 +4498,11 @@ Extract requirements now (JSON only):";
                         Item = req.Id ?? $"SYS-REQ-{extractedRequirements.Count + 1:D3}",
                         Name = req.Category ?? "System Requirement",
                         Description = $"{req.Text}\n\nSource: {sourceLine}\nFrom: {attachment.FileName}\nConfidence: {req.Confidence:P0} (Template Form extraction)",
+                        SourcePrefix = resolvedSourcePrefix ?? string.Empty,
+                        SourcePrefixType = req.SourcePrefixType ?? string.Empty,
+                        SourcePrefixEvidence = req.SourcePrefixEvidence ?? string.Empty,
+                        SourcePrefixConfidence = req.SourcePrefixConfidence,
+                        SourceSection = resolvedSourcePrefix ?? string.Empty,
                         TraceReference = BuildRequirementTraceReference(attachment.Id, req.Id, extractedRequirements.Count + 1),
                         SourceDocumentName = attachment.FileName,
                         SourceAttachmentId = attachment.Id,
@@ -4540,7 +4593,101 @@ Extract requirements now (JSON only):";
             public string? Category { get; set; }
             public string? Page { get; set; }
             public string? Section { get; set; }
+            public string? SourcePrefix { get; set; }
+            public string? SourcePrefixType { get; set; }
+            public string? SourcePrefixEvidence { get; set; }
+            public double? SourcePrefixConfidence { get; set; }
             public double Confidence { get; set; } = 0.8;
+        }
+
+        private static string? ResolvePreferredSourcePrefix(string? rawPrefix, string? evidence, params string?[] fallbackSources)
+        {
+            var normalizedCandidate = ExtractSourcePrefix(rawPrefix);
+            if (!string.IsNullOrWhiteSpace(normalizedCandidate))
+            {
+                var validationSources = new[] { evidence }
+                    .Concat(fallbackSources ?? Array.Empty<string?>())
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .ToList();
+
+                if (validationSources.Count == 0 || validationSources.Any(source => ContainsPrefixToken(source, normalizedCandidate!)))
+                {
+                    return normalizedCandidate;
+                }
+            }
+
+            foreach (var source in fallbackSources ?? Array.Empty<string?>())
+            {
+                var fallback = ExtractSourcePrefix(source);
+                if (!string.IsNullOrWhiteSpace(fallback))
+                {
+                    return fallback;
+                }
+            }
+
+            return null;
+        }
+
+        private static string? ExtractSourcePrefix(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            var trimmed = value.Trim();
+
+            var labeledMatch = System.Text.RegularExpressions.Regex.Match(
+                trimmed,
+                @"\b(?:source|section|sec\.?|clause|id)\s*:\s*(?<prefix>\d+(?:\.\d+)+|[A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (labeledMatch.Success)
+            {
+                return labeledMatch.Groups["prefix"].Value.Trim().Trim('.');
+            }
+
+            var numericMatch = System.Text.RegularExpressions.Regex.Match(
+                trimmed,
+                @"\b(?<sec>\d+(?:\.\d+)+)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (numericMatch.Success)
+            {
+                return numericMatch.Groups["sec"].Value.Trim().Trim('.');
+            }
+
+            var identifierMatch = System.Text.RegularExpressions.Regex.Match(
+                trimmed,
+                @"^(?<prefix>[A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+)(?:\b|(?=\s|$))",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            return identifierMatch.Success ? identifierMatch.Groups["prefix"].Value.Trim().Trim('.') : null;
+        }
+
+        private static bool ContainsPrefixToken(string? source, string prefix)
+        {
+            if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(prefix))
+            {
+                return false;
+            }
+
+            return source.IndexOf(prefix, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static double? ExtractNullableDouble(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            var normalized = value.Trim().TrimEnd('%');
+            if (double.TryParse(normalized, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var parsed))
+            {
+                return value.Contains('%') ? parsed / 100.0 : parsed;
+            }
+
+            return null;
         }
 
         private class ExtractionMetadata

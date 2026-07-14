@@ -6586,15 +6586,15 @@ namespace TestCaseEditorApp.Services
         {
             var candidates = new[]
             {
-                requirement.Heading,
                 requirement.SetName,
                 GetFolderLeafName(requirement.FolderPath),
                 requirement.RequirementType,
+                requirement.Heading,
                 requirement.Item
             };
 
-            var chosen = candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c)) ?? "Requirement";
-            var cleanedTitle = RemoveSectionPrefix(chosen);
+            var chosen = candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c) && !LooksLikeSourcePrefix(c, requirement.SourceSection)) ?? "Requirement";
+            var cleanedTitle = RemoveSourcePrefix(chosen);
             var normalized = NormalizeRequirementName(cleanedTitle);
 
             var description = requirement.Description?.Trim();
@@ -6611,11 +6611,9 @@ namespace TestCaseEditorApp.Services
         {
             var candidates = new[]
             {
+                requirement.SourcePrefix,
+                requirement.SourceSection,
                 requirement.Heading,
-                requirement.TraceReference,
-                requirement.Rationale,
-                requirement.Name,
-                requirement.Description,
                 requirement.SetName,
                 requirement.FolderPath,
                 requirement.Item
@@ -6640,13 +6638,13 @@ namespace TestCaseEditorApp.Services
                 return null;
             }
 
-            var sourceLabeled = Regex.Match(value, @"\b(?:source|section|sec\.?|clause)\s*:\s*(?<sec>\d+(?:\.\d+)+)\b", RegexOptions.IgnoreCase);
+            var sourceLabeled = Regex.Match(value, @"\b(?:source|section|sec\.?|clause|id)\s*:\s*(?<sec>\d+(?:\.\d+)+|[A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+)\b", RegexOptions.IgnoreCase);
             if (sourceLabeled.Success)
             {
                 return sourceLabeled.Groups["sec"].Value.Trim().Trim('.');
             }
 
-            var explicitSection = Regex.Match(value, @"\b(?:section|sec\.?|clause)\s*(?<sec>\d+(?:\.\d+)+)\b", RegexOptions.IgnoreCase);
+            var explicitSection = Regex.Match(value, @"\b(?:section|sec\.?|clause|id)\s*(?<sec>\d+(?:\.\d+)+|[A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+)\b", RegexOptions.IgnoreCase);
             if (explicitSection.Success)
             {
                 return explicitSection.Groups["sec"].Value.Trim().Trim('.');
@@ -6658,6 +6656,15 @@ namespace TestCaseEditorApp.Services
                 return headingStyle.Groups["sec"].Value.Trim().Trim('.');
             }
 
+            if (!value.Any(char.IsWhiteSpace))
+            {
+                var identifier = Regex.Match(value, @"^(?<sec>[A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+)$", RegexOptions.IgnoreCase);
+                if (identifier.Success)
+                {
+                    return identifier.Groups["sec"].Value.Trim().Trim('.');
+                }
+            }
+
             var standalone = Regex.Match(value, @"\b(?<sec>\d+(?:\.\d+){1,})\b");
             if (standalone.Success)
             {
@@ -6667,7 +6674,28 @@ namespace TestCaseEditorApp.Services
             return null;
         }
 
-        private static string RemoveSectionPrefix(string? value)
+        private static bool LooksLikeSourcePrefix(string? value, string? sourcePrefix)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            var extracted = ExtractSectionIdentifier(value);
+            if (string.IsNullOrWhiteSpace(extracted))
+            {
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(sourcePrefix))
+            {
+                return true;
+            }
+
+            return string.Equals(extracted, sourcePrefix, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string RemoveSourcePrefix(string? value)
         {
             if (string.IsNullOrWhiteSpace(value))
             {
@@ -6675,7 +6703,7 @@ namespace TestCaseEditorApp.Services
             }
 
             var trimmed = value.Trim();
-            var stripped = Regex.Replace(trimmed, @"^(?:section|sec\.?|clause)?\s*\d+(?:\.\d+)+[\s:\-–—]+", string.Empty, RegexOptions.IgnoreCase);
+            var stripped = Regex.Replace(trimmed, @"^(?:source|section|sec\.?|clause|id)?\s*[:\-–—]?\s*(?:\d+(?:\.\d+)+|[A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+)[\s:\-–—]+", string.Empty, RegexOptions.IgnoreCase);
             return string.IsNullOrWhiteSpace(stripped) ? trimmed : stripped;
         }
 

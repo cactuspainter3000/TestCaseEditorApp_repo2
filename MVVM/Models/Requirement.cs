@@ -129,6 +129,11 @@ namespace TestCaseEditorApp.MVVM.Models
 
         // ===== Heading & rationale =====
         [ObservableProperty] private string heading = string.Empty;
+        [ObservableProperty] private string sourcePrefix = string.Empty;
+        [ObservableProperty] private string sourcePrefixType = string.Empty;
+        [ObservableProperty] private string sourcePrefixEvidence = string.Empty;
+        [ObservableProperty] private double? sourcePrefixConfidence;
+        [ObservableProperty] private string sourceSection = string.Empty;
         [ObservableProperty] private string rationale = string.Empty;
         [ObservableProperty] private string complianceRationale = string.Empty;
         [ObservableProperty] private string changeDriver = string.Empty;
