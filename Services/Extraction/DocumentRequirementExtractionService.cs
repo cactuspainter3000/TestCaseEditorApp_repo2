@@ -1,0 +1,612 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.Services.Prompts;
+
+namespace TestCaseEditorApp.Services.Extraction
+{
+    public sealed class DocumentRequirementExtractionService : IDocumentRequirementExtractionService
+    {
+        private static readonly Regex ModalVerbRegex = new(@"\b(shall|must|will|should)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex HeadingRegex = new(@"^(?:section\s*[:\-]?\s*)?(?<prefix>\d+(?:\.\d+)+|[A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex ExplicitIdRegex = new(@"\b(?:id|section|sec\.?|clause)\s*:\s*(?<prefix>[A-Za-z0-9][A-Za-z0-9_.\-]*(?:[_-][A-Za-z0-9]+)?)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex StandaloneIdRegex = new(@"\b(?<prefix>\d+(?:\.\d+)+|[A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private readonly ILogger<DocumentRequirementExtractionService> _logger;
+        private readonly ITextGenerationService? _textGenerationService;
+
+        public DocumentRequirementExtractionService(
+            ILogger<DocumentRequirementExtractionService> logger,
+            ITextGenerationService? textGenerationService = null)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _textGenerationService = textGenerationService;
+        }
+
+        public async Task<DocumentRequirementExtractionResult> AnalyzeAsync(string documentContent, string documentName, CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+
+            var result = new DocumentRequirementExtractionResult
+            {
+                DocumentName = documentName ?? string.Empty,
+                OriginalContent = documentContent ?? string.Empty
+            };
+
+            if (string.IsNullOrWhiteSpace(documentContent))
+            {
+                result.StageMetrics.Add(CreateMetric("ingest", 0, 0, 0, TimeSpan.Zero, "Empty document content"));
+                return result;
+            }
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var lines = SplitLines(documentContent);
+            result.StageMetrics.Add(CreateMetric("ingest", lines.Count, lines.Count, 0, stopwatch.Elapsed, "Document text ingested"));
+
+            stopwatch.Restart();
+            var blocks = BuildBlocks(lines);
+            result.Blocks.AddRange(blocks);
+            result.StageMetrics.Add(CreateMetric("segmentation", lines.Count, blocks.Count, 0, stopwatch.Elapsed, "Paragraph, heading, table-row and list-item segmentation"));
+
+            stopwatch.Restart();
+            var candidates = HarvestCandidates(blocks);
+            result.Candidates.AddRange(candidates);
+            result.StageMetrics.Add(CreateMetric("candidate_harvest", blocks.Count, candidates.Count, blocks.Count - candidates.Count, stopwatch.Elapsed, "Deterministic explicit-ID/modality harvest"));
+
+            stopwatch.Restart();
+            var acceptedBlocks = blocks
+                .Where(block => block.Kind is DocumentBlockKind.Heading or DocumentBlockKind.TableRow or DocumentBlockKind.ListItem || block.HasRequirementLanguage || block.HasExplicitIdentifier)
+                .Select(block => block.Text)
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .ToList();
+
+            result.NormalizedContent = string.Join("\n", acceptedBlocks.Distinct(StringComparer.OrdinalIgnoreCase));
+            result.StageMetrics.Add(CreateMetric("noise_suppression", blocks.Count, acceptedBlocks.Count, blocks.Count - acceptedBlocks.Count, stopwatch.Elapsed, "Removed repeated boilerplate, low-signal paragraphs and filler"));
+
+            _logger.LogInformation(
+                "[ExtractionFoundation] {DocumentName}: {BlockCount} blocks, {CandidateCount} candidates, {AcceptedCount} accepted by deterministic harvest",
+                documentName,
+                result.Blocks.Count,
+                result.Candidates.Count,
+                result.AcceptedCandidateCount);
+
+            return result;
+        }
+
+        public async Task<IReadOnlyList<ReverseValidationVerdict>> ValidateRequirementsAsync(
+            IReadOnlyList<Requirement> requirements,
+            string documentContent,
+            string documentName,
+            CancellationToken cancellationToken = default)
+        {
+            if (requirements == null || requirements.Count == 0)
+            {
+                return Array.Empty<ReverseValidationVerdict>();
+            }
+
+            var requirementList = requirements.Where(r => r != null).ToList();
+            if (requirementList.Count == 0)
+            {
+                return Array.Empty<ReverseValidationVerdict>();
+            }
+
+            if (_textGenerationService == null)
+            {
+                return requirementList.Select(BuildRuleBasedVerdict).ToList();
+            }
+
+            var verdicts = new List<ReverseValidationVerdict>();
+            const int batchSize = 8;
+
+            foreach (var batch in requirementList.Chunk(batchSize))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var prompt = BuildReverseValidationPrompt(batch, documentContent, documentName);
+                string? response = null;
+                try
+                {
+                    response = await _textGenerationService.GenerateAsync(prompt, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[ExtractionFoundation] Reverse validation LLM call failed; using rule-based verdicts for this batch");
+                }
+
+                var parsed = TryParseReverseValidationResponse(response, batch);
+                verdicts.AddRange(parsed ?? batch.Select(BuildRuleBasedVerdict));
+            }
+
+            return verdicts;
+        }
+
+        private static List<(int LineNumber, string Text)> SplitLines(string documentContent)
+        {
+            return documentContent
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Select((line, index) => (LineNumber: index + 1, Text: line?.TrimEnd() ?? string.Empty))
+                .ToList();
+        }
+
+        private static List<DocumentBlock> BuildBlocks(List<(int LineNumber, string Text)> lines)
+        {
+            var blocks = new List<DocumentBlock>();
+            var buffer = new List<(int LineNumber, string Text)>();
+
+            void FlushBuffer()
+            {
+                if (buffer.Count == 0)
+                {
+                    return;
+                }
+
+                var blockText = string.Join("\n", buffer.Select(line => line.Text)).Trim();
+                if (!string.IsNullOrWhiteSpace(blockText))
+                {
+                    blocks.Add(CreateBlock(blocks.Count, buffer, blockText));
+                }
+
+                buffer.Clear();
+            }
+
+            foreach (var line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line.Text))
+                {
+                    FlushBuffer();
+                    continue;
+                }
+
+                if (IsStandaloneHeading(line.Text) && buffer.Count > 0)
+                {
+                    FlushBuffer();
+                }
+
+                buffer.Add(line);
+            }
+
+            FlushBuffer();
+            return blocks;
+        }
+
+        private static DocumentBlock CreateBlock(int blockIndex, List<(int LineNumber, string Text)> lines, string text)
+        {
+            var normalizedText = Regex.Replace(text, @"\s+", " ").Trim();
+            var firstLine = lines.First().LineNumber;
+            var lastLine = lines.Last().LineNumber;
+
+            var hasModal = ModalVerbRegex.IsMatch(normalizedText);
+            var prefixMatch = ExtractPrefix(normalizedText);
+            var hasExplicitIdentifier = !string.IsNullOrWhiteSpace(prefixMatch.Prefix);
+            var kind = ClassifyBlock(normalizedText, hasModal, hasExplicitIdentifier, lines);
+            var evidenceScore = CalculateEvidenceScore(normalizedText, hasModal, hasExplicitIdentifier, kind);
+
+            return new DocumentBlock
+            {
+                BlockIndex = blockIndex,
+                Kind = kind,
+                StartLine = firstLine,
+                EndLine = lastLine,
+                Text = text,
+                NormalizedText = normalizedText,
+                SourcePrefix = prefixMatch.Prefix,
+                SourcePrefixType = prefixMatch.Type,
+                SourcePrefixEvidence = prefixMatch.Evidence,
+                EvidenceScore = evidenceScore,
+                HasRequirementLanguage = hasModal,
+                HasExplicitIdentifier = hasExplicitIdentifier,
+                NoiseReason = IsNoise(normalizedText, hasModal, hasExplicitIdentifier, kind) ? "Low signal block" : null
+            };
+        }
+
+        private static DocumentBlockKind ClassifyBlock(string normalizedText, bool hasModal, bool hasExplicitIdentifier, List<(int LineNumber, string Text)> lines)
+        {
+            if (lines.Count == 1 && IsStandaloneHeading(lines[0].Text))
+            {
+                return DocumentBlockKind.Heading;
+            }
+
+            if (normalizedText.Contains('\t') || normalizedText.StartsWith("|") || normalizedText.Count(c => c == '|') >= 2)
+            {
+                return DocumentBlockKind.TableRow;
+            }
+
+            if (Regex.IsMatch(normalizedText, @"^\s*(?:[-*•]|\d+[.)])\s+", RegexOptions.Compiled))
+            {
+                return DocumentBlockKind.ListItem;
+            }
+
+            if (hasModal || hasExplicitIdentifier)
+            {
+                return DocumentBlockKind.Paragraph;
+            }
+
+            return DocumentBlockKind.Noise;
+        }
+
+        private static bool IsNoise(string normalizedText, bool hasModal, bool hasExplicitIdentifier, DocumentBlockKind kind)
+        {
+            if (kind == DocumentBlockKind.Noise)
+            {
+                return true;
+            }
+
+            if (normalizedText.Length < 25 && !hasModal && !hasExplicitIdentifier)
+            {
+                return true;
+            }
+
+            if (Regex.IsMatch(normalizedText, @"^(?:page\s+\d+|copyright|revision history|document history|confidential)", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static double CalculateEvidenceScore(string normalizedText, bool hasModal, bool hasExplicitIdentifier, DocumentBlockKind kind)
+        {
+            var score = 0.1;
+
+            if (hasModal)
+            {
+                score += 0.35;
+            }
+
+            if (hasExplicitIdentifier)
+            {
+                score += 0.3;
+            }
+
+            if (kind == DocumentBlockKind.Heading)
+            {
+                score += 0.15;
+            }
+
+            if (kind == DocumentBlockKind.TableRow)
+            {
+                score += 0.1;
+            }
+
+            if (normalizedText.Length is >= 20 and <= 500)
+            {
+                score += 0.1;
+            }
+
+            if (Regex.IsMatch(normalizedText, @"^(?:note|warning|example|revision)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            {
+                score -= 0.3;
+            }
+
+            return Math.Clamp(score, 0.0, 1.0);
+        }
+
+        private List<DocumentRequirementCandidate> HarvestCandidates(List<DocumentBlock> blocks)
+        {
+            var candidates = new List<DocumentRequirementCandidate>();
+
+            foreach (var block in blocks)
+            {
+                if (block.Kind == DocumentBlockKind.Noise)
+                {
+                    continue;
+                }
+
+                if (!block.HasRequirementLanguage && !block.HasExplicitIdentifier && block.Kind != DocumentBlockKind.Heading)
+                {
+                    continue;
+                }
+
+                var candidateId = $"cand-{block.BlockIndex + 1:D4}";
+                var confidence = Math.Clamp(block.EvidenceScore + (block.HasRequirementLanguage ? 0.05 : -0.05), 0.0, 1.0);
+                var status = confidence >= 0.75
+                    ? ExtractionCandidateStatus.Accepted
+                    : confidence >= 0.5
+                        ? ExtractionCandidateStatus.NeedsReview
+                        : ExtractionCandidateStatus.Pending;
+
+                if (confidence < 0.35)
+                {
+                    status = ExtractionCandidateStatus.Rejected;
+                }
+
+                candidates.Add(new DocumentRequirementCandidate
+                {
+                    CandidateId = candidateId,
+                    BlockIndex = block.BlockIndex,
+                    RawText = block.Text,
+                    NormalizedText = block.NormalizedText,
+                    SourcePrefix = block.SourcePrefix,
+                    SourcePrefixType = block.SourcePrefixType,
+                    SourcePrefixEvidence = block.SourcePrefixEvidence,
+                    Confidence = confidence,
+                    EvidenceScore = block.EvidenceScore,
+                    Status = status,
+                    RejectionReason = status == ExtractionCandidateStatus.Rejected ? "Low evidence score" : null,
+                    StartLine = block.StartLine,
+                    EndLine = block.EndLine,
+                    EvidenceSnippets = new List<string>
+                    {
+                        block.SourcePrefixEvidence ?? block.NormalizedText
+                    }
+                });
+            }
+
+            return candidates;
+        }
+
+        private static bool IsStandaloneHeading(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            if (HeadingRegex.IsMatch(text))
+            {
+                return true;
+            }
+
+            return text.Length < 90 && text == text.ToUpperInvariant() && text.Any(char.IsLetter);
+        }
+
+        private static (string? Prefix, string? Type, string? Evidence) ExtractPrefix(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return (null, null, null);
+            }
+
+            var explicitMatch = ExplicitIdRegex.Match(text);
+            if (explicitMatch.Success)
+            {
+                var prefix = explicitMatch.Groups["prefix"].Value.Trim().Trim('.');
+                return (prefix, InferPrefixType(prefix), explicitMatch.Value.Trim());
+            }
+
+            var headingMatch = HeadingRegex.Match(text);
+            if (headingMatch.Success)
+            {
+                var prefix = headingMatch.Groups["prefix"].Value.Trim().Trim('.');
+                return (prefix, "section", headingMatch.Value.Trim());
+            }
+
+            var standaloneMatch = StandaloneIdRegex.Match(text);
+            if (standaloneMatch.Success)
+            {
+                var prefix = standaloneMatch.Groups["prefix"].Value.Trim().Trim('.');
+                return (prefix, InferPrefixType(prefix), standaloneMatch.Value.Trim());
+            }
+
+            return (null, null, null);
+        }
+
+        private static string InferPrefixType(string prefix)
+        {
+            if (Regex.IsMatch(prefix, @"^\d+(?:\.\d+)+$", RegexOptions.Compiled))
+            {
+                return "section";
+            }
+
+            if (Regex.IsMatch(prefix, @"^[A-Za-z][A-Za-z0-9]*[_-][A-Za-z0-9][A-Za-z0-9_.-]*$", RegexOptions.Compiled))
+            {
+                return "document_id";
+            }
+
+            return "unknown";
+        }
+
+        private static DocumentExtractionStageMetrics CreateMetric(string stageName, int inputCount, int outputCount, int rejectedCount, TimeSpan elapsed, string notes)
+        {
+            return new DocumentExtractionStageMetrics
+            {
+                StageName = stageName,
+                InputCount = inputCount,
+                OutputCount = outputCount,
+                RejectedCount = rejectedCount,
+                Elapsed = elapsed,
+                Notes = notes
+            };
+        }
+
+        private static ReverseValidationVerdict BuildRuleBasedVerdict(Requirement requirement)
+        {
+            var evidence = string.Join(" | ", new[]
+                {
+                    requirement.SourcePrefixEvidence,
+                    requirement.SourcePrefix,
+                    requirement.TraceReference,
+                    requirement.Description
+                }
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value!.Trim())
+                .Take(2));
+
+            var text = $"{requirement.Name} {requirement.Description}".Trim();
+            var hasModal = ModalVerbRegex.IsMatch(text);
+            var hasEvidence = !string.IsNullOrWhiteSpace(requirement.SourcePrefixEvidence) || !string.IsNullOrWhiteSpace(requirement.SourcePrefix);
+            var confidence = Math.Clamp((hasModal ? 0.55 : 0.25) + (hasEvidence ? 0.25 : 0.0), 0.0, 1.0);
+
+            return new ReverseValidationVerdict
+            {
+                SubjectId = GetRequirementSubjectId(requirement),
+                IsLegit = hasModal || hasEvidence,
+                Action = hasModal || hasEvidence ? ReverseValidationAction.Accept : ReverseValidationAction.Review,
+                Confidence = confidence,
+                Summary = hasModal
+                    ? "Requirement language and evidence are present"
+                    : "Missing strong requirement language; review recommended",
+                Evidence = evidence,
+                Issues = hasModal
+                    ? new List<string>()
+                    : new List<string> { "Requirement language is weak or absent" }
+            };
+        }
+
+        private static string GetRequirementSubjectId(Requirement requirement)
+        {
+            return !string.IsNullOrWhiteSpace(requirement.TraceReference)
+                ? requirement.TraceReference
+                : !string.IsNullOrWhiteSpace(requirement.GlobalId)
+                    ? requirement.GlobalId
+                    : !string.IsNullOrWhiteSpace(requirement.Item)
+                        ? requirement.Item
+                        : requirement.Name;
+        }
+
+        private string BuildReverseValidationPrompt(IReadOnlyList<Requirement> requirements, string documentContent, string documentName)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("You are performing reverse validation on extracted requirements.");
+            sb.AppendLine("Your task is to determine whether each candidate is fully supported by the source document and whether any part is suspicious, fabricated, or missing evidence.");
+            sb.AppendLine("Do NOT invent missing data. If evidence is weak, mark the requirement for review.");
+            sb.AppendLine();
+            sb.AppendLine($"DOCUMENT: {documentName}");
+            sb.AppendLine();
+            sb.AppendLine("SOURCE DOCUMENT CONTEXT:");
+            sb.AppendLine(Truncate(documentContent, 10000));
+            sb.AppendLine();
+            sb.AppendLine("REQUIREMENTS TO VALIDATE:");
+
+            foreach (var requirement in requirements)
+            {
+                sb.AppendLine("---");
+                sb.AppendLine($"subject_id: {GetRequirementSubjectId(requirement)}");
+                sb.AppendLine($"name: {requirement.Name}");
+                sb.AppendLine($"description: {Truncate(requirement.Description, 600)}");
+                sb.AppendLine($"source_prefix: {requirement.SourcePrefix ?? "UNK"}");
+                sb.AppendLine($"source_evidence: {Truncate(requirement.SourcePrefixEvidence, 250)}");
+                sb.AppendLine($"trace_reference: {requirement.TraceReference}");
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("Return ONLY valid JSON with this exact schema:");
+            sb.AppendLine(@"{
+  ""verdicts"": [
+    {
+      ""subject_id"": ""..."",
+      ""is_legit"": true,
+      ""action"": ""accept|review|reject"",
+      ""confidence"": 0.0,
+      ""summary"": ""..."",
+      ""issues"": [""...""],
+      ""evidence"": ""...""
+    }
+  ]
+}");
+
+            return sb.ToString();
+        }
+
+        private IReadOnlyList<ReverseValidationVerdict>? TryParseReverseValidationResponse(string? response, IReadOnlyList<Requirement> requirements)
+        {
+            if (string.IsNullOrWhiteSpace(response))
+            {
+                return null;
+            }
+
+            var jsonStart = response.IndexOf('{');
+            var jsonEnd = response.LastIndexOf('}');
+            if (jsonStart < 0 || jsonEnd <= jsonStart)
+            {
+                return null;
+            }
+
+            var json = response.Substring(jsonStart, jsonEnd - jsonStart + 1);
+            try
+            {
+                var envelope = JsonSerializer.Deserialize<ReverseValidationEnvelope>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (envelope?.Verdicts == null || envelope.Verdicts.Count == 0)
+                {
+                    return null;
+                }
+
+                var verdicts = new List<ReverseValidationVerdict>();
+                foreach (var verdict in envelope.Verdicts)
+                {
+                    if (string.IsNullOrWhiteSpace(verdict.SubjectId))
+                    {
+                        continue;
+                    }
+
+                    verdict.Action = ParseAction(verdict.ActionText);
+                    verdicts.Add(new ReverseValidationVerdict
+                    {
+                        SubjectId = verdict.SubjectId.Trim(),
+                        IsLegit = verdict.IsLegit,
+                        Action = verdict.Action,
+                        Confidence = Math.Clamp(verdict.Confidence, 0.0, 1.0),
+                        Summary = verdict.Summary ?? string.Empty,
+                        Issues = verdict.Issues ?? new List<string>(),
+                        Evidence = verdict.Evidence
+                    });
+                }
+
+                if (verdicts.Count == 0)
+                {
+                    return null;
+                }
+
+                var knownIds = requirements.Select(GetRequirementSubjectId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                return verdicts.Where(v => knownIds.Contains(v.SubjectId)).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[ExtractionFoundation] Could not parse reverse validation JSON; falling back to rule-based verdicts");
+                return null;
+            }
+        }
+
+        private static ReverseValidationAction ParseAction(string? action)
+        {
+            return action?.Trim().ToLowerInvariant() switch
+            {
+                "accept" => ReverseValidationAction.Accept,
+                "review" => ReverseValidationAction.Review,
+                "reject" => ReverseValidationAction.Reject,
+                _ => ReverseValidationAction.Review
+            };
+        }
+
+        private static string Truncate(string? value, int maxChars)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var text = value.Trim();
+            return text.Length <= maxChars ? text : text[..maxChars] + "...";
+        }
+
+        private sealed class ReverseValidationEnvelope
+        {
+            public List<ReverseValidationCandidate> Verdicts { get; set; } = new();
+        }
+
+        private sealed class ReverseValidationCandidate
+        {
+            public string SubjectId { get; set; } = string.Empty;
+            public bool IsLegit { get; set; }
+            public string? ActionText { get; set; }
+            public double Confidence { get; set; }
+            public string? Summary { get; set; }
+            public List<string>? Issues { get; set; }
+            public string? Evidence { get; set; }
+
+            [System.Text.Json.Serialization.JsonIgnore]
+            public ReverseValidationAction Action { get; set; } = ReverseValidationAction.Review;
+        }
+    }
+}

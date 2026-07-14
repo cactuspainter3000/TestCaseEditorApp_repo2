@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
+using TestCaseEditorApp.Services.Extraction;
 using TestCaseEditorApp.Services.Parsing;
 using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.Services.Templates;
@@ -33,6 +34,14 @@ namespace TestCaseEditorApp.Services.DependencyInjection
             // Prompt building and response parsing (SINGLETON - template definitions)
             services.AddSingleton<RequirementAnalysisPromptBuilder>();
             services.AddSingleton<ResponseParserManager>();
+
+            // Document extraction foundation - canonical block/candidate analysis and reverse validation
+            services.AddSingleton<IDocumentRequirementExtractionService, DocumentRequirementExtractionService>(provider =>
+            {
+                var logger = provider.GetRequiredService<ILogger<DocumentRequirementExtractionService>>();
+                var textGenerationService = provider.GetService<ITextGenerationService>();
+                return new DocumentRequirementExtractionService(logger, textGenerationService);
+            });
 
             // Capability Derivation Prompt Builder (SINGLETON - ATP prompts with A-N taxonomy)
             services.AddSingleton<CapabilityDerivationPromptBuilder>();
@@ -106,6 +115,7 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 var directRagService = provider.GetService<IDirectRagService>(); // Optional fallback
                 var textGenerationService = provider.GetService<ITextGenerationService>(); // For DirectRag fallback
                 var derivationService = provider.GetService<ISystemCapabilityDerivationService>(); // ATP derivation
+                var extractionFoundationService = provider.GetService<IDocumentRequirementExtractionService>();
                 
                 // Template Form Architecture services (Phase 6 integration)
                 var envelopeService = provider.GetService<IOutputEnvelopeService>();
@@ -130,7 +140,8 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                     abTestingFramework,
                     telemetryService,
                     ollamaProcessManager,
-                    ollamaStatusMonitor);
+                        ollamaStatusMonitor,
+                        extractionFoundationService);
             });
 
             // Jama Test Case Conversion Service - Requirement to test case mapping (SINGLETON)

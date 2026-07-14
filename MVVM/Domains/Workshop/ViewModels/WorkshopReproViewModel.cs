@@ -47,6 +47,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
     {
         private readonly IRequirementsMediator _mediator;
         private readonly IWorkspaceDiagnosticsService _workspaceDiagnosticsService;
+        private readonly IFileDialogService _fileDialogService;
         private readonly DispatcherTimer _analysisHeartbeatTimer;
         private DateTime _analysisStartedUtc;
         private DateTime _statusStepStartedUtc;
@@ -204,10 +205,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
         public WorkshopReproViewModel(
             IRequirementsMediator mediator,
-            IWorkspaceDiagnosticsService workspaceDiagnosticsService)
+            IWorkspaceDiagnosticsService workspaceDiagnosticsService,
+            IFileDialogService fileDialogService)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _workspaceDiagnosticsService = workspaceDiagnosticsService ?? throw new ArgumentNullException(nameof(workspaceDiagnosticsService));
+            _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
 
             _analysisHeartbeatTimer = new DispatcherTimer
             {
@@ -714,6 +717,40 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             catch (Exception ex)
             {
                 AttachmentScraperStatusText = $"Log export failed: {ex.Message}";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+            }
+        }
+
+        [RelayCommand]
+        private async Task CommitSelectedZipToGitAsync()
+        {
+            try
+            {
+                var selectedZip = _fileDialogService.ShowOpenFile(
+                    "Select a document zip to commit",
+                    "Zip files (*.zip)|*.zip|All files (*.*)|*.*");
+
+                if (string.IsNullOrWhiteSpace(selectedZip))
+                {
+                    AppendAttachmentLog("Commit to git canceled before file selection.");
+                    return;
+                }
+
+                if (!selectedZip.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                {
+                    AttachmentScraperStatusText = "Please select a .zip file.";
+                    AppendAttachmentLog(AttachmentScraperStatusText);
+                    return;
+                }
+
+                AppendAttachmentLog($"Committing selected zip to git: {selectedZip}");
+                await _workspaceDiagnosticsService.CommitSelectedArtifactAsync(selectedZip);
+                AttachmentScraperStatusText = "Selected zip committed and pushed to git.";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+            }
+            catch (Exception ex)
+            {
+                AttachmentScraperStatusText = $"Commit zip failed: {ex.Message}";
                 AppendAttachmentLog(AttachmentScraperStatusText);
             }
         }

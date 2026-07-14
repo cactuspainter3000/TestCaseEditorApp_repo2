@@ -77,6 +77,73 @@ namespace TestCaseEditorApp.Services
             }
         }
 
+        public async Task CommitSelectedArtifactAsync(string artifactPath)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(artifactPath))
+                {
+                    throw new ArgumentException("Artifact path is required.", nameof(artifactPath));
+                }
+
+                if (!File.Exists(artifactPath))
+                {
+                    throw new FileNotFoundException("Selected artifact was not found.", artifactPath);
+                }
+
+                if (!string.Equals(Path.GetExtension(artifactPath), ".zip", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("Please select a .zip file.");
+                }
+
+                var result = await Task.Run(() => CommitArtifactToGit(artifactPath));
+
+                var summaryBuilder = new StringBuilder();
+                summaryBuilder.AppendLine("Selected document artifact committed successfully.");
+                summaryBuilder.AppendLine($"Source file: {result.SourcePath}");
+                summaryBuilder.AppendLine($"Repo folder: {result.RepositoryExportPath}");
+                summaryBuilder.AppendLine($"Summary: {result.SummaryPath}");
+
+                if (result.GitPushSucceeded)
+                {
+                    summaryBuilder.AppendLine($"Git push: completed{(string.IsNullOrWhiteSpace(result.CommitHash) ? string.Empty : $" (commit {result.CommitHash})")}");
+                }
+                else
+                {
+                    summaryBuilder.AppendLine("Git push: not completed (see export-summary.txt)");
+                }
+
+                MessageBox.Show(
+                    summaryBuilder.ToString(),
+                    "Commit Selected Document",
+                    MessageBoxButton.OK,
+                    result.GitPushSucceeded ? MessageBoxImage.Information : MessageBoxImage.Warning);
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "notepad.exe",
+                    Arguments = $"\"{result.SummaryPath}\"",
+                    UseShellExecute = true
+                });
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"/select,\"{result.RepositoryExportPath}\"",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[WorkspaceDiagnosticsService] Failed to commit selected artifact");
+                MessageBox.Show(
+                    $"Failed to commit selected artifact: {ex.Message}",
+                    "Commit Selected Document",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
         public async Task ProbeJamaLookupFieldsAsync()
         {
             try
@@ -412,7 +479,46 @@ namespace TestCaseEditorApp.Services
             return new TraceabilityExportInfo(reportFiles.Count, latestReportPath);
         }
 
-        private GitAutomationResult TryCommitAndPushExport(string projectRoot, string repoExportPath)
+        private CommitArtifactResult CommitArtifactToGit(string artifactPath)
+        {
+            var rootResolution = ResolveProjectRoot();
+            var projectRoot = rootResolution.RootPath;
+            var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+            var repoExportRoot = Path.Combine(projectRoot, "exports", "document-artifacts", timestamp);
+            Directory.CreateDirectory(repoExportRoot);
+
+            var destinationArtifactPath = Path.Combine(repoExportRoot, Path.GetFileName(artifactPath));
+            File.Copy(artifactPath, destinationArtifactPath, overwrite: true);
+
+            var summaryPath = Path.Combine(repoExportRoot, "export-summary.txt");
+            var summary = new StringBuilder();
+            summary.AppendLine("TestCaseEditorApp Selected Document Artifact Export");
+            summary.AppendLine($"Created: {DateTime.Now:O}");
+            summary.AppendLine($"Source machine: {Environment.MachineName}");
+            summary.AppendLine($"Source file: {artifactPath}");
+            summary.AppendLine($"Destination artifact: {destinationArtifactPath}");
+            summary.AppendLine($"Repo folder: {repoExportRoot}");
+            summary.AppendLine($"DetectedRoot: {projectRoot}");
+            summary.AppendLine($"RootResolution: {rootResolution.ResolutionInfo}");
+            summary.AppendLine($"AppBaseDirectory: {AppContext.BaseDirectory}");
+            summary.AppendLine($"CurrentDirectory: {Environment.CurrentDirectory}");
+
+            File.WriteAllText(summaryPath, summary.ToString());
+
+            var gitResult = TryCommitAndPushExport(projectRoot, repoExportRoot, $"Add selected document artifact {Path.GetFileName(artifactPath)}");
+
+            return new CommitArtifactResult(
+                artifactPath,
+                destinationArtifactPath,
+                repoExportRoot,
+                summaryPath,
+                gitResult.Succeeded,
+                gitResult.CommitHash,
+                gitResult.FailureMessage,
+                gitResult.CommandOutput);
+        }
+
+        private GitAutomationResult TryCommitAndPushExport(string projectRoot, string repoExportPath, string? commitMessage = null)
         {
             try
             {
@@ -426,7 +532,7 @@ namespace TestCaseEditorApp.Services
 
                 var commitOutput = RunGitCommand(
                     projectRoot,
-                    $"commit -m \"Add exported analysis logs {Path.GetFileName(repoExportPath)}\"");
+                    $"commit -m \"{(string.IsNullOrWhiteSpace(commitMessage) ? $"Add exported analysis logs {Path.GetFileName(repoExportPath)}" : commitMessage)}\"");
 
                 if (commitOutput.Contains("nothing to commit", StringComparison.OrdinalIgnoreCase))
                 {
@@ -563,6 +669,16 @@ namespace TestCaseEditorApp.Services
             string RootResolutionInfo,
             string AppBaseDirectory,
             string CurrentDirectory);
+
+        private sealed record CommitArtifactResult(
+            string SourcePath,
+            string DestinationArtifactPath,
+            string RepositoryExportPath,
+            string SummaryPath,
+            bool GitPushSucceeded,
+            string? CommitHash,
+            string? GitFailureMessage,
+            string? CommandOutput);
 
         private sealed record GitAutomationResult(
             bool Succeeded,

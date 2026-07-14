@@ -152,7 +152,7 @@
                 </Setter>
             </Style>
         </TabControl.Resources>
-        <TabItem Header="Jama Object">
+        <TabItem Header="Requirement Record">
             <Grid Margin="8">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -1188,7 +1188,7 @@
                     </TabItem>
                 </TabControl>
 
-                <!-- Bottom global Jama Object lifecycle + navigation area -->
+                <!-- Bottom global requirement record lifecycle + navigation area -->
                 <Border Grid.Row="4"
                         Background="{StaticResource Brush.Background.Menu}"
                         BorderBrush="{StaticResource Brush.Border.Subtle}"
@@ -1208,7 +1208,7 @@
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Grid.Column="0"
-                                       Text="Jama Object Navigation"
+                                       Text="Requirement Record Navigation"
                                        VerticalAlignment="Center"
                                        FontWeight="SemiBold"
                                        Foreground="{StaticResource Brush.Accent.Primary}"/>
@@ -1235,7 +1235,7 @@
                                     Foreground="{StaticResource Brush.Accent.Primary}"
                                     BorderBrush="{StaticResource Brush.Border.Accent}"
                                     BorderThickness="1"
-                                        ToolTip="Previous Jama object"/>
+                                        ToolTip="Previous requirement record"/>
 
                                 <Grid Width="320"
                                       Margin="0,0,6,0"
@@ -1249,7 +1249,7 @@
                                                   Foreground="{StaticResource Brush.Text.Primary}"
                                                   Padding="8,4"
                                                   HorizontalContentAlignment="Stretch"
-                                                  ToolTip="Select a Jama object">
+                                                  ToolTip="Select a requirement record">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
@@ -1258,7 +1258,7 @@
                                             <TextBlock Grid.Column="0"
                                                        TextTrimming="CharacterEllipsis"
                                                        VerticalAlignment="Center">
-                                                <Run Text="{Binding SelectedRequirement.Item, TargetNullValue=Select Jama object}"/>
+                                                <Run Text="{Binding SelectedRequirement.Item, TargetNullValue=Select requirement record}"/>
                                                 <Run Text=" - "/>
                                                 <Run Text="{Binding SelectedRequirement.Name}"/>
                                             </TextBlock>
@@ -1340,7 +1340,7 @@
                                     Foreground="{StaticResource Brush.Accent.Primary}"
                                     BorderBrush="{StaticResource Brush.Border.Accent}"
                                     BorderThickness="1"
-                                        ToolTip="Next Jama object"/>
+                                        ToolTip="Next requirement record"/>
                             </StackPanel>
                         </Grid>
                     </Grid>
@@ -1405,6 +1405,17 @@
                                     Foreground="{StaticResource Brush.Text.Secondary}"
                                     BorderBrush="{StaticResource Brush.Border.Subtle}"
                                     BorderThickness="1"/>
+                                <Button Content="Commit to Git"
+                                        Command="{Binding CommitSelectedZipToGitCommand}"
+                                        Style="{StaticResource HoverBorderOnlyButtonStyle}"
+                                        Margin="0,0,8,0"
+                                        Padding="10,4"
+                                        FontSize="11"
+                                        Background="{StaticResource Brush.Background.Header}"
+                                        Foreground="{StaticResource Brush.Text.Secondary}"
+                                        BorderBrush="{StaticResource Brush.Border.Subtle}"
+                                    BorderThickness="1"
+                                    ToolTip="Choose a .zip document and commit it to git"/>
                                 <Button Content="Cancel"
                                         Command="{Binding CancelAttachmentScraperCommand}"
                                     Style="{StaticResource HoverBorderOnlyButtonStyle}"

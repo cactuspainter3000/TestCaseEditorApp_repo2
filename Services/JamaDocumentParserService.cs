@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.Services.Extraction;
 using TestCaseEditorApp.Services.Prompts;
 using TestCaseEditorApp.Services.Templates; // Template Form Architecture (Phase 6)
 using DocumentFormat.OpenXml.Packaging;
@@ -41,6 +42,7 @@ namespace TestCaseEditorApp.Services
         private readonly IServiceComplianceWrapper? _complianceWrapper;
         private readonly IABTestingFramework? _abTestingFramework;
         private readonly ITelemetryDashboardService? _telemetryService;
+        private readonly IDocumentRequirementExtractionService? _documentExtractionService;
         private bool _ollamaStatusMonitoringStarted;
         
         private const string PARSING_WORKSPACE_PREFIX = "jama-doc-parse";
@@ -59,7 +61,8 @@ namespace TestCaseEditorApp.Services
             IABTestingFramework? abTestingFramework = null,
             ITelemetryDashboardService? telemetryService = null,
             IOllamaProcessManager? ollamaProcessManager = null,
-            IOllamaStatusMonitor? ollamaStatusMonitor = null)
+            IOllamaStatusMonitor? ollamaStatusMonitor = null,
+            IDocumentRequirementExtractionService? documentExtractionService = null)
         {
             _jamaService = jamaService ?? throw new ArgumentNullException(nameof(jamaService));
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
@@ -73,6 +76,7 @@ namespace TestCaseEditorApp.Services
             _complianceWrapper = complianceWrapper;
             _abTestingFramework = abTestingFramework;
             _telemetryService = telemetryService;
+            _documentExtractionService = documentExtractionService;
             
             TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Initialized with Template Form Architecture: Envelope={envelopeService != null}, Quality={qualityService != null}, Compliance={complianceWrapper != null}, ABTest={abTestingFramework != null}, Telemetry={telemetryService != null}, OllamaManager={ollamaProcessManager != null}, OllamaMonitor={ollamaStatusMonitor != null}");
         }
@@ -4395,7 +4399,25 @@ Extract all legitimate requirements:";
                 var schemaJson = JsonSerializer.Serialize(requirementSchema, new JsonSerializerOptions { WriteIndented = true });
 
                 // Step 2: Build prompt with envelope instructions
-                var focusedContent = BuildRequirementFocusedExcerpt(documentContent, 12000);
+                var extractionFoundation = _documentExtractionService != null
+                    ? await _documentExtractionService.AnalyzeAsync(documentContent, attachment.FileName, cancellationToken)
+                    : null;
+
+                if (extractionFoundation != null)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[TemplateForm] Foundation analysis: {extractionFoundation.Blocks.Count} blocks, {extractionFoundation.Candidates.Count} candidates, accepted={extractionFoundation.AcceptedCandidateCount}, review={extractionFoundation.ReviewCandidateCount}, rejected={extractionFoundation.RejectedCandidateCount}");
+
+                    if (extractionFoundation.StageMetrics.Count > 0)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Info(
+                            $"[TemplateForm] Foundation stages: {string.Join(" | ", extractionFoundation.StageMetrics.Select(stage => $"{stage.StageName}:{stage.InputCount}->{stage.OutputCount} rej={stage.RejectedCount}"))}");
+                    }
+                }
+
+                var focusedContent = !string.IsNullOrWhiteSpace(extractionFoundation?.NormalizedContent)
+                    ? extractionFoundation!.BuildPromptContext(12000)
+                    : BuildRequirementFocusedExcerpt(documentContent, 12000);
                 var prompt = $@"Extract all technical requirements from this document. Requirements typically use words like 'shall', 'must', 'will', or 'should' and define what a system must do or how it must perform.
 
 DOCUMENT: {attachment.FileName}
@@ -4589,6 +4611,55 @@ Extract requirements now (JSON only):";
                     }
 
                     extractedRequirements.Add(requirement);
+                }
+
+                if (_documentExtractionService != null && extractedRequirements.Count > 0)
+                {
+                    var reverseVerdicts = await _documentExtractionService.ValidateRequirementsAsync(extractedRequirements, documentContent, attachment.FileName, cancellationToken);
+                    if (reverseVerdicts.Count > 0)
+                    {
+                        var verdictLookup = reverseVerdicts
+                            .GroupBy(v => v.SubjectId, StringComparer.OrdinalIgnoreCase)
+                            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+                        var reverseValidated = new List<Requirement>();
+                        var rejectedByReverseValidation = 0;
+
+                        foreach (var requirement in extractedRequirements)
+                        {
+                            var subjectId = !string.IsNullOrWhiteSpace(requirement.TraceReference)
+                                ? requirement.TraceReference
+                                : !string.IsNullOrWhiteSpace(requirement.GlobalId)
+                                    ? requirement.GlobalId
+                                    : requirement.Item;
+
+                            if (verdictLookup.TryGetValue(subjectId, out var verdict))
+                            {
+                                if (verdict.Action == ReverseValidationAction.Reject && verdict.Confidence >= 0.85)
+                                {
+                                    rejectedByReverseValidation++;
+                                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                                        $"[TemplateForm] Reverse validation rejected {subjectId} (confidence={verdict.Confidence:F2}): {verdict.Summary}");
+                                    continue;
+                                }
+
+                                if (verdict.Action == ReverseValidationAction.Review)
+                                {
+                                    TestCaseEditorApp.Services.Logging.Log.Info(
+                                        $"[TemplateForm] Reverse validation review for {subjectId} (confidence={verdict.Confidence:F2}): {verdict.Summary}");
+                                }
+                            }
+
+                            reverseValidated.Add(requirement);
+                        }
+
+                        if (rejectedByReverseValidation > 0)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[TemplateForm] Reverse validation removed {rejectedByReverseValidation} requirements with strong evidence of fabrication or weak provenance");
+                        }
+
+                        extractedRequirements = reverseValidated;
+                    }
                 }
 
                 // Step 7: Track successful extraction in telemetry
