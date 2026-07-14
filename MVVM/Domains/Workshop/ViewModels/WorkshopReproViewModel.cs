@@ -746,6 +746,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private void UpdateExtractionProgressFromMessage(string message)
         {
             var cleaned = string.IsNullOrWhiteSpace(message) ? "Processing" : message.Trim();
+            var (phaseStart, phaseEnd) = GetExtractionPhaseWindow(cleaned);
 
             // Prefer explicit percentages if present in provider messages.
             var explicitPercentMatch = Regex.Match(cleaned, @"\b(?<pct>\d{1,3})%\b");
@@ -754,7 +755,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             {
                 explicitPercent = Math.Clamp(explicitPercent, 0, 100);
                 ExtractionCurrentStepProgress = explicitPercent;
-                ExtractionOverallProgress = Math.Max(ExtractionOverallProgress, explicitPercent);
+                var overallFromPhase = phaseStart + ((phaseEnd - phaseStart) * (explicitPercent / 100.0));
+                ExtractionOverallProgress = Math.Max(ExtractionOverallProgress, overallFromPhase);
                 AttachmentScraperStatusText = BuildFriendlyExtractionStatus(cleaned);
                 ExtractionOverallLabel = $"Overall Completeness: {ExtractionOverallProgress:F0}%";
                 ExtractionCurrentStepLabel = $"Current Process: {BuildFriendlyExtractionStatus(cleaned)} ({explicitPercent:F0}%)";
@@ -770,7 +772,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             {
                 var fractionPercent = Math.Clamp((double)current / total * 100.0, 0, 100);
                 ExtractionCurrentStepProgress = fractionPercent;
-                ExtractionOverallProgress = Math.Max(ExtractionOverallProgress, fractionPercent);
+                var overallFromPhase = phaseStart + ((phaseEnd - phaseStart) * (fractionPercent / 100.0));
+                ExtractionOverallProgress = Math.Max(ExtractionOverallProgress, overallFromPhase);
                 var phase = BuildFriendlyExtractionStatus(cleaned);
                 AttachmentScraperStatusText = phase;
                 ExtractionOverallLabel = $"Overall Completeness: {ExtractionOverallProgress:F0}%";
@@ -779,9 +782,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             }
 
             // Fallback to stage-based graduation when only descriptive text exists.
-            var stagePercent = InferStagePercent(cleaned);
-            ExtractionOverallProgress = Math.Max(ExtractionOverallProgress, stagePercent);
-            ExtractionCurrentStepProgress = stagePercent;
+            ExtractionOverallProgress = Math.Max(ExtractionOverallProgress, phaseStart);
+            ExtractionCurrentStepProgress = phaseEnd;
             var friendly = BuildFriendlyExtractionStatus(cleaned);
             AttachmentScraperStatusText = friendly;
             ExtractionOverallLabel = $"Overall Completeness: {ExtractionOverallProgress:F0}%";
@@ -796,24 +798,28 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             if (normalized.Contains("upload")) return "Uploading source document";
             if (normalized.Contains("embedding")) return "Embedding content";
             if (normalized.Contains("workspace")) return "Preparing analysis workspace";
+            if (normalized.Contains("checking jama") || normalized.Contains("previously saved") || normalized.Contains("duplicate")) return "Checking for duplicates";
             if (normalized.Contains("analyzing")) return "Analyzing source document";
             if (normalized.Contains("extract")) return "Extracting requirement candidates";
+            if (normalized.Contains("save progress") || normalized.Contains("saving") || normalized.Contains("retry save") || normalized.Contains("retrying")) return "Saving candidates to Jama";
             if (normalized.Contains("complete") || normalized.Contains("success")) return "Extraction complete";
             return "Processing";
         }
 
-        private static double InferStagePercent(string message)
+        private static (double Start, double End) GetExtractionPhaseWindow(string message)
         {
             var normalized = message.ToLowerInvariant();
-            if (normalized.Contains("preparing")) return 8;
-            if (normalized.Contains("downloading")) return 18;
-            if (normalized.Contains("workspace")) return 30;
-            if (normalized.Contains("upload")) return 42;
-            if (normalized.Contains("embedding")) return 62;
-            if (normalized.Contains("analyzing")) return 80;
-            if (normalized.Contains("extract")) return 92;
-            if (normalized.Contains("complete") || normalized.Contains("success")) return 100;
-            return 12;
+            if (normalized.Contains("preparing")) return (2, 8);
+            if (normalized.Contains("downloading")) return (8, 20);
+            if (normalized.Contains("workspace")) return (20, 34);
+            if (normalized.Contains("upload")) return (34, 46);
+            if (normalized.Contains("embedding")) return (46, 68);
+            if (normalized.Contains("analyzing")) return (68, 82);
+            if (normalized.Contains("extract")) return (82, 90);
+            if (normalized.Contains("checking jama") || normalized.Contains("previously saved") || normalized.Contains("duplicate")) return (90, 94);
+            if (normalized.Contains("save progress") || normalized.Contains("saving") || normalized.Contains("retry save") || normalized.Contains("retrying")) return (94, 99);
+            if (normalized.Contains("complete") || normalized.Contains("success")) return (100, 100);
+            return (4, 12);
         }
 
         private void ResetAttachmentLog(string header)
