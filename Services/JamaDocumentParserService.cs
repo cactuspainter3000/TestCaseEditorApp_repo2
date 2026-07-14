@@ -890,6 +890,7 @@ For a technical ATP/SRS document, expect 15-50+ requirements minimum.";
                 // ENHANCED PARSING: Try multiple field name variations to avoid missing requirements
                 var id = ExtractFieldValue(reqData, new[] { "ID", "Requirement ID", "Req ID", "Item", "Number" });
                 var text = ExtractFieldValue(reqData, new[] { "Text", "Description", "Requirement", "Content", "Summary" });
+                text = SanitizeRequirementBodyText(text);
 
                 // FALLBACK: If structured parsing fails, try to extract from raw block
                 if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(text))
@@ -1528,7 +1529,7 @@ But thoroughly scan all sections first before concluding.";
                 {
                     // Use Template Form Architecture for structured extraction with quality validation
                     TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Using Template Form Architecture for structured extraction");
-                    extractedRequirements = await ExtractRequirementsWithTemplateFormAsync(contextContent, attachment, projectId, progressCallback, cancellationToken);
+                    extractedRequirements = await ExtractRequirementsWithTemplateFormAsync(documentContent, attachment, projectId, progressCallback, cancellationToken);
                 }
                 else
                 {
@@ -1577,7 +1578,8 @@ But thoroughly scan all sections first before concluding.";
                 TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Final result: {extractedRequirements.Count} extracted + {derivedRequirements.Count} derived = {allRequirements.Count} total requirements from {attachment.FileName}");
 
                 var expectedMinimum = EstimateMinimumRequirements(attachment);
-                if (allRequirements.Count < expectedMinimum && !string.IsNullOrWhiteSpace(documentContent))
+                var shouldRunDeterministicFallback = allRequirements.Count == 0 && !string.IsNullOrWhiteSpace(documentContent);
+                if (shouldRunDeterministicFallback)
                 {
                     var deterministic = ExtractDeterministicRequirementCandidates(documentContent, attachment, projectId);
                     if (deterministic.Count > 0)
@@ -1627,9 +1629,9 @@ But thoroughly scan all sections first before concluding.";
 
                         await WriteDeterministicTraceabilityReportAsync(attachment, projectId, documentContent, deterministic, cancellationToken);
                         TestCaseEditorApp.Services.Logging.Log.Warn(
-                            $"[DirectRag] Requirement count {allRequirements.Count - addedCount} below expected minimum {expectedMinimum}; deterministic capture found {deterministic.Count} candidates, qualification promoted {promotedDeterministic.Count}, augmentation added {addedCount} unique candidates.");
+                            $"[DirectRag] Primary extraction returned zero requirements; deterministic fallback found {deterministic.Count} candidates, qualification promoted {promotedDeterministic.Count}, augmentation added {addedCount} unique candidates.");
                         progressCallback?.Invoke(
-                            $"⚠️ Requirement count below expected minimum ({allRequirements.Count - addedCount} < {expectedMinimum}); captured {deterministic.Count} candidates and promoted {addedCount} after qualification");
+                            $"⚠️ Primary extraction returned zero requirements; deterministic fallback promoted {addedCount} of {deterministic.Count} candidates.");
                     }
                 }
 
@@ -1640,7 +1642,7 @@ But thoroughly scan all sections first before concluding.";
                 }
 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] DirectRagResult AttachmentId={attachment.Id} FileName={attachment.FileName} Count={allRequirements.Count} Sample={BuildRequirementTraceSample(allRequirements)}");
-                progressCallback?.Invoke($"✅ Found {allRequirements.Count} requirements: {extractedRequirements.Count} extracted + {derivedRequirements.Count} derived + deterministic fallback where needed");
+                progressCallback?.Invoke($"✅ Found {allRequirements.Count} requirements: {extractedRequirements.Count} extracted + {derivedRequirements.Count} derived");
                 
                 return allRequirements;
             }
@@ -2057,10 +2059,11 @@ Extract all legitimate requirements:";
                     ? parsedId
                     : $"DOC-{index:D3}";
 
-                var sourceClause = text;
-                var normalizedDescription = LooksLikeUutRequirementForFallback(text)
-                    ? RewriteUutRequirementAsTestSolutionVerificationForFallback(text)
-                    : text;
+                var sanitizedClause = SanitizeRequirementBodyText(text);
+                var sourceClause = sanitizedClause;
+                var normalizedDescription = LooksLikeUutRequirementForFallback(sanitizedClause)
+                    ? RewriteUutRequirementAsTestSolutionVerificationForFallback(sanitizedClause)
+                    : sanitizedClause;
                 var traceReference = BuildRequirementTraceReference(attachment.Id, itemId, index);
 
                 var qualification = QualifyDeterministicRequirementCandidate(sourceClause);
@@ -2080,6 +2083,11 @@ Extract all legitimate requirements:";
                         RequirementType = $"Deterministic - {qualification.Classification}",
                         Rationale = $"Recovered via deterministic fallback from {attachment.FileName}\n\n**Trace Reference:** {traceReference}\n\n**Source Clause:** {sourceClause}\n\n**Qualification:** {qualification.Classification} (Score {qualification.Score}/14)\n{qualification.Reason}",
                         Heading = "Derived",
+                        SourcePrefix = "UNK",
+                        SourcePrefixType = "unknown",
+                        SourcePrefixEvidence = "Deterministic fallback",
+                        SourcePrefixConfidence = 0.0,
+                        SourceSection = "UNK",
                         ItemType = "System Requirement",
                         CreatedDate = DateTime.Now,
                         ModifiedDate = DateTime.Now,
@@ -2239,8 +2247,16 @@ Extract all legitimate requirements:";
 
             var classification = score switch
             {
-                >= 11 => strongSystemSignal ? "True System Requirement" : "Verification/Test Requirement",
-                >= 9 => strongVerificationSignal ? "Verification/Test Requirement" : "Potential Requirement",
+                >= 11 => strongSystemSignal
+                    ? "True System Requirement"
+                    : strongVerificationSignal
+                        ? "Verification/Test Requirement"
+                        : "Potential Requirement",
+                >= 9 => strongVerificationSignal
+                    ? "Verification/Test Requirement"
+                    : strongSystemSignal
+                        ? "True System Requirement"
+                        : "Potential Requirement",
                 >= 7 => "Potential Requirement",
                 >= 4 => obligationScore > 0 ? "Derived Requirement Candidate" : "Informational Text",
                 _ => looksFragmented ? "Heading/Structure" : "Rejected Candidate"
@@ -2252,8 +2268,8 @@ Extract all legitimate requirements:";
             }
 
             var isPromoted = !looksFragmented && !proceduralNoise &&
-                             ((classification == "True System Requirement" && score >= 11) ||
-                              (classification == "Verification/Test Requirement" && score >= 9 && strongVerificationSignal));
+                             classification == "True System Requirement" &&
+                             score >= 11;
             var reason = $"Score {score}/14 (obligation {obligationScore}, actor {actorScore}, action {actionScore}, constraint {constraintScore}, verifiable {verifiableScore}, scope {scopeScore}, non-procedural {proceduralScore}); verification-led={isVerificationLedClause}, explicit-system-obligation={hasExplicitSystemObligation}";
 
             return new DeterministicQualificationResult(score, classification, reason, isPromoted);
@@ -2637,7 +2653,7 @@ Extract all legitimate requirements:";
                         if (trimmedLine.StartsWith("ID:", StringComparison.OrdinalIgnoreCase))
                             id = trimmedLine.Substring(3).Trim();
                         else if (trimmedLine.StartsWith("Text:", StringComparison.OrdinalIgnoreCase))
-                            text = trimmedLine.Substring(5).Trim();
+                            text = SanitizeRequirementBodyText(trimmedLine.Substring(5).Trim());
                         else if (trimmedLine.StartsWith("Category:", StringComparison.OrdinalIgnoreCase))
                             category = trimmedLine.Substring(9).Trim();
                         else if (trimmedLine.StartsWith("Page:", StringComparison.OrdinalIgnoreCase))
@@ -2668,12 +2684,14 @@ Extract all legitimate requirements:";
                         
                         var resolvedSourcePrefix = ResolvePreferredSourcePrefix(sourcePrefix, sourcePrefixEvidence, sectionRef, page);
 
+                        var cleanedText = SanitizeRequirementBodyText(text);
+
                         var requirement = new Requirement
                         {
                             GlobalId = id ?? $"SYS-REQ-{requirements.Count + 1:D3}",
                             Item = id ?? $"SYS-REQ-{requirements.Count + 1:D3}",
                             Name = category ?? "System Requirement",
-                            Description = $"{text}\n\nSource: {sourceLine}\nFrom: {attachment.FileName}",
+                            Description = $"{cleanedText}\n\nSource: {sourceLine}\nFrom: {attachment.FileName}",
                             SourcePrefix = resolvedSourcePrefix ?? string.Empty,
                             SourcePrefixType = sourcePrefixType ?? string.Empty,
                             SourcePrefixEvidence = sourcePrefixEvidence ?? string.Empty,
@@ -2709,25 +2727,47 @@ Extract all legitimate requirements:";
                 return string.Empty;
             }
 
-            var cleaned = System.Text.RegularExpressions.Regex.Replace(documentContent, @"\s+", " ").Trim();
-            var requirementSegments = new List<string>();
+            var lines = documentContent
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Select(line => line.Trim())
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .ToList();
 
-            var segmentRegex = new System.Text.RegularExpressions.Regex(
-                @"(?:\bID\s*:\s*[A-Za-z0-9_.\-]+\b\s*)?.{0,80}\b(?:shall|must|will|should)\b.{0,260}(?:\.|;|(?=\bID\s*:)|(?=\bTest_type\s*:)|(?=\bTest_Venue\s*:)|$)",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline);
-
-            foreach (System.Text.RegularExpressions.Match match in segmentRegex.Matches(cleaned))
+            if (lines.Count == 0)
             {
-                var segment = System.Text.RegularExpressions.Regex.Replace(match.Value, @"\s+", " ").Trim();
-                if (!string.IsNullOrWhiteSpace(segment) && segment.Length > 20)
+                return string.Empty;
+            }
+
+            var modalRegex = new System.Text.RegularExpressions.Regex(@"\b(shall|must|will|should)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var headingRegex = new System.Text.RegularExpressions.Regex(@"^(?:Section\s*:\s*)?(?:\d+(?:\.\d+)+|[A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var selectedIndexes = new HashSet<int>();
+
+            for (var i = 0; i < lines.Count; i++)
+            {
+                if (headingRegex.IsMatch(lines[i]))
                 {
-                    requirementSegments.Add(segment);
+                    selectedIndexes.Add(i);
+                    continue;
+                }
+
+                if (!modalRegex.IsMatch(lines[i]))
+                {
+                    continue;
+                }
+
+                for (var j = Math.Max(0, i - 2); j <= Math.Min(lines.Count - 1, i + 2); j++)
+                {
+                    selectedIndexes.Add(j);
                 }
             }
 
-            var selected = requirementSegments.Count > 0
-                ? string.Join("\n", requirementSegments.Distinct(StringComparer.OrdinalIgnoreCase))
-                : cleaned;
+            if (selectedIndexes.Count == 0)
+            {
+                var flattened = System.Text.RegularExpressions.Regex.Replace(documentContent, @"\s+", " ").Trim();
+                return flattened.Length > maxChars ? flattened.Substring(0, maxChars) + "..." : flattened;
+            }
+
+            var selected = string.Join("\n", selectedIndexes.OrderBy(i => i).Select(i => lines[i]));
 
             if (selected.Length > maxChars)
             {
@@ -2916,7 +2956,18 @@ Extract all legitimate requirements:";
                     var text = new StringBuilder();
                     foreach (var paragraph in body.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>())
                     {
-                        text.AppendLine(paragraph.InnerText);
+                        var paragraphText = paragraph.InnerText?.Trim();
+                        if (string.IsNullOrWhiteSpace(paragraphText))
+                        {
+                            continue;
+                        }
+
+                        if (TryBuildSectionMarker(paragraph, paragraphText, out var sectionMarker))
+                        {
+                            text.AppendLine(sectionMarker);
+                        }
+
+                        text.AppendLine(paragraphText);
                     }
 
                     // Also extract from tables
@@ -2938,6 +2989,51 @@ Extract all legitimate requirements:";
                     throw;
                 }
             });
+        }
+
+        private static bool TryBuildSectionMarker(DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraph, string paragraphText, out string marker)
+        {
+            marker = string.Empty;
+
+            var styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+            var isHeadingStyle = !string.IsNullOrWhiteSpace(styleId) &&
+                                 (styleId.StartsWith("Heading", StringComparison.OrdinalIgnoreCase) ||
+                                  styleId.StartsWith("TOC", StringComparison.OrdinalIgnoreCase));
+
+            var tocLike = System.Text.RegularExpressions.Regex.Match(
+                paragraphText,
+                @"^(?<prefix>\d+(?:\.\d+)+)\s+(?<title>.+?)(?:\.{2,}\s*\d+)?$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (tocLike.Success)
+            {
+                var prefix = tocLike.Groups["prefix"].Value.Trim().Trim('.');
+                var title = tocLike.Groups["title"].Value.Trim();
+                marker = $"Section: {prefix} {title}";
+                return true;
+            }
+
+            if (!isHeadingStyle)
+            {
+                return false;
+            }
+
+            var prefixCandidate = ExtractSourcePrefix(paragraphText);
+            if (string.IsNullOrWhiteSpace(prefixCandidate))
+            {
+                return false;
+            }
+
+            var titleText = System.Text.RegularExpressions.Regex.Replace(
+                paragraphText,
+                @"^(?:section\s*[:\-]?\s*)?(?:\d+(?:\.\d+)+|[A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+)\s*[:\-]?\s*",
+                string.Empty,
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+
+            marker = string.IsNullOrWhiteSpace(titleText)
+                ? $"Section: {prefixCandidate}"
+                : $"Section: {prefixCandidate} {titleText}";
+            return true;
         }
 
         /// <summary>
@@ -4479,7 +4575,8 @@ Extract requirements now (JSON only):";
 
                 foreach (var req in envelope.Requirements)
                 {
-                    if (string.IsNullOrWhiteSpace(req.Text) || !IsValidRequirement(req.Text))
+                    var cleanedText = SanitizeRequirementBodyText(req.Text);
+                    if (string.IsNullOrWhiteSpace(cleanedText) || !IsValidRequirement(cleanedText))
                         continue;
 
                     // Build source information
@@ -4497,7 +4594,7 @@ Extract requirements now (JSON only):";
                         GlobalId = req.Id ?? $"SYS-REQ-{extractedRequirements.Count + 1:D3}",
                         Item = req.Id ?? $"SYS-REQ-{extractedRequirements.Count + 1:D3}",
                         Name = req.Category ?? "System Requirement",
-                        Description = $"{req.Text}\n\nSource: {sourceLine}\nFrom: {attachment.FileName}\nConfidence: {req.Confidence:P0} (Template Form extraction)",
+                        Description = $"{cleanedText}\n\nSource: {sourceLine}\nFrom: {attachment.FileName}\nConfidence: {req.Confidence:P0} (Template Form extraction)",
                         SourcePrefix = resolvedSourcePrefix ?? string.Empty,
                         SourcePrefixType = req.SourcePrefixType ?? string.Empty,
                         SourcePrefixEvidence = req.SourcePrefixEvidence ?? string.Empty,
@@ -4626,6 +4723,23 @@ Extract requirements now (JSON only):";
             }
 
             return null;
+        }
+
+        private static string SanitizeRequirementBodyText(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return string.Empty;
+            }
+
+            var cleaned = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
+            cleaned = System.Text.RegularExpressions.Regex.Replace(
+                cleaned,
+                @"^(?:acceptance\s+criteria|criteria|verification\s+criteria)\s*[:\-–—]?\s*",
+                string.Empty,
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+
+            return cleaned;
         }
 
         private static string? ExtractSourcePrefix(string? value)
