@@ -96,6 +96,31 @@ namespace TestCaseEditorApp.Tests.Integration
                 }
             }
 
+            var missingModalCandidates = result.Candidates
+                .Where(candidate => candidate.AnalysisFlags.Contains("Missing Modal Verb"))
+                .ToList();
+            var missingIdentifierCandidates = result.Candidates
+                .Where(candidate => candidate.AnalysisFlags.Contains("Missing Explicit Identifier"))
+                .ToList();
+
+            Assert.IsTrue(result.RejectedCandidateCount == 0,
+                "Candidates should be retained for analysis/review rather than hard-rejected.");
+            Assert.IsTrue(
+                missingModalCandidates.All(candidate =>
+                    !string.IsNullOrWhiteSpace(candidate.SuggestedRewrite)
+                    && candidate.SuggestedRewrite.Contains("shall", StringComparison.OrdinalIgnoreCase)),
+                "Missing-modal candidates should include a suggested rewrite with normative language.");
+            Assert.IsTrue(
+                missingIdentifierCandidates.All(candidate =>
+                    !string.IsNullOrWhiteSpace(candidate.FixType)
+                    && candidate.FixType.Contains("Identifier", StringComparison.OrdinalIgnoreCase)),
+                "Missing-identifier candidates should include identifier-focused fix guidance.");
+            Assert.IsTrue(
+                result.Candidates.Where(candidate => candidate.AnalysisFlags.Count > 0).All(candidate =>
+                    !string.IsNullOrWhiteSpace(candidate.AnalysisPriority)
+                    && !string.IsNullOrWhiteSpace(candidate.DispositionRecommendation)),
+                "Flagged candidates should include triage priority and disposition metadata.");
+
             Assert.IsTrue(result.Blocks.Count > 0, "The foundation should segment the ATP document into blocks.");
             Assert.IsTrue(result.Candidates.Count > 0, "The foundation should harvest at least one requirement candidate from the ATP document.");
             Assert.IsTrue(result.Candidates.Any(candidate => candidate.Status is ExtractionCandidateStatus.Accepted or ExtractionCandidateStatus.NeedsReview),

@@ -60,6 +60,10 @@ namespace TestCaseEditorApp.Services.Extraction
         public ExtractionCandidateStatus Status { get; set; } = ExtractionCandidateStatus.Pending;
         public string? RejectionReason { get; set; }
         public List<string> AnalysisFlags { get; set; } = new();
+        public string AnalysisPriority { get; set; } = "Normal";
+        public string FixType { get; set; } = "None";
+        public string SuggestedRewrite { get; set; } = string.Empty;
+        public string DispositionRecommendation { get; set; } = "KeepWithReview";
         public int StartLine { get; set; }
         public int EndLine { get; set; }
         public List<string> EvidenceSnippets { get; set; } = new();
@@ -115,6 +119,14 @@ namespace TestCaseEditorApp.Services.Extraction
                 if (candidate.AnalysisFlags.Count > 0)
                 {
                     sb.AppendLine($"  analysis_flags: {string.Join(" | ", candidate.AnalysisFlags.Select(flag => Truncate(flag, 140)))}");
+                }
+                if (!string.IsNullOrWhiteSpace(candidate.AnalysisPriority) || !string.IsNullOrWhiteSpace(candidate.FixType))
+                {
+                    sb.AppendLine($"  triage: priority={candidate.AnalysisPriority}; fix_type={candidate.FixType}; disposition={candidate.DispositionRecommendation}");
+                }
+                if (!string.IsNullOrWhiteSpace(candidate.SuggestedRewrite))
+                {
+                    sb.AppendLine($"  suggested_rewrite: {Truncate(candidate.SuggestedRewrite, 220)}");
                 }
             }
 

@@ -2862,6 +2862,37 @@ Extract all legitimate requirements:";
             return $"{structuralExcerpt}\n\n[Context]\n{contextContent}";
         }
 
+        private static string BuildFlagPriorityGuidance(DocumentRequirementExtractionResult? extractionFoundation)
+        {
+            if (extractionFoundation == null || extractionFoundation.Candidates.Count == 0)
+            {
+                return "No extraction triage flags available; process all candidates normally.";
+            }
+
+            var flaggedCandidates = extractionFoundation.Candidates
+                .Where(candidate => candidate.AnalysisFlags != null && candidate.AnalysisFlags.Count > 0)
+                .ToList();
+
+            if (flaggedCandidates.Count == 0)
+            {
+                return "No analysis flags present; process candidates using confidence and provenance evidence.";
+            }
+
+            var topFlags = flaggedCandidates
+                .SelectMany(candidate => candidate.AnalysisFlags)
+                .GroupBy(flag => flag, StringComparer.OrdinalIgnoreCase)
+                .OrderByDescending(group => group.Count())
+                .Take(5)
+                .Select(group => $"{group.Key}: {group.Count()}")
+                .ToList();
+
+            var highPriority = flaggedCandidates.Count(candidate =>
+                string.Equals(candidate.AnalysisPriority, "High", StringComparison.OrdinalIgnoreCase));
+
+            return $"Flagged candidates: {flaggedCandidates.Count}/{extractionFoundation.Candidates.Count}; " +
+                   $"high priority: {highPriority}; top flags => {string.Join(" | ", topFlags)}";
+        }
+
         private static EnvelopeSchema BuildRequirementExtractionEnvelopeSchema()
         {
             return new EnvelopeSchema
@@ -4600,12 +4631,22 @@ Extract all legitimate requirements:";
                 var focusedContent = !string.IsNullOrWhiteSpace(extractionFoundation?.NormalizedContent)
                     ? extractionFoundation!.BuildPromptContext(12000)
                     : BuildRequirementFocusedExcerpt(documentContent, 12000);
+                var flagPriorityGuidance = BuildFlagPriorityGuidance(extractionFoundation);
                 var prompt = $@"Extract all technical requirements from this document. Requirements typically use words like 'shall', 'must', 'will', or 'should' and define what a system must do or how it must perform.
 
 DOCUMENT: {attachment.FileName}
 
 CONTENT:
 {focusedContent}
+
+ANALYSIS TRIAGE GUIDANCE:
+{flagPriorityGuidance}
+
+When triage flags are present in the evidence ledger, prioritize these in order:
+1) Missing Modal Verb
+2) Missing Explicit Identifier
+3) Needs Human Reconciliation / Very Low Composite Evidence
+For flagged candidates, preserve the requirement intent, normalize into verifiable requirement phrasing, and avoid dropping potentially salvageable requirements.
 
 IMPORTANT: Respond ONLY with valid JSON matching this schema:
 {schemaJson}

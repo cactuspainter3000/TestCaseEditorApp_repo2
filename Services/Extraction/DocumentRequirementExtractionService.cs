@@ -343,6 +343,7 @@ namespace TestCaseEditorApp.Services.Extraction
                 }
 
                 var analysisFlags = BuildAnalysisFlags(block, confidence, status);
+                var triage = BuildAnalysisTriage(block, confidence, analysisFlags);
 
                 var rejectionReason = status == ExtractionCandidateStatus.Rejected
                     ? BuildLowEvidenceReason(block, confidence)
@@ -362,6 +363,10 @@ namespace TestCaseEditorApp.Services.Extraction
                     Status = status,
                     RejectionReason = rejectionReason,
                     AnalysisFlags = analysisFlags,
+                    AnalysisPriority = triage.Priority,
+                    FixType = triage.FixType,
+                    SuggestedRewrite = triage.SuggestedRewrite,
+                    DispositionRecommendation = triage.Disposition,
                     StartLine = block.StartLine,
                     EndLine = block.EndLine,
                     EvidenceSnippets = new List<string>
@@ -372,6 +377,78 @@ namespace TestCaseEditorApp.Services.Extraction
             }
 
             return candidates;
+        }
+
+        private static (string Priority, string FixType, string SuggestedRewrite, string Disposition) BuildAnalysisTriage(
+            DocumentBlock block,
+            double confidence,
+            IReadOnlyCollection<string> analysisFlags)
+        {
+            var hasMissingModal = analysisFlags.Any(flag => flag.Equals("Missing Modal Verb", StringComparison.OrdinalIgnoreCase));
+            var hasMissingIdentifier = analysisFlags.Any(flag => flag.Equals("Missing Explicit Identifier", StringComparison.OrdinalIgnoreCase));
+            var hasFormulaDominant = analysisFlags.Any(flag => flag.Equals("Formula/Procedure-Dominant Text", StringComparison.OrdinalIgnoreCase));
+
+            var priority = confidence < 0.25 || (hasMissingModal && hasMissingIdentifier)
+                ? "High"
+                : confidence < 0.50 || hasMissingModal || hasMissingIdentifier
+                    ? "Medium"
+                    : "Low";
+
+            var fixType = hasMissingModal && hasMissingIdentifier
+                ? "Normative Rewrite + Identifier Assignment"
+                : hasMissingModal
+                    ? "Normative Rewrite"
+                    : hasMissingIdentifier
+                        ? "Identifier Assignment"
+                        : hasFormulaDominant
+                            ? "Procedure-to-Requirement Rewrite"
+                            : "Human Review";
+
+            var disposition = confidence < 0.25
+                ? "KeepForAnalysisOnly"
+                : confidence < AcceptedConfidenceThreshold
+                    ? "KeepWithHumanReview"
+                    : "PromoteForUse";
+
+            var suggestedRewrite = BuildSuggestedRewrite(block.NormalizedText, hasMissingModal, hasMissingIdentifier, hasFormulaDominant);
+
+            return (priority, fixType, suggestedRewrite, disposition);
+        }
+
+        private static string BuildSuggestedRewrite(string normalizedText, bool hasMissingModal, bool hasMissingIdentifier, bool hasFormulaDominant)
+        {
+            var cleaned = Regex.Replace(normalizedText ?? string.Empty, @"\s+", " ").Trim();
+            if (string.IsNullOrWhiteSpace(cleaned))
+            {
+                return "The system shall define a verifiable requirement statement based on the cited source evidence.";
+            }
+
+            if (cleaned.Length > 180)
+            {
+                cleaned = cleaned.Substring(0, 180).TrimEnd() + "...";
+            }
+
+            if (hasFormulaDominant)
+            {
+                return $"The system shall satisfy the quantitative constraints and verification equations described in: {cleaned}";
+            }
+
+            if (hasMissingModal)
+            {
+                return $"The system shall satisfy the following requirement intent: {cleaned}";
+            }
+
+            if (hasMissingIdentifier)
+            {
+                return $"[Assign requirement ID] The system shall meet the requirement statement: {cleaned}";
+            }
+
+            if (!ModalVerbRegex.IsMatch(cleaned))
+            {
+                return $"The system shall meet the requirement statement: {cleaned}";
+            }
+
+            return cleaned;
         }
 
         private static List<string> BuildAnalysisFlags(DocumentBlock block, double confidence, ExtractionCandidateStatus status)
