@@ -747,6 +747,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         {
             var cleaned = string.IsNullOrWhiteSpace(message) ? "Processing" : message.Trim();
             var (phaseStart, phaseEnd) = GetExtractionPhaseWindow(cleaned);
+            var friendly = BuildFriendlyExtractionStatus(cleaned);
 
             // Prefer explicit percentages if present in provider messages.
             var explicitPercentMatch = Regex.Match(cleaned, @"\b(?<pct>\d{1,3})%\b");
@@ -757,9 +758,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 ExtractionCurrentStepProgress = explicitPercent;
                 var overallFromPhase = phaseStart + ((phaseEnd - phaseStart) * (explicitPercent / 100.0));
                 ExtractionOverallProgress = Math.Max(ExtractionOverallProgress, overallFromPhase);
-                AttachmentScraperStatusText = BuildFriendlyExtractionStatus(cleaned);
+                AttachmentScraperStatusText = friendly;
                 ExtractionOverallLabel = $"Overall Completeness: {ExtractionOverallProgress:F0}%";
-                ExtractionCurrentStepLabel = $"Current Process: {BuildFriendlyExtractionStatus(cleaned)} ({explicitPercent:F0}%)";
+                ExtractionCurrentStepLabel = $"Current Process: {friendly} ({explicitPercent:F0}%)";
                 return;
             }
 
@@ -774,17 +775,39 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 ExtractionCurrentStepProgress = fractionPercent;
                 var overallFromPhase = phaseStart + ((phaseEnd - phaseStart) * (fractionPercent / 100.0));
                 ExtractionOverallProgress = Math.Max(ExtractionOverallProgress, overallFromPhase);
-                var phase = BuildFriendlyExtractionStatus(cleaned);
-                AttachmentScraperStatusText = phase;
+                AttachmentScraperStatusText = friendly;
                 ExtractionOverallLabel = $"Overall Completeness: {ExtractionOverallProgress:F0}%";
-                ExtractionCurrentStepLabel = $"Current Process: {phase} ({current}/{total})";
+                ExtractionCurrentStepLabel = $"Current Process: {friendly} ({current}/{total})";
+                return;
+            }
+
+            // Parse elapsed-time updates such as "(1m 45s elapsed)" from embedding/analyzing loops.
+            var elapsedMatch = Regex.Match(cleaned, @"\((?<min>\d+)m\s+(?<sec>\d+)s(?:\s+elapsed)?\)");
+            if (elapsedMatch.Success &&
+                int.TryParse(elapsedMatch.Groups["min"].Value, out var minutes) &&
+                int.TryParse(elapsedMatch.Groups["sec"].Value, out var seconds))
+            {
+                var elapsedSeconds = Math.Max(0, (minutes * 60) + seconds);
+                var expectedPhaseSeconds = friendly.Contains("Embedding", StringComparison.OrdinalIgnoreCase)
+                    ? 180.0
+                    : 150.0;
+                var elapsedPercent = Math.Clamp((elapsedSeconds / expectedPhaseSeconds) * 100.0, 0, 100);
+                var overallFromPhase = phaseStart + ((phaseEnd - phaseStart) * (elapsedPercent / 100.0));
+
+                ExtractionCurrentStepProgress = elapsedPercent;
+                ExtractionOverallProgress = Math.Max(ExtractionOverallProgress, overallFromPhase);
+                AttachmentScraperStatusText = friendly;
+                ExtractionOverallLabel = $"Overall Completeness: {ExtractionOverallProgress:F0}%";
+                ExtractionCurrentStepLabel = $"Current Process: {friendly} ({minutes}m {seconds}s)";
                 return;
             }
 
             // Fallback to stage-based graduation when only descriptive text exists.
-            ExtractionOverallProgress = Math.Max(ExtractionOverallProgress, phaseStart);
-            ExtractionCurrentStepProgress = phaseEnd;
-            var friendly = BuildFriendlyExtractionStatus(cleaned);
+            var phaseRange = Math.Max(1, phaseEnd - phaseStart);
+            var nudgedOverall = Math.Min(phaseEnd - 0.5, Math.Max(phaseStart, ExtractionOverallProgress + 1.25));
+            ExtractionOverallProgress = Math.Max(ExtractionOverallProgress, nudgedOverall);
+            var inPhasePercent = ((ExtractionOverallProgress - phaseStart) / phaseRange) * 100.0;
+            ExtractionCurrentStepProgress = Math.Clamp(inPhasePercent, 0, 100);
             AttachmentScraperStatusText = friendly;
             ExtractionOverallLabel = $"Overall Completeness: {ExtractionOverallProgress:F0}%";
             ExtractionCurrentStepLabel = $"Current Process: {friendly}";
@@ -793,6 +816,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private static string BuildFriendlyExtractionStatus(string message)
         {
             var normalized = message.ToLowerInvariant();
+            if (normalized.Contains("starting attachment extraction") || normalized.Contains("preparing to extract") || normalized.Contains("fallback requirement extraction")) return "Preparing extraction";
             if (normalized.Contains("preparing")) return "Preparing extraction";
             if (normalized.Contains("downloading")) return "Downloading source document";
             if (normalized.Contains("upload")) return "Uploading source document";
@@ -809,6 +833,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private static (double Start, double End) GetExtractionPhaseWindow(string message)
         {
             var normalized = message.ToLowerInvariant();
+            if (normalized.Contains("starting attachment extraction") || normalized.Contains("preparing to extract") || normalized.Contains("fallback requirement extraction")) return (4, 14);
             if (normalized.Contains("preparing")) return (2, 8);
             if (normalized.Contains("downloading")) return (8, 20);
             if (normalized.Contains("workspace")) return (20, 34);
