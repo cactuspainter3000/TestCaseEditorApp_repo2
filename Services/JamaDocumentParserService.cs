@@ -2851,6 +2851,52 @@ Extract all legitimate requirements:";
             return $"{structuralExcerpt}\n\n[Context]\n{contextContent}";
         }
 
+        private static EnvelopeSchema BuildRequirementExtractionEnvelopeSchema()
+        {
+            return new EnvelopeSchema
+            {
+                SchemaName = "RequirementExtractionEnvelope",
+                Version = "1.0",
+                Description = "Expected schema for template-form requirement extraction output",
+                TargetEnvelopeType = EnvelopeType.RequirementGeneration,
+                DefaultRepairStrategy = EnvelopeRepairStrategy.GracefulDegradation,
+                AllowCustomFields = true,
+                RequiredFields = new List<EnvelopeField>
+                {
+                    new EnvelopeField
+                    {
+                        FieldName = "requirements",
+                        DisplayName = "Requirements",
+                        Description = "Array of extracted requirements",
+                        DataType = "array",
+                        ExpectedType = typeof(object),
+                        IsRequired = true
+                    },
+                    new EnvelopeField
+                    {
+                        FieldName = "metadata",
+                        DisplayName = "Metadata",
+                        Description = "Extraction metadata object",
+                        DataType = "object",
+                        ExpectedType = typeof(object),
+                        IsRequired = true
+                    }
+                },
+                OptionalFields = new List<EnvelopeField>
+                {
+                    new EnvelopeField
+                    {
+                        FieldName = "confidence",
+                        DisplayName = "Confidence",
+                        Description = "Optional aggregate confidence",
+                        DataType = "number",
+                        ExpectedType = typeof(double),
+                        IsRequired = false
+                    }
+                }
+            };
+        }
+
         private static RequirementExtractionEnvelope? TryRecoverEnvelopeFromLooseJson(string llmResponse, string documentName)
         {
             if (string.IsNullOrWhiteSpace(llmResponse))
@@ -3853,6 +3899,9 @@ Extract all legitimate requirements:";
         {
             var requirements = new List<Requirement>();
             var sourceFileName = attachment.FileName;
+            var isAtpDocument = IsAtpDocument(
+                sourceFileName,
+                string.Join('\n', capabilities.Select(c => c?.SourceATPStep ?? c?.RequirementText ?? string.Empty)));
 
             for (int i = 0; i < capabilities.Count; i++)
             {
@@ -3884,6 +3933,13 @@ Extract all legitimate requirements:";
                 }
 
                 var traceReference = BuildRequirementTraceReference(attachment.Id, generatedItem, i + 1);
+                var parsedVerificationMethod = !string.IsNullOrWhiteSpace(structuredMetadata.TestType)
+                    ? ParseVerificationMethodFromResponse(structuredMetadata.TestType)
+                    : null;
+                var selectedVerificationMethod = parsedVerificationMethod ?? (isAtpDocument ? VerificationMethod.Test : VerificationMethod.Unassigned);
+                var verificationMethodText = !string.IsNullOrWhiteSpace(structuredMetadata.TestType)
+                    ? structuredMetadata.TestType
+                    : (isAtpDocument ? "Test" : string.Empty);
 
                 var requirement = new Requirement
                 {
@@ -3895,6 +3951,7 @@ Extract all legitimate requirements:";
                     Name = GenerateRequirementNameFromCapability(normalizedDescription, capability.TaxonomyCategory),
                     Description = normalizedDescription,
                     RequirementType = $"{capability.TaxonomyCategory} - {capability.TaxonomySubcategory}",
+                    Status = "Draft",
                     
                     // Add derivation-specific fields
                     Rationale = BuildRequirementNotesFromCapability(capability, sourceFileName),
@@ -3907,6 +3964,10 @@ Extract all legitimate requirements:";
                     SourceDocumentName = sourceFileName,
                     SourceAttachmentId = attachment.Id,
                     SourceJamaItemId = attachment.Item > 0 ? attachment.Item : null,
+                    VerificationMethodText = verificationMethodText,
+                    ValidationMethodText = verificationMethodText,
+                    Method = selectedVerificationMethod,
+                    StatementOfCompliance = "Derived from source document analysis; pending human review/approval.",
                     
                     // Add ATP derivation info to track this as an ATP-derived requirement
                     AtpDerivation = new AtpDerivationInfo
@@ -3950,13 +4011,19 @@ Extract all legitimate requirements:";
                     "\n\n**Derived Classification:** ", derivedClassification);
 
                 requirement.RequirementType = derivedClassification;
+                ApplyCategoryFieldInference(requirement, capability.TaxonomyCategory, normalizedDescription);
 
                 if (!string.IsNullOrWhiteSpace(structuredMetadata.TestType))
                 {
                     requirement.VerificationMethodText = structuredMetadata.TestType;
                 }
 
-                var robustTags = new List<string> { "Derived" };
+                var robustTags = BuildExtractionTags(capability.TaxonomyCategory, generatedItem, "document_id", isAtpDocument)
+                    .Split(';', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(tag => tag.Trim())
+                    .Where(tag => !string.IsNullOrWhiteSpace(tag))
+                    .ToList();
+                robustTags.Add("Derived");
                 robustTags.Add($"SourceClass:{sourceClassification.Replace(' ', '_')}");
                 robustTags.Add($"DerivedClass:{derivedClassification.Replace(' ', '_')}");
                 if (!string.IsNullOrWhiteSpace(capability.TaxonomyCategory))
@@ -3964,6 +4031,7 @@ Extract all legitimate requirements:";
                     robustTags.Add($"Taxonomy:{capability.TaxonomyCategory}");
                 }
                 robustTags.Add($"TraceRef:{traceReference}");
+                robustTags.Add($"Verification:{selectedVerificationMethod}");
                 if (!string.IsNullOrWhiteSpace(structuredMetadata.TestType))
                 {
                     robustTags.Add($"TestType:{structuredMetadata.TestType}");
@@ -4614,18 +4682,48 @@ Extract requirements now (JSON only):";
 
                 // Step 4: Try to parse the JSON response directly (simplified approach)
                 RequirementExtractionEnvelope? envelope = null;
+                var extractionEnvelopeSchema = BuildRequirementExtractionEnvelopeSchema();
+
+                if (_envelopeService != null)
+                {
+                    try
+                    {
+                        var envelopeParseResult = await _envelopeService.ParseEnvelopeAsync(safeLlmResponse, extractionEnvelopeSchema);
+                        var complianceScore = envelopeParseResult.ValidationResult?.ComplianceScore ?? 0.0;
+
+                        TestCaseEditorApp.Services.Logging.Log.Info(
+                            $"[TemplateForm] Envelope service parse: success={envelopeParseResult.IsSuccessful}, score={complianceScore:F2}, strategy={envelopeParseResult.UsedStrategy}");
+
+                        if (envelopeParseResult.IsSuccessful && envelopeParseResult.ParsedEnvelope?.StructuredData != null)
+                        {
+                            var parsedJson = envelopeParseResult.ParsedEnvelope.StructuredData.RootElement.GetRawText();
+                            envelope = JsonSerializer.Deserialize<RequirementExtractionEnvelope>(parsedJson, new JsonSerializerOptions
+                            {
+                                PropertyNameCaseInsensitive = true
+                            });
+                        }
+                    }
+                    catch (Exception envelopeEx)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[TemplateForm] Envelope service validation unavailable: {envelopeEx.Message}");
+                    }
+                }
+
                 try
                 {
-                    // Extract JSON from response (handle markdown code blocks)
-                    var jsonStart = safeLlmResponse.IndexOf('{');
-                    var jsonEnd = safeLlmResponse.LastIndexOf('}');
-                    if (jsonStart >= 0 && jsonEnd > jsonStart)
+                    if (envelope == null)
                     {
-                        var jsonContent = safeLlmResponse.Substring(jsonStart, jsonEnd - jsonStart + 1);
-                        envelope = JsonSerializer.Deserialize<RequirementExtractionEnvelope>(jsonContent, new JsonSerializerOptions 
-                        { 
-                            PropertyNameCaseInsensitive = true 
-                        });
+                        // Extract JSON from response (handle markdown code blocks)
+                        var jsonStart = safeLlmResponse.IndexOf('{');
+                        var jsonEnd = safeLlmResponse.LastIndexOf('}');
+                        if (jsonStart >= 0 && jsonEnd > jsonStart)
+                        {
+                            var jsonContent = safeLlmResponse.Substring(jsonStart, jsonEnd - jsonStart + 1);
+                            envelope = JsonSerializer.Deserialize<RequirementExtractionEnvelope>(jsonContent, new JsonSerializerOptions
+                            {
+                                PropertyNameCaseInsensitive = true
+                            });
+                        }
                     }
                 }
                 catch (Exception parseEx)

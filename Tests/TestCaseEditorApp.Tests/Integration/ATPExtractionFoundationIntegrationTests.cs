@@ -30,6 +30,17 @@ namespace TestCaseEditorApp.Tests.Integration
 
             var result = service.AnalyzeAsync(extractedText, Path.GetFileName(documentPath)).GetAwaiter().GetResult();
 
+            Console.WriteLine("--- ATP Blocks ---");
+            foreach (var block in result.Blocks.Take(20))
+            {
+                Console.WriteLine($"[{block.BlockIndex:D3}] {block.Kind} {block.StartLine}-{block.EndLine} prefix={block.SourcePrefix ?? "UNK"} score={block.EvidenceScore:F2}");
+                Console.WriteLine(block.NormalizedText);
+                Console.WriteLine();
+            }
+
+            Console.WriteLine("--- ATP Candidates ---");
+            Console.WriteLine(result.BuildEvidenceLedger(20));
+
             TestContext.WriteLine($"Blocks: {result.Blocks.Count}");
             TestContext.WriteLine($"Candidates: {result.Candidates.Count}");
             TestContext.WriteLine($"Accepted: {result.AcceptedCandidateCount}, Review: {result.ReviewCandidateCount}, Rejected: {result.RejectedCandidateCount}");
@@ -42,6 +53,12 @@ namespace TestCaseEditorApp.Tests.Integration
             Assert.IsFalse(
                 result.Candidates.Any(candidate => !string.IsNullOrWhiteSpace(candidate.SourcePrefix) && Regex.IsMatch(candidate.SourcePrefix, @"^DOC-\d{3}$", RegexOptions.IgnoreCase)),
                 "Synthetic DOC-### source prefixes must never be produced.");
+            Assert.IsFalse(
+                result.Candidates.Any(candidate =>
+                    (!string.IsNullOrWhiteSpace(candidate.RawText) && Regex.IsMatch(candidate.RawText, @"\b(TOC|PAGEREF)\b", RegexOptions.IgnoreCase)) ||
+                    (!string.IsNullOrWhiteSpace(candidate.NormalizedText) && Regex.IsMatch(candidate.NormalizedText, @"\b(TOC|PAGEREF)\b", RegexOptions.IgnoreCase)) ||
+                    candidate.EvidenceSnippets.Any(snippet => !string.IsNullOrWhiteSpace(snippet) && Regex.IsMatch(snippet, @"\b(TOC|PAGEREF)\b", RegexOptions.IgnoreCase))),
+                "Extractor candidates should not contain TOC or page-reference artifacts.");
         }
 
         private static string ExtractWordDocumentText(string documentPath)
