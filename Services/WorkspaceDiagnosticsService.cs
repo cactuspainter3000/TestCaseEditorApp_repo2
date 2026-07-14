@@ -91,9 +91,9 @@ namespace TestCaseEditorApp.Services
                     throw new FileNotFoundException("Selected artifact was not found.", artifactPath);
                 }
 
-                if (!string.Equals(Path.GetExtension(artifactPath), ".zip", StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(Path.GetExtension(artifactPath), ".docx", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidOperationException("Please select a .zip file.");
+                    throw new InvalidOperationException("Please select a .docx file.");
                 }
 
                 var result = await Task.Run(() => CommitArtifactToGit(artifactPath));
