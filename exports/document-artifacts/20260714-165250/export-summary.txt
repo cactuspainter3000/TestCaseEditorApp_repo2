@@ -1,0 +1,10 @@
+TestCaseEditorApp Selected Document Artifact Export
+Created: 2026-07-14T16:52:50.0823120-05:00
+Source machine: USM246425
+Source file: C:\Users\e10653214\Downloads\946-4DC0-001_C4B_DHM_ATP_Rev-.docx
+Destination artifact: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\exports\document-artifacts\20260714-165250\946-4DC0-001_C4B_DHM_ATP_Rev-.docx
+Repo folder: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\exports\document-artifacts\20260714-165250
+DetectedRoot: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp
+RootResolution: Found .git from candidate 'C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\'
+AppBaseDirectory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\
+CurrentDirectory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows
