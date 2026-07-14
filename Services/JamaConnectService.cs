@@ -6640,6 +6640,12 @@ namespace TestCaseEditorApp.Services
                 return null;
             }
 
+            var sourceLabeled = Regex.Match(value, @"\b(?:source|section|sec\.?|clause)\s*:\s*(?<sec>\d+(?:\.\d+)+)\b", RegexOptions.IgnoreCase);
+            if (sourceLabeled.Success)
+            {
+                return sourceLabeled.Groups["sec"].Value.Trim().Trim('.');
+            }
+
             var explicitSection = Regex.Match(value, @"\b(?:section|sec\.?|clause)\s*(?<sec>\d+(?:\.\d+)+)\b", RegexOptions.IgnoreCase);
             if (explicitSection.Success)
             {
@@ -6650,6 +6656,12 @@ namespace TestCaseEditorApp.Services
             if (headingStyle.Success)
             {
                 return headingStyle.Groups["sec"].Value.Trim().Trim('.');
+            }
+
+            var standalone = Regex.Match(value, @"\b(?<sec>\d+(?:\.\d+){1,})\b");
+            if (standalone.Success)
+            {
+                return standalone.Groups["sec"].Value.Trim().Trim('.');
             }
 
             return null;

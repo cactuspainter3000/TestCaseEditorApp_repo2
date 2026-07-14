@@ -930,6 +930,7 @@ For a technical ATP/SRS document, expect 15-50+ requirements minimum.";
                     Item = id,
                     Name = reqData.TryGetValue("Category", out var cat) ? cat : "Extracted Requirement",
                     Description = string.Join("\n\n", descriptionSections),
+                    Heading = reqData.TryGetValue("Source", out var headingSource) ? headingSource : string.Empty,
                     TraceReference = BuildRequirementTraceReference(attachment.Id, id, 0),
                     SourceDocumentName = attachment.FileName,
                     SourceAttachmentId = attachment.Id,
