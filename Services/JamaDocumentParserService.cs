@@ -370,22 +370,26 @@ namespace TestCaseEditorApp.Services
             {
                 if (attachment.IsWord)
                 {
-                    return await ExtractWordTextAsync(fileBytes);
+                    var raw = await ExtractWordTextAsync(fileBytes);
+                    return ApplyFileTypeCleansing(raw, attachment);
                 }
 
                 if (attachment.IsExcel)
                 {
-                    return await ExtractExcelTextAsync(fileBytes);
+                    var raw = await ExtractExcelTextAsync(fileBytes);
+                    return ApplyFileTypeCleansing(raw, attachment);
                 }
 
                 if (attachment.IsPdf)
                 {
-                    return await ExtractPdfTextAsync(fileBytes);
+                    var raw = await ExtractPdfTextAsync(fileBytes);
+                    return ApplyFileTypeCleansing(raw, attachment);
                 }
 
                 if (attachment.MimeType?.Contains("text") == true)
                 {
-                    return System.Text.Encoding.UTF8.GetString(fileBytes);
+                    var raw = System.Text.Encoding.UTF8.GetString(fileBytes);
+                    return ApplyFileTypeCleansing(raw, attachment);
                 }
 
                 TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Unsupported document type for reindex text extraction: {attachment.MimeType}");
@@ -396,6 +400,124 @@ namespace TestCaseEditorApp.Services
                 TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed text extraction during reindex for {attachment.FileName}: {ex.Message}");
                 return string.Empty;
             }
+        }
+
+        private string ApplyFileTypeCleansing(string content, JamaAttachment attachment)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return string.Empty;
+            }
+
+            var originalLength = content.Length;
+            var cleansed = attachment.IsWord
+                ? CleanseWordContent(content)
+                : attachment.IsPdf
+                    ? CleansePdfContent(content)
+                    : attachment.IsExcel
+                        ? CleanseExcelContent(content)
+                        : CleanseGenericTextContent(content);
+
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[JamaDocumentParser] File-type cleansing applied ({GetDocumentTypeDescription(attachment)}): {originalLength} -> {cleansed.Length} chars");
+
+            return cleansed;
+        }
+
+        private static string CleanseWordContent(string content)
+        {
+            var lines = content
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Select(line => line.Trim())
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .ToList();
+
+            var cleansed = new List<string>(lines.Count);
+            foreach (var line in lines)
+            {
+                var normalized = line
+                    .Replace("DOCPROPERTY", string.Empty, StringComparison.OrdinalIgnoreCase)
+                    .Replace("MERGEFORMAT", string.Empty, StringComparison.OrdinalIgnoreCase)
+                    .Replace("PAGEREF", string.Empty, StringComparison.OrdinalIgnoreCase);
+
+                normalized = Regex.Replace(normalized, "\\bTOC\\s+\\\\o\\s+\"[^\"]*\"", string.Empty, RegexOptions.IgnoreCase);
+                normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
+
+                if (string.IsNullOrWhiteSpace(normalized))
+                {
+                    continue;
+                }
+
+                cleansed.Add(normalized);
+            }
+
+            return string.Join(Environment.NewLine, cleansed);
+        }
+
+        private static string CleansePdfContent(string content)
+        {
+            var lines = content
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Select(line => line.Trim())
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .Where(line => !Regex.IsMatch(line, @"^---\s*Page\s+\d+\s*---$", RegexOptions.IgnoreCase))
+                .ToList();
+
+            var frequency = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var line in lines)
+            {
+                if (line.Length is < 8 or > 160)
+                {
+                    continue;
+                }
+
+                frequency[line] = frequency.TryGetValue(line, out var count) ? count + 1 : 1;
+            }
+
+            var cleansed = lines
+                .Where(line => !frequency.TryGetValue(line, out var count) || count <= 4)
+                .Select(line => Regex.Replace(line, @"\s+", " ").Trim())
+                .Where(line => !string.IsNullOrWhiteSpace(line));
+
+            return string.Join(Environment.NewLine, cleansed);
+        }
+
+        private static string CleanseExcelContent(string content)
+        {
+            var rows = content
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Select(row => row.Trim())
+                .Where(row => !string.IsNullOrWhiteSpace(row))
+                .ToList();
+
+            var cleansed = new List<string>(rows.Count);
+            foreach (var row in rows)
+            {
+                var cells = row
+                    .Split('\t')
+                    .Select(cell => cell.Trim())
+                    .Where(cell => !string.IsNullOrWhiteSpace(cell))
+                    .ToList();
+
+                if (cells.Count == 0)
+                {
+                    continue;
+                }
+
+                cleansed.Add(string.Join("\t", cells));
+            }
+
+            return string.Join(Environment.NewLine, cleansed);
+        }
+
+        private static string CleanseGenericTextContent(string content)
+        {
+            var lines = content
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Select(line => Regex.Replace(line, @"\s+", " ").Trim())
+                .Where(line => !string.IsNullOrWhiteSpace(line));
+
+            return string.Join(Environment.NewLine, lines);
         }
 
         /// <summary>
@@ -1408,29 +1530,9 @@ But thoroughly scan all sections first before concluding.";
                 string documentContent;
                 try
                 {
-                    if (attachment.IsWord)
+                    documentContent = await ExtractAttachmentTextForIndexingAsync(attachment, fileBytes);
+                    if (string.IsNullOrWhiteSpace(documentContent))
                     {
-                        // Use DocumentFormat.OpenXml for Word documents
-                        documentContent = await ExtractWordTextAsync(fileBytes);
-                    }
-                    else if (attachment.IsExcel)
-                    {
-                        // Use DocumentFormat.OpenXml for Excel documents  
-                        documentContent = await ExtractExcelTextAsync(fileBytes);
-                    }
-                    else if (attachment.IsPdf)
-                    {
-                        // Use iText7 for PDF documents
-                        documentContent = await ExtractPdfTextAsync(fileBytes);
-                    }
-                    else if (attachment.MimeType?.Contains("text") == true)
-                    {
-                        // Plain text files
-                        documentContent = System.Text.Encoding.UTF8.GetString(fileBytes);
-                    }
-                    else
-                    {
-                        // Fallback for unsupported types
                         documentContent = $"Binary document: {attachment.FileName} ({fileBytes.Length} bytes)\n[DirectRag cannot extract text from this document type: {attachment.MimeType}]";
                         TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Unsupported document type for text extraction: {attachment.MimeType}");
                     }
