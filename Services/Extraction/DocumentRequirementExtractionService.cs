@@ -14,6 +14,9 @@ namespace TestCaseEditorApp.Services.Extraction
 {
     public sealed class DocumentRequirementExtractionService : IDocumentRequirementExtractionService
     {
+        private const double AcceptedConfidenceThreshold = 0.75;
+        private const double ReviewPromotionThreshold = 0.25;
+
         private static readonly Regex ModalVerbRegex = new(@"\b(shall|must|will|should)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex HeadingRegex = new(@"^(?:section\s*[:\-]?\s*)?(?<prefix>\d+(?:\.\d+)+|[A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex ExplicitIdRegex = new(@"\b(?:id|section|sec\.?|clause)\s*:\s*(?<prefix>[A-Za-z0-9][A-Za-z0-9_.\-]*(?:[_-][A-Za-z0-9]+)?)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -329,22 +332,21 @@ namespace TestCaseEditorApp.Services.Extraction
 
                 var candidateId = $"cand-{block.BlockIndex + 1:D4}";
                 var confidence = Math.Clamp(block.EvidenceScore + (block.HasRequirementLanguage ? 0.05 : -0.05), 0.0, 1.0);
-                var status = confidence >= 0.75
+                var status = confidence >= AcceptedConfidenceThreshold
                     ? ExtractionCandidateStatus.Accepted
-                    : confidence >= 0.5
+                    : confidence >= ReviewPromotionThreshold
                         ? ExtractionCandidateStatus.NeedsReview
-                        : ExtractionCandidateStatus.Pending;
-
-                if (confidence < 0.35)
-                {
-                    status = ExtractionCandidateStatus.Rejected;
-                }
+                        : ExtractionCandidateStatus.Rejected;
 
                 // Keep non-modal technical tokens visible for review, but do not auto-accept them.
                 if (!block.HasRequirementLanguage && status == ExtractionCandidateStatus.Accepted)
                 {
                     status = ExtractionCandidateStatus.NeedsReview;
                 }
+
+                var rejectionReason = status == ExtractionCandidateStatus.Rejected
+                    ? BuildLowEvidenceReason(block, confidence)
+                    : null;
 
                 candidates.Add(new DocumentRequirementCandidate
                 {
@@ -358,7 +360,7 @@ namespace TestCaseEditorApp.Services.Extraction
                     Confidence = confidence,
                     EvidenceScore = block.EvidenceScore,
                     Status = status,
-                    RejectionReason = status == ExtractionCandidateStatus.Rejected ? "Low evidence score" : null,
+                    RejectionReason = rejectionReason,
                     StartLine = block.StartLine,
                     EndLine = block.EndLine,
                     EvidenceSnippets = new List<string>
@@ -369,6 +371,38 @@ namespace TestCaseEditorApp.Services.Extraction
             }
 
             return candidates;
+        }
+
+        private static string BuildLowEvidenceReason(DocumentBlock block, double confidence)
+        {
+            var reasons = new List<string>();
+
+            if (!block.HasRequirementLanguage)
+            {
+                reasons.Add("missing modal requirement verb (shall/must/will/should)");
+            }
+
+            if (!block.HasExplicitIdentifier)
+            {
+                reasons.Add("missing explicit requirement identifier/prefix");
+            }
+
+            if (IsLikelyFormulaBlock(block.NormalizedText) && !block.HasRequirementLanguage)
+            {
+                reasons.Add("formula-like/procedural text without normative requirement language");
+            }
+
+            if (block.NormalizedText.Length < 20)
+            {
+                reasons.Add("very short statement with insufficient context");
+            }
+
+            if (reasons.Count == 0)
+            {
+                reasons.Add("insufficient composite evidence");
+            }
+
+            return $"Low evidence ({confidence:F2}): {string.Join("; ", reasons)}";
         }
 
         private static bool IsStandaloneHeading(string text)

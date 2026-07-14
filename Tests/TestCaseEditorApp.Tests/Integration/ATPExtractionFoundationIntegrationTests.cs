@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -45,6 +46,34 @@ namespace TestCaseEditorApp.Tests.Integration
             TestContext.WriteLine($"Candidates: {result.Candidates.Count}");
             TestContext.WriteLine($"Accepted: {result.AcceptedCandidateCount}, Review: {result.ReviewCandidateCount}, Rejected: {result.RejectedCandidateCount}");
             TestContext.WriteLine(result.BuildEvidenceLedger(8));
+
+            var rejected = result.Candidates
+                .Where(candidate => candidate.Status == ExtractionCandidateStatus.Rejected)
+                .ToList();
+            var rejectionHistogram = rejected
+                .GroupBy(candidate => string.IsNullOrWhiteSpace(candidate.RejectionReason) ? "<no reason>" : candidate.RejectionReason!)
+                .OrderByDescending(group => group.Count())
+                .Take(8)
+                .Select(group => $"{group.Count(),2} x {group.Key}")
+                .ToList();
+
+            var promotedReviewCount = result.Candidates.Count(candidate =>
+                candidate.Status == ExtractionCandidateStatus.NeedsReview &&
+                candidate.Confidence < 0.50);
+
+            TestContext.WriteLine("Rejection Criteria Histogram (top reasons):");
+            if (rejectionHistogram.Count == 0)
+            {
+                TestContext.WriteLine("  <none>");
+            }
+            else
+            {
+                foreach (var line in rejectionHistogram)
+                {
+                    TestContext.WriteLine($"  {line}");
+                }
+            }
+            TestContext.WriteLine($"Borderline candidates promoted to human review (confidence < 0.50): {promotedReviewCount}");
 
             Assert.IsTrue(result.Blocks.Count > 0, "The foundation should segment the ATP document into blocks.");
             Assert.IsTrue(result.Candidates.Count > 0, "The foundation should harvest at least one requirement candidate from the ATP document.");
