@@ -1,0 +1,95 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
+using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using TestCaseEditorApp.Services.Extraction;
+
+namespace TestCaseEditorApp.Tests.Integration
+{
+    [TestClass]
+    public class ATPExtractionFoundationIntegrationTests
+    {
+        public TestContext TestContext { get; set; } = null!;
+
+        [TestMethod]
+        public void Analyze_RealATPDocument_ProducesCandidates_WithoutSyntheticDocHeaders()
+        {
+            var documentPath = ResolveRepoFilePath("Tests", "Fixtures", "ATP", "946-4DC0-001_C4B_DHM_ATP_Rev-.docx");
+            Assert.IsTrue(File.Exists(documentPath), $"Expected ATP fixture at {documentPath}");
+
+            var extractedText = ExtractWordDocumentText(documentPath);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(extractedText), "ATP fixture should yield extractable document text.");
+
+            var loggerFactory = LoggerFactory.Create(builder => builder.SetMinimumLevel(LogLevel.Warning));
+            var logger = loggerFactory.CreateLogger<DocumentRequirementExtractionService>();
+            var service = new DocumentRequirementExtractionService(logger);
+
+            var result = service.AnalyzeAsync(extractedText, Path.GetFileName(documentPath)).GetAwaiter().GetResult();
+
+            TestContext.WriteLine($"Blocks: {result.Blocks.Count}");
+            TestContext.WriteLine($"Candidates: {result.Candidates.Count}");
+            TestContext.WriteLine($"Accepted: {result.AcceptedCandidateCount}, Review: {result.ReviewCandidateCount}, Rejected: {result.RejectedCandidateCount}");
+            TestContext.WriteLine(result.BuildEvidenceLedger(8));
+
+            Assert.IsTrue(result.Blocks.Count > 0, "The foundation should segment the ATP document into blocks.");
+            Assert.IsTrue(result.Candidates.Count > 0, "The foundation should harvest at least one requirement candidate from the ATP document.");
+            Assert.IsTrue(result.Candidates.Any(candidate => candidate.Status is ExtractionCandidateStatus.Accepted or ExtractionCandidateStatus.NeedsReview),
+                "The ATP document should produce at least one candidate worthy of acceptance or review.");
+            Assert.IsFalse(
+                result.Candidates.Any(candidate => !string.IsNullOrWhiteSpace(candidate.SourcePrefix) && Regex.IsMatch(candidate.SourcePrefix, @"^DOC-\d{3}$", RegexOptions.IgnoreCase)),
+                "Synthetic DOC-### source prefixes must never be produced.");
+        }
+
+        private static string ExtractWordDocumentText(string documentPath)
+        {
+            using var stream = File.OpenRead(documentPath);
+            using var wordDocument = WordprocessingDocument.Open(stream, false);
+            var body = wordDocument.MainDocumentPart?.Document?.Body;
+            if (body == null)
+            {
+                return string.Empty;
+            }
+
+            var lines = body
+                .Elements<Paragraph>()
+                .Select(paragraph => paragraph.InnerText?.Trim())
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .Cast<string>()
+                .ToList();
+
+            foreach (var table in body.Elements<Table>())
+            {
+                foreach (var row in table.Elements<TableRow>())
+                {
+                    var rowText = string.Join("\t", row.Elements<TableCell>().Select(cell => cell.InnerText?.Trim()).Where(text => !string.IsNullOrWhiteSpace(text)));
+                    if (!string.IsNullOrWhiteSpace(rowText))
+                    {
+                        lines.Add(rowText);
+                    }
+                }
+            }
+
+            return string.Join(Environment.NewLine, lines);
+        }
+
+        private static string ResolveRepoFilePath(params string[] relativeParts)
+        {
+            var current = new DirectoryInfo(AppContext.BaseDirectory);
+            while (current != null)
+            {
+                if (File.Exists(Path.Combine(current.FullName, "TestCaseEditorApp.csproj")))
+                {
+                    return Path.Combine(current.FullName, Path.Combine(relativeParts));
+                }
+
+                current = current.Parent;
+            }
+
+            throw new InvalidOperationException("Could not locate repository root from test base directory.");
+        }
+    }
+}

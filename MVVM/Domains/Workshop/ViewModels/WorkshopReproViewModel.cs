@@ -727,8 +727,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             try
             {
                 var selectedZip = _fileDialogService.ShowOpenFile(
-                    "Select a document zip to commit",
-                    "Zip files (*.zip)|*.zip|All files (*.*)|*.*");
+                    "Select a Word document to commit",
+                    "Word documents (*.docx)|*.docx|All files (*.*)|*.*");
 
                 if (string.IsNullOrWhiteSpace(selectedZip))
                 {
@@ -736,21 +736,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                     return;
                 }
 
-                if (!selectedZip.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                if (!selectedZip.EndsWith(".docx", StringComparison.OrdinalIgnoreCase))
                 {
-                    AttachmentScraperStatusText = "Please select a .zip file.";
+                    AttachmentScraperStatusText = "Please select a .docx file.";
                     AppendAttachmentLog(AttachmentScraperStatusText);
                     return;
                 }
 
-                AppendAttachmentLog($"Committing selected zip to git: {selectedZip}");
+                AppendAttachmentLog($"Committing selected document to git: {selectedZip}");
                 await _workspaceDiagnosticsService.CommitSelectedArtifactAsync(selectedZip);
-                AttachmentScraperStatusText = "Selected zip committed and pushed to git.";
+                AttachmentScraperStatusText = "Selected document committed and pushed to git.";
                 AppendAttachmentLog(AttachmentScraperStatusText);
             }
             catch (Exception ex)
             {
-                AttachmentScraperStatusText = $"Commit zip failed: {ex.Message}";
+                AttachmentScraperStatusText = $"Commit document failed: {ex.Message}";
                 AppendAttachmentLog(AttachmentScraperStatusText);
             }
         }

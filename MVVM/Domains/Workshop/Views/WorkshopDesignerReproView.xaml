@@ -1415,7 +1415,7 @@
                                         Foreground="{StaticResource Brush.Text.Secondary}"
                                         BorderBrush="{StaticResource Brush.Border.Subtle}"
                                     BorderThickness="1"
-                                    ToolTip="Choose a .zip document and commit it to git"/>
+                                    ToolTip="Choose a .docx document and commit it to git"/>
                                 <Button Content="Cancel"
                                         Command="{Binding CancelAttachmentScraperCommand}"
                                     Style="{StaticResource HoverBorderOnlyButtonStyle}"
