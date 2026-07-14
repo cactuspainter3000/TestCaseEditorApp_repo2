@@ -59,6 +59,7 @@ namespace TestCaseEditorApp.Services.Extraction
         public double EvidenceScore { get; set; }
         public ExtractionCandidateStatus Status { get; set; } = ExtractionCandidateStatus.Pending;
         public string? RejectionReason { get; set; }
+        public List<string> AnalysisFlags { get; set; } = new();
         public int StartLine { get; set; }
         public int EndLine { get; set; }
         public List<string> EvidenceSnippets { get; set; } = new();
@@ -110,6 +111,10 @@ namespace TestCaseEditorApp.Services.Extraction
                 if (!string.IsNullOrWhiteSpace(candidate.RejectionReason))
                 {
                     sb.AppendLine($"  rejection: {Truncate(candidate.RejectionReason, 180)}");
+                }
+                if (candidate.AnalysisFlags.Count > 0)
+                {
+                    sb.AppendLine($"  analysis_flags: {string.Join(" | ", candidate.AnalysisFlags.Select(flag => Truncate(flag, 140)))}");
                 }
             }
 

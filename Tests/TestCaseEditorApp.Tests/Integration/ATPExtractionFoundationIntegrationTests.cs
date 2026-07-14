@@ -61,6 +61,15 @@ namespace TestCaseEditorApp.Tests.Integration
                 candidate.Status == ExtractionCandidateStatus.NeedsReview &&
                 candidate.Confidence < 0.50);
 
+            var analysisFlagHistogram = result.Candidates
+                .Where(candidate => candidate.AnalysisFlags != null && candidate.AnalysisFlags.Count > 0)
+                .SelectMany(candidate => candidate.AnalysisFlags)
+                .GroupBy(flag => flag)
+                .OrderByDescending(group => group.Count())
+                .Take(10)
+                .Select(group => $"{group.Count(),2} x {group.Key}")
+                .ToList();
+
             TestContext.WriteLine("Rejection Criteria Histogram (top reasons):");
             if (rejectionHistogram.Count == 0)
             {
@@ -74,6 +83,18 @@ namespace TestCaseEditorApp.Tests.Integration
                 }
             }
             TestContext.WriteLine($"Borderline candidates promoted to human review (confidence < 0.50): {promotedReviewCount}");
+            TestContext.WriteLine("Analysis Flag Histogram (top flags):");
+            if (analysisFlagHistogram.Count == 0)
+            {
+                TestContext.WriteLine("  <none>");
+            }
+            else
+            {
+                foreach (var line in analysisFlagHistogram)
+                {
+                    TestContext.WriteLine($"  {line}");
+                }
+            }
 
             Assert.IsTrue(result.Blocks.Count > 0, "The foundation should segment the ATP document into blocks.");
             Assert.IsTrue(result.Candidates.Count > 0, "The foundation should harvest at least one requirement candidate from the ATP document.");

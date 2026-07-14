@@ -334,15 +334,15 @@ namespace TestCaseEditorApp.Services.Extraction
                 var confidence = Math.Clamp(block.EvidenceScore + (block.HasRequirementLanguage ? 0.05 : -0.05), 0.0, 1.0);
                 var status = confidence >= AcceptedConfidenceThreshold
                     ? ExtractionCandidateStatus.Accepted
-                    : confidence >= ReviewPromotionThreshold
-                        ? ExtractionCandidateStatus.NeedsReview
-                        : ExtractionCandidateStatus.Rejected;
+                    : ExtractionCandidateStatus.NeedsReview;
 
                 // Keep non-modal technical tokens visible for review, but do not auto-accept them.
                 if (!block.HasRequirementLanguage && status == ExtractionCandidateStatus.Accepted)
                 {
                     status = ExtractionCandidateStatus.NeedsReview;
                 }
+
+                var analysisFlags = BuildAnalysisFlags(block, confidence, status);
 
                 var rejectionReason = status == ExtractionCandidateStatus.Rejected
                     ? BuildLowEvidenceReason(block, confidence)
@@ -361,6 +361,7 @@ namespace TestCaseEditorApp.Services.Extraction
                     EvidenceScore = block.EvidenceScore,
                     Status = status,
                     RejectionReason = rejectionReason,
+                    AnalysisFlags = analysisFlags,
                     StartLine = block.StartLine,
                     EndLine = block.EndLine,
                     EvidenceSnippets = new List<string>
@@ -371,6 +372,47 @@ namespace TestCaseEditorApp.Services.Extraction
             }
 
             return candidates;
+        }
+
+        private static List<string> BuildAnalysisFlags(DocumentBlock block, double confidence, ExtractionCandidateStatus status)
+        {
+            var flags = new List<string>();
+
+            if (!block.HasRequirementLanguage)
+            {
+                flags.Add("Missing Modal Verb");
+            }
+
+            if (!block.HasExplicitIdentifier)
+            {
+                flags.Add("Missing Explicit Identifier");
+            }
+
+            if (IsLikelyFormulaBlock(block.NormalizedText) && !block.HasRequirementLanguage)
+            {
+                flags.Add("Formula/Procedure-Dominant Text");
+            }
+
+            if (block.NormalizedText.Length < 20)
+            {
+                flags.Add("Insufficient Context Length");
+            }
+
+            if (confidence < ReviewPromotionThreshold)
+            {
+                flags.Add("Very Low Composite Evidence");
+            }
+            else if (confidence < AcceptedConfidenceThreshold)
+            {
+                flags.Add("Needs Human Reconciliation");
+            }
+
+            if (status == ExtractionCandidateStatus.NeedsReview)
+            {
+                flags.Add("Prioritize In Requirement Analysis Prompt");
+            }
+
+            return flags.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
 
         private static string BuildLowEvidenceReason(DocumentBlock block, double confidence)
