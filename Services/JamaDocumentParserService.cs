@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using TestCaseEditorApp.MVVM.Models;
@@ -4561,6 +4562,7 @@ Extract requirements now (JSON only):";
 
                 // Step 5: Convert envelope data to Requirement objects
                 var extractedRequirements = new List<Requirement>();
+                var isAtpDocument = IsAtpDocument(attachment.FileName, documentContent);
 
                 foreach (var req in envelope.Requirements)
                 {
@@ -4582,7 +4584,9 @@ Extract requirements now (JSON only):";
                     {
                         GlobalId = req.Id ?? $"SYS-REQ-{extractedRequirements.Count + 1:D3}",
                         Item = req.Id ?? $"SYS-REQ-{extractedRequirements.Count + 1:D3}",
-                        Name = req.Category ?? "System Requirement",
+                        Name = BuildRequirementTitle(cleanedText, req.Category),
+                        RequirementType = req.Category ?? "System Requirement",
+                        Status = "Draft",
                         Description = $"{cleanedText}\n\nSource: {sourceLine}\nFrom: {attachment.FileName}\nConfidence: {req.Confidence:P0} (Template Form extraction)",
                         SourcePrefix = resolvedSourcePrefix ?? string.Empty,
                         SourcePrefixType = req.SourcePrefixType ?? string.Empty,
@@ -4592,8 +4596,14 @@ Extract requirements now (JSON only):";
                         TraceReference = BuildRequirementTraceReference(attachment.Id, req.Id, extractedRequirements.Count + 1),
                         SourceDocumentName = attachment.FileName,
                         SourceAttachmentId = attachment.Id,
-                        SourceJamaItemId = attachment.Item > 0 ? attachment.Item : null
+                        SourceJamaItemId = attachment.Item > 0 ? attachment.Item : null,
+                        VerificationMethodText = isAtpDocument ? "Test" : string.Empty,
+                        ValidationMethodText = isAtpDocument ? "Test" : string.Empty,
+                        Method = isAtpDocument ? VerificationMethod.Test : VerificationMethod.Unassigned,
+                        Tags = BuildExtractionTags(req.Category, resolvedSourcePrefix, req.SourcePrefixType, isAtpDocument)
                     };
+
+                    ApplyCategoryFieldInference(requirement, req.Category, cleanedText);
 
                     // Step 6: Record field processing for quality metrics (if service available)
                     if (_qualityService != null)
@@ -4733,6 +4743,98 @@ Extract requirements now (JSON only):";
             public string? SourcePrefixEvidence { get; set; }
             public double? SourcePrefixConfidence { get; set; }
             public double Confidence { get; set; } = 0.8;
+        }
+
+        private static string BuildRequirementTitle(string requirementText, string? category)
+        {
+            if (!string.IsNullOrWhiteSpace(requirementText))
+            {
+                var sentenceEndIndex = requirementText.IndexOfAny(new[] { '.', '!', '?' });
+                var candidate = sentenceEndIndex > 0
+                    ? requirementText[..sentenceEndIndex]
+                    : requirementText;
+                candidate = Regex.Replace(candidate, @"\s+", " ").Trim();
+
+                if (candidate.Length > 90)
+                {
+                    candidate = candidate[..87].TrimEnd() + "...";
+                }
+
+                return candidate;
+            }
+
+            return string.IsNullOrWhiteSpace(category) ? "System Requirement" : category.Trim();
+        }
+
+        private static string BuildExtractionTags(string? category, string? sourcePrefix, string? sourcePrefixType, bool isAtpDocument)
+        {
+            var tags = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(category))
+            {
+                tags.Add(category.Trim());
+            }
+
+            if (!string.IsNullOrWhiteSpace(sourcePrefixType))
+            {
+                tags.Add(sourcePrefixType.Trim());
+            }
+
+            if (!string.IsNullOrWhiteSpace(sourcePrefix))
+            {
+                tags.Add(sourcePrefix.Trim());
+            }
+
+            if (isAtpDocument)
+            {
+                tags.Add("ATP");
+            }
+
+            return string.Join(";", tags.Distinct(StringComparer.OrdinalIgnoreCase));
+        }
+
+        private static bool IsAtpDocument(string fileName, string documentContent)
+        {
+            return fileName.Contains("ATP", StringComparison.OrdinalIgnoreCase)
+                || documentContent.Contains("Acceptance Test Procedure", StringComparison.OrdinalIgnoreCase)
+                || documentContent.Contains("Test Procedure", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void ApplyCategoryFieldInference(Requirement requirement, string? category, string requirementText)
+        {
+            if (requirement == null)
+            {
+                return;
+            }
+
+            var normalizedCategory = category?.Trim() ?? string.Empty;
+            var normalizedText = requirementText ?? string.Empty;
+
+            if (normalizedCategory.Equals("Safety", StringComparison.OrdinalIgnoreCase)
+                || normalizedText.Contains("safety", StringComparison.OrdinalIgnoreCase)
+                || normalizedText.Contains("hazard", StringComparison.OrdinalIgnoreCase))
+            {
+                requirement.SafetyRequirement = "Yes";
+                requirement.SafetyRationale = "Auto-inferred from extraction category/text.";
+            }
+
+            if (normalizedCategory.Equals("Security", StringComparison.OrdinalIgnoreCase)
+                || normalizedText.Contains("security", StringComparison.OrdinalIgnoreCase)
+                || normalizedText.Contains("authentication", StringComparison.OrdinalIgnoreCase)
+                || normalizedText.Contains("encryption", StringComparison.OrdinalIgnoreCase))
+            {
+                requirement.SecurityRequirement = "Yes";
+                requirement.SecurityRationale = "Auto-inferred from extraction category/text.";
+            }
+
+            if (normalizedCategory.Equals("Performance", StringComparison.OrdinalIgnoreCase)
+                || normalizedText.Contains("maximum", StringComparison.OrdinalIgnoreCase)
+                || normalizedText.Contains("minimum", StringComparison.OrdinalIgnoreCase)
+                || normalizedText.Contains("within", StringComparison.OrdinalIgnoreCase))
+            {
+                requirement.RobustRequirement = "Yes";
+                requirement.RobustRationale = "Auto-inferred from quantitative/performance language.";
+            }
         }
 
         private static string? ResolvePreferredSourcePrefix(string? rawPrefix, string? evidence, params string?[] fallbackSources)

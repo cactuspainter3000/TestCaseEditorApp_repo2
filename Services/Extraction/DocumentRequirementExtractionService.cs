@@ -17,7 +17,10 @@ namespace TestCaseEditorApp.Services.Extraction
         private static readonly Regex ModalVerbRegex = new(@"\b(shall|must|will|should)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex HeadingRegex = new(@"^(?:section\s*[:\-]?\s*)?(?<prefix>\d+(?:\.\d+)+|[A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex ExplicitIdRegex = new(@"\b(?:id|section|sec\.?|clause)\s*:\s*(?<prefix>[A-Za-z0-9][A-Za-z0-9_.\-]*(?:[_-][A-Za-z0-9]+)?)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly Regex StandaloneIdRegex = new(@"\b(?<prefix>\d+(?:\.\d+)+|[A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex StandaloneIdRegex = new(@"\b(?<prefix>[A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex TocArtifactRegex = new(@"\bPAGEREF\b|\bTOC\s+\\o\b|^Contents\b|^Revision History\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex BoilerplateCoverRegex = new(@"Acceptance Test Procedure|Document Number:|CAGE Code:|Rockwell Collins|All rights reserved", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex FormulaArtifactRegex = new(@"\b(?:equation|formula|where\s*:|\bREF\s+_Ref|A\/D\s+data|2['’]s\s+complement)\b|=\s*[-+]?\d", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private readonly ILogger<DocumentRequirementExtractionService> _logger;
         private readonly ITextGenerationService? _textGenerationService;
@@ -208,6 +211,11 @@ namespace TestCaseEditorApp.Services.Extraction
 
         private static DocumentBlockKind ClassifyBlock(string normalizedText, bool hasModal, bool hasExplicitIdentifier, List<(int LineNumber, string Text)> lines)
         {
+            if (TocArtifactRegex.IsMatch(normalizedText))
+            {
+                return DocumentBlockKind.Noise;
+            }
+
             if (lines.Count == 1 && IsStandaloneHeading(lines[0].Text))
             {
                 return DocumentBlockKind.Heading;
@@ -234,6 +242,16 @@ namespace TestCaseEditorApp.Services.Extraction
         private static bool IsNoise(string normalizedText, bool hasModal, bool hasExplicitIdentifier, DocumentBlockKind kind)
         {
             if (kind == DocumentBlockKind.Noise)
+            {
+                return true;
+            }
+
+            if (TocArtifactRegex.IsMatch(normalizedText))
+            {
+                return true;
+            }
+
+            if (BoilerplateCoverRegex.IsMatch(normalizedText) && normalizedText.Length > 120)
             {
                 return true;
             }
@@ -304,6 +322,11 @@ namespace TestCaseEditorApp.Services.Extraction
                     continue;
                 }
 
+                if (IsLikelyFormulaBlock(block.NormalizedText) && !block.HasRequirementLanguage)
+                {
+                    continue;
+                }
+
                 var candidateId = $"cand-{block.BlockIndex + 1:D4}";
                 var confidence = Math.Clamp(block.EvidenceScore + (block.HasRequirementLanguage ? 0.05 : -0.05), 0.0, 1.0);
                 var status = confidence >= 0.75
@@ -315,6 +338,12 @@ namespace TestCaseEditorApp.Services.Extraction
                 if (confidence < 0.35)
                 {
                     status = ExtractionCandidateStatus.Rejected;
+                }
+
+                // Keep non-modal technical tokens visible for review, but do not auto-accept them.
+                if (!block.HasRequirementLanguage && status == ExtractionCandidateStatus.Accepted)
+                {
+                    status = ExtractionCandidateStatus.NeedsReview;
                 }
 
                 candidates.Add(new DocumentRequirementCandidate
@@ -355,6 +384,23 @@ namespace TestCaseEditorApp.Services.Extraction
             }
 
             return text.Length < 90 && text == text.ToUpperInvariant() && text.Any(char.IsLetter);
+        }
+
+        private static bool IsLikelyFormulaBlock(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            if (FormulaArtifactRegex.IsMatch(text))
+            {
+                return true;
+            }
+
+            var equalsCount = text.Count(ch => ch == '=');
+            var digitCount = text.Count(char.IsDigit);
+            return equalsCount >= 2 && digitCount >= 6;
         }
 
         private static (string? Prefix, string? Type, string? Evidence) ExtractPrefix(string text)
