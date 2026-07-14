@@ -4908,6 +4908,7 @@ namespace TestCaseEditorApp.Services
             var createdCount = 0;
             var failedCount = 0;
             const int maxAttemptsPerRequirement = 3;
+            var reservedRequirementNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var requirement in requirements)
             {
@@ -4915,6 +4916,10 @@ namespace TestCaseEditorApp.Services
                 {
                     break;
                 }
+
+                requirement.Name = EnsureUniqueRequirementName(
+                    BuildSectionDerivedRequirementName(requirement),
+                    reservedRequirementNames);
 
                 var created = false;
                 string? lastFailureMessage = null;
@@ -5062,6 +5067,8 @@ namespace TestCaseEditorApp.Services
                     requirement,
                     fields,
                     cancellationToken);
+
+                ApplyUserSelectionRequiredFallbackFields(requirement, itemTypeId.Value, fields);
 
                 var upstreamSourceParts = new List<string>();
                 if (!string.IsNullOrWhiteSpace(sourceDocumentName))
@@ -6218,8 +6225,123 @@ namespace TestCaseEditorApp.Services
         {
             await ApplyValidationMethodsFieldAsync(projectId, itemTypeId, requirement, fields, cancellationToken);
             await ApplyVerificationMethodsFieldAsync(projectId, itemTypeId, requirement, fields, cancellationToken);
+            await ApplyRequirementTypeFieldAsync(projectId, itemTypeId, requirement, fields, cancellationToken);
+            await ApplyStatusFieldAsync(projectId, itemTypeId, requirement, fields, cancellationToken);
             ApplyAllocationField(requirement, fields);
             ApplyDerivedRequirementDefaultsForItemType193(requirement, itemTypeId, fields);
+        }
+
+        private static void ApplyUserSelectionRequiredFallbackFields(
+            Requirement requirement,
+            int itemTypeId,
+            Dictionary<string, object?> fields)
+        {
+            // Populate key writable text fields. Missing values are marked for human follow-up.
+            TrySetTextFieldOrPlaceholder(fields, itemTypeId, "heading", requirement.Heading);
+            TrySetTextFieldOrPlaceholder(fields, itemTypeId, "rationale", requirement.Rationale);
+            TrySetTextFieldOrPlaceholder(fields, itemTypeId, "project_defined", requirement.ProjectDefined);
+            TrySetTextFieldOrPlaceholder(fields, itemTypeId, "change_driver", requirement.ChangeDriver);
+            TrySetTextFieldOrPlaceholder(fields, itemTypeId, "compliance_rationale", requirement.ComplianceRationale);
+            TrySetTextFieldOrPlaceholder(fields, itemTypeId, "safety_rationale", requirement.SafetyRationale);
+            TrySetTextFieldOrPlaceholder(fields, itemTypeId, "security_rationale", requirement.SecurityRationale);
+            TrySetTextFieldOrPlaceholder(fields, itemTypeId, "robust_rationale", requirement.RobustRationale);
+        }
+
+        private async Task ApplyRequirementTypeFieldAsync(
+            int projectId,
+            int itemTypeId,
+            Requirement requirement,
+            Dictionary<string, object?> fields,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(requirement.RequirementType))
+            {
+                return;
+            }
+
+            // Prefer explicit requirement_type field if available.
+            var typeFieldName = ResolveFieldNameForItemType(fields, "requirement_type", itemTypeId);
+            var typeOptionId = await ResolvePicklistOptionIdByCandidatesAsync(
+                projectId,
+                itemTypeId,
+                typeFieldName,
+                new[] { requirement.RequirementType },
+                cancellationToken);
+
+            if (typeOptionId.HasValue)
+            {
+                fields[typeFieldName] = typeOptionId.Value;
+                return;
+            }
+
+            // Fallback to common lookup1 mapping for item type 193 style schemas.
+            if (fields.ContainsKey("lookup1"))
+            {
+                var lookupOptionId = await ResolvePicklistOptionIdByCandidatesAsync(
+                    projectId,
+                    itemTypeId,
+                    "lookup1",
+                    new[] { requirement.RequirementType },
+                    cancellationToken);
+
+                if (lookupOptionId.HasValue)
+                {
+                    fields["lookup1"] = lookupOptionId.Value;
+                }
+            }
+        }
+
+        private async Task ApplyStatusFieldAsync(
+            int projectId,
+            int itemTypeId,
+            Requirement requirement,
+            Dictionary<string, object?> fields,
+            CancellationToken cancellationToken)
+        {
+            var status = !string.IsNullOrWhiteSpace(requirement.Status)
+                ? requirement.Status
+                : requirement.RelationshipStatus;
+
+            if (string.IsNullOrWhiteSpace(status))
+            {
+                return;
+            }
+
+            var statusFieldName = ResolveFieldNameForItemType(fields, "status", itemTypeId);
+            var statusOptionId = await ResolvePicklistOptionIdByCandidatesAsync(
+                projectId,
+                itemTypeId,
+                statusFieldName,
+                new[] { status },
+                cancellationToken);
+
+            if (statusOptionId.HasValue)
+            {
+                fields[statusFieldName] = statusOptionId.Value;
+            }
+        }
+
+        private static void TrySetTextFieldOrPlaceholder(
+            Dictionary<string, object?> fields,
+            int itemTypeId,
+            string baseFieldName,
+            string? fieldValue)
+        {
+            var fieldName = ResolveExistingFieldNameForItemType(fields, baseFieldName, itemTypeId);
+            if (string.IsNullOrWhiteSpace(fieldName))
+            {
+                return;
+            }
+
+            if (!IsLikelyTextField(fields.TryGetValue(fieldName!, out var existing) ? existing : null))
+            {
+                // Picklists/lookups remain blank if no confident mapping is available.
+                return;
+            }
+
+            fields[fieldName!] = string.IsNullOrWhiteSpace(fieldValue)
+                ? "User Selection Required"
+                : fieldValue.Trim();
         }
 
         private static void ApplyDerivedRequirementDefaultsForItemType193(
@@ -6382,6 +6504,130 @@ namespace TestCaseEditorApp.Services
             }
 
             return exact;
+        }
+
+        private static string? ResolveExistingFieldNameForItemType(
+            Dictionary<string, object?> fields,
+            string baseFieldName,
+            int itemTypeId)
+        {
+            var exact = $"{baseFieldName}${itemTypeId}";
+            if (fields.ContainsKey(exact))
+            {
+                return exact;
+            }
+
+            var bare = fields.Keys.FirstOrDefault(k =>
+                string.Equals(k, baseFieldName, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(bare))
+            {
+                return bare;
+            }
+
+            return fields.Keys.FirstOrDefault(k =>
+                k.StartsWith(baseFieldName + "$", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool IsLikelyTextField(object? value)
+        {
+            if (value == null)
+            {
+                return false;
+            }
+
+            if (value is string)
+            {
+                return true;
+            }
+
+            if (value is JsonElement json)
+            {
+                return json.ValueKind == JsonValueKind.String || json.ValueKind == JsonValueKind.Null || json.ValueKind == JsonValueKind.Undefined;
+            }
+
+            return value is not Array && value is not IEnumerable<int>;
+        }
+
+        private static string BuildSectionDerivedRequirementName(Requirement requirement)
+        {
+            var candidates = new[]
+            {
+                requirement.Name,
+                requirement.Heading,
+                requirement.SetName,
+                GetFolderLeafName(requirement.FolderPath),
+                requirement.RequirementType,
+                requirement.Item,
+                "Extracted Requirement"
+            };
+
+            var chosen = candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c)) ?? "Extracted Requirement";
+            var normalized = NormalizeRequirementName(chosen);
+
+            var description = requirement.Description?.Trim();
+            if (!string.IsNullOrWhiteSpace(description) &&
+                string.Equals(normalized, NormalizeRequirementName(description), StringComparison.OrdinalIgnoreCase))
+            {
+                var fallback = !string.IsNullOrWhiteSpace(requirement.Heading)
+                    ? requirement.Heading
+                    : !string.IsNullOrWhiteSpace(requirement.SetName)
+                        ? requirement.SetName
+                        : !string.IsNullOrWhiteSpace(requirement.RequirementType)
+                            ? requirement.RequirementType
+                            : "Extracted Requirement";
+                normalized = NormalizeRequirementName(fallback);
+            }
+
+            return string.IsNullOrWhiteSpace(normalized) ? "Extracted Requirement" : normalized;
+        }
+
+        private static string EnsureUniqueRequirementName(string baseName, HashSet<string> reservedNames)
+        {
+            var normalizedBase = NormalizeRequirementName(baseName);
+            if (string.IsNullOrWhiteSpace(normalizedBase))
+            {
+                normalizedBase = "Extracted Requirement";
+            }
+
+            var candidate = normalizedBase;
+            var suffix = 2;
+            while (reservedNames.Contains(candidate))
+            {
+                candidate = $"{normalizedBase} {suffix}";
+                suffix++;
+            }
+
+            reservedNames.Add(candidate);
+            return candidate;
+        }
+
+        private static string NormalizeRequirementName(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var name = Regex.Replace(value.Trim(), @"\s+", " ");
+            name = Regex.Replace(name, @"[\r\n\t]+", " ");
+            if (name.Length > 120)
+            {
+                name = name[..120].Trim();
+            }
+
+            return name;
+        }
+
+        private static string? GetFolderLeafName(string? folderPath)
+        {
+            if (string.IsNullOrWhiteSpace(folderPath))
+            {
+                return null;
+            }
+
+            var separators = new[] { '/', '\\' };
+            var parts = folderPath.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+            return parts.Length == 0 ? null : parts[^1].Trim();
         }
 
         private async Task<int?> ResolvePicklistOptionIdByCandidatesAsync(

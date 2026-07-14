@@ -130,6 +130,7 @@ namespace TestCaseEditorApp.Services
                         EnrichRequirementsWithValidationMethod(directRagRequirements);
                         await EnrichRequirementsWithVerificationMethodAsync(directRagRequirements, cancellationToken);
                         await EnrichRequirementsWithAllocationAsync(directRagRequirements, cancellationToken);
+                        await EnrichRequirementsWithJamaPicklistHintsAsync(directRagRequirements, cancellationToken);
                         return directRagRequirements;
                     }
                     else
@@ -146,6 +147,7 @@ namespace TestCaseEditorApp.Services
                 EnrichRequirementsWithValidationMethod(anythingLlmRequirements);
                 await EnrichRequirementsWithVerificationMethodAsync(anythingLlmRequirements, cancellationToken);
                 await EnrichRequirementsWithAllocationAsync(anythingLlmRequirements, cancellationToken);
+                await EnrichRequirementsWithJamaPicklistHintsAsync(anythingLlmRequirements, cancellationToken);
                 return anythingLlmRequirements;
             }
             catch (Exception ex)
@@ -1850,6 +1852,103 @@ Respond with ONLY one of: Hardware, Software, Both. Nothing else. If unsure, res
             if (normalized.Contains("both")) return AllocationTarget.Both;
 
             return AllocationTarget.Unassigned;
+        }
+
+        /// <summary>
+        /// Uses LLM to pre-select likely picklist labels for Jama Type and Status fields.
+        /// Labels are later resolved to Jama option IDs; unresolved labels are left blank.
+        /// </summary>
+        private async Task EnrichRequirementsWithJamaPicklistHintsAsync(List<Requirement> requirements, CancellationToken cancellationToken = default)
+        {
+            if (requirements == null || _textGenerationService == null)
+                return;
+
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[FieldEnrichment] Starting Jama picklist hint selection for {requirements.Count} requirements");
+
+                foreach (var requirement in requirements.Where(r => r != null))
+                {
+                    var typePrompt = BuildRequirementTypeSelectionPrompt(requirement);
+                    var typeResponse = await _textGenerationService.GenerateAsync(typePrompt, cancellationToken);
+                    var selectedType = ParseRequirementTypeFromResponse(typeResponse);
+                    if (!string.IsNullOrWhiteSpace(selectedType))
+                    {
+                        requirement.RequirementType = selectedType;
+                    }
+
+                    var statusPrompt = BuildRequirementStatusSelectionPrompt(requirement);
+                    var statusResponse = await _textGenerationService.GenerateAsync(statusPrompt, cancellationToken);
+                    var selectedStatus = ParseRequirementStatusFromResponse(statusResponse);
+                    if (!string.IsNullOrWhiteSpace(selectedStatus))
+                    {
+                        requirement.Status = selectedStatus;
+                        requirement.RelationshipStatus = selectedStatus;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[FieldEnrichment] Error during Jama picklist hint enrichment: {ex.Message}");
+            }
+        }
+
+        private string BuildRequirementTypeSelectionPrompt(Requirement requirement)
+        {
+            return $@"Select the best requirement TYPE label for Jama from this fixed set:
+System, Hardware, Software, Interface, Performance, Safety, Security, Reliability, Environmental, User Selection Required
+
+Requirement ID: {requirement.Item}
+Requirement Name: {requirement.Name}
+Requirement Description: {requirement.Description}
+
+Respond with ONLY one label from the set above.";
+        }
+
+        private string BuildRequirementStatusSelectionPrompt(Requirement requirement)
+        {
+            return $@"Select the best requirement STATUS label for Jama from this fixed set:
+Draft, Proposed, In Review, Approved, Rejected, User Selection Required
+
+Requirement ID: {requirement.Item}
+Requirement Name: {requirement.Name}
+Requirement Description: {requirement.Description}
+
+Respond with ONLY one label from the set above.";
+        }
+
+        private static string ParseRequirementTypeFromResponse(string? response)
+        {
+            if (string.IsNullOrWhiteSpace(response))
+                return string.Empty;
+
+            var normalized = response.Trim().ToLowerInvariant();
+            if (normalized.Contains("system")) return "System";
+            if (normalized.Contains("hardware")) return "Hardware";
+            if (normalized.Contains("software")) return "Software";
+            if (normalized.Contains("interface")) return "Interface";
+            if (normalized.Contains("performance")) return "Performance";
+            if (normalized.Contains("safety")) return "Safety";
+            if (normalized.Contains("security")) return "Security";
+            if (normalized.Contains("reliability")) return "Reliability";
+            if (normalized.Contains("environment")) return "Environmental";
+            if (normalized.Contains("user selection required")) return "User Selection Required";
+            return string.Empty;
+        }
+
+        private static string ParseRequirementStatusFromResponse(string? response)
+        {
+            if (string.IsNullOrWhiteSpace(response))
+                return string.Empty;
+
+            var normalized = response.Trim().ToLowerInvariant();
+            if (normalized.Contains("in review")) return "In Review";
+            if (normalized.Contains("approved")) return "Approved";
+            if (normalized.Contains("rejected")) return "Rejected";
+            if (normalized.Contains("proposed")) return "Proposed";
+            if (normalized.Contains("draft")) return "Draft";
+            if (normalized.Contains("user selection required")) return "User Selection Required";
+            return string.Empty;
         }
 
         /// <summary>
