@@ -32,6 +32,16 @@ namespace TestCaseEditorApp.Services
         Task<List<Requirement>> ParseAttachmentsBatchAsync(List<int> attachmentIds, int projectId, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Parse a local document file and extract requirements without Jama attachment APIs.
+        /// </summary>
+        /// <param name="filePath">Absolute path to a local document (.docx, .pdf, .xlsx, .txt, .md, .csv)</param>
+        /// <param name="progressCallback">Optional callback for progress updates</param>
+        /// <param name="onRequirementDiscovered">Optional callback for real-time requirement streaming as they are discovered</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>List of extracted requirements with rich metadata</returns>
+        Task<List<Requirement>> ParseLocalDocumentAsync(string filePath, System.Action<string>? progressCallback = null, System.Action<Requirement>? onRequirementDiscovered = null, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Check if the service is properly configured
         /// </summary>
         bool IsConfigured { get; }

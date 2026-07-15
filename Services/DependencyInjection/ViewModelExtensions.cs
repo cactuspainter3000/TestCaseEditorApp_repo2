@@ -97,7 +97,8 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 var mediator = provider.GetRequiredService<IRequirementsMediator>();
                 var workspaceDiagnosticsService = provider.GetRequiredService<IWorkspaceDiagnosticsService>();
                 var fileDialogService = provider.GetRequiredService<IFileDialogService>();
-                return new WorkshopReproViewModel(mediator, workspaceDiagnosticsService, fileDialogService);
+                var jamaDocumentParserService = provider.GetRequiredService<IJamaDocumentParserService>();
+                return new WorkshopReproViewModel(mediator, workspaceDiagnosticsService, fileDialogService, jamaDocumentParserService);
             });
 
             // Main ViewModel (TRANSIENT - matches existing app lifecycle)

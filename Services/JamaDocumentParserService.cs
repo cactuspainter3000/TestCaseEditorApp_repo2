@@ -138,7 +138,7 @@ namespace TestCaseEditorApp.Services
                     {
                         TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Using DirectRagService for document analysis ({attachment.MimeType})");
                         progressCallback?.Invoke($"🚀 Processing with reliable RAG-enhanced analysis...");
-                        var directRagRequirements = await ExtractRequirementsWithDirectRagAsync(attachment, projectId, progressCallback, onRequirementDiscovered, cancellationToken);
+                        var directRagRequirements = await ExtractRequirementsWithDirectRagAsync(attachment, fileBytes, projectId, progressCallback, onRequirementDiscovered, cancellationToken);
                         TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] ParserReturn AttachmentId={attachment.Id} FileName={attachment.FileName} Source=DirectRag Count={directRagRequirements.Count} Sample={BuildRequirementTraceSample(directRagRequirements)}");
                         EnrichRequirementsWithAttachmentMetadata(directRagRequirements, attachment);
                         EnrichRequirementsWithValidationMethod(directRagRequirements);
@@ -163,6 +163,75 @@ namespace TestCaseEditorApp.Services
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Error parsing attachment {attachment.Id}: {ex.Message}");
+                return new List<Requirement>();
+            }
+        }
+
+        public async Task<List<Requirement>> ParseLocalDocumentAsync(string filePath, System.Action<string>? progressCallback = null, System.Action<Requirement>? onRequirementDiscovered = null, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+                {
+                    progressCallback?.Invoke("❌ Local file not found.");
+                    return new List<Requirement>();
+                }
+
+                var fileInfo = new FileInfo(filePath);
+                var extension = fileInfo.Extension?.ToLowerInvariant() ?? string.Empty;
+                var mimeType = GetMimeTypeFromExtension(extension);
+
+                var localAttachment = new JamaAttachment
+                {
+                    // Use a deterministic negative ID to avoid collisions with Jama attachment IDs.
+                    Id = -(Math.Abs(filePath.GetHashCode()) + 1),
+                    Name = fileInfo.Name,
+                    FileName = fileInfo.Name,
+                    MimeType = mimeType,
+                    FileSize = fileInfo.Length,
+                    Item = 0,
+                    CreatedDate = DateTime.UtcNow.ToString("O")
+                };
+
+                if (!localAttachment.IsSupportedDocument)
+                {
+                    progressCallback?.Invoke($"❌ Unsupported local document type: {extension}");
+                    return new List<Requirement>();
+                }
+
+                if (_directRagService?.IsConfigured != true || _textGenerationService == null)
+                {
+                    progressCallback?.Invoke("❌ Direct extraction services are unavailable.");
+                    return new List<Requirement>();
+                }
+
+                progressCallback?.Invoke($"📄 Loading local document '{localAttachment.FileName}'...");
+                var fileBytes = await File.ReadAllBytesAsync(filePath, cancellationToken);
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    progressCallback?.Invoke("❌ Local document is empty.");
+                    return new List<Requirement>();
+                }
+
+                // Use a dedicated local project bucket to isolate troubleshooting indexes from Jama projects.
+                const int localProjectId = -1;
+                var requirements = await ExtractRequirementsWithDirectRagAsync(
+                    localAttachment,
+                    fileBytes,
+                    localProjectId,
+                    progressCallback,
+                    onRequirementDiscovered,
+                    cancellationToken);
+
+                EnrichRequirementsWithAttachmentMetadata(requirements, localAttachment);
+                EnrichRequirementsWithValidationMethod(requirements);
+                await EnrichRequirementsWithRuntimeBudgetAsync(requirements, progressCallback, cancellationToken);
+                return requirements;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Error parsing local document '{filePath}': {ex.Message}");
+                progressCallback?.Invoke($"❌ Local extraction failed: {ex.Message}");
                 return new List<Requirement>();
             }
         }
@@ -1531,6 +1600,28 @@ But thoroughly scan all sections first before concluding.";
                     return new List<Requirement>();
                 }
 
+                return await ExtractRequirementsWithDirectRagAsync(attachment, fileBytes, projectId, progressCallback, onRequirementDiscovered, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[DirectRag] Error processing attachment {attachment.Id}: {ex.Message}");
+                progressCallback?.Invoke($"❌ Error processing document: {ex.Message}");
+                return new List<Requirement>();
+            }
+        }
+
+        private async Task<List<Requirement>> ExtractRequirementsWithDirectRagAsync(
+            JamaAttachment attachment,
+            byte[] fileBytes,
+            int projectId,
+            System.Action<string>? progressCallback,
+            System.Action<Requirement>? onRequirementDiscovered = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                progressCallback?.Invoke($"📄 Processing '{attachment.FileName}' with direct document analysis...");
+
                 // Step 2: Extract text content with proper document parsing
                 string documentContent;
                 try
@@ -1731,6 +1822,22 @@ But thoroughly scan all sections first before concluding.";
                 progressCallback?.Invoke($"❌ Error processing document: {ex.Message}");
                 return new List<Requirement>();
             }
+        }
+
+        private static string GetMimeTypeFromExtension(string extension)
+        {
+            return extension switch
+            {
+                ".pdf" => "application/pdf",
+                ".doc" => "application/msword",
+                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ".xls" => "application/vnd.ms-excel",
+                ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ".txt" => "text/plain",
+                ".md" => "text/markdown",
+                ".csv" => "text/csv",
+                _ => "application/octet-stream"
+            };
         }
 
         private static string BuildRequirementTraceSample(IReadOnlyList<Requirement> requirements, int maxItems = 5)

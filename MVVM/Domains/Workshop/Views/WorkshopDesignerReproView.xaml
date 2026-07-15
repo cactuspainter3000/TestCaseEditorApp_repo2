@@ -1385,6 +1385,17 @@
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="Extract Local Document"
+                                        Command="{Binding ExtractLocalDocumentCommand}"
+                                    Style="{StaticResource HoverBorderOnlyButtonStyle}"
+                                        Margin="0,0,8,0"
+                                        Padding="10,4"
+                                        FontSize="11"
+                                        Background="{StaticResource Brush.Background.Pill.Selected}"
+                                        Foreground="{StaticResource Brush.Accent.Primary}"
+                                        BorderBrush="{StaticResource Brush.Border.Accent}"
+                                        BorderThickness="1"
+                                        ToolTip="Select a local document and extract requirement candidates without Jama attachment lookup"/>
                                 <Button Content="Search for Attachments"
                                         Command="{Binding SearchAttachmentsCommand}"
                                     Style="{StaticResource HoverBorderOnlyButtonStyle}"

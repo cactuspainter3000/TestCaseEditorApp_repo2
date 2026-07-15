@@ -48,6 +48,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private readonly IRequirementsMediator _mediator;
         private readonly IWorkspaceDiagnosticsService _workspaceDiagnosticsService;
         private readonly IFileDialogService _fileDialogService;
+        private readonly IJamaDocumentParserService _jamaDocumentParserService;
         private readonly DispatcherTimer _analysisHeartbeatTimer;
         private DateTime _analysisStartedUtc;
         private DateTime _statusStepStartedUtc;
@@ -206,11 +207,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         public WorkshopReproViewModel(
             IRequirementsMediator mediator,
             IWorkspaceDiagnosticsService workspaceDiagnosticsService,
-            IFileDialogService fileDialogService)
+            IFileDialogService fileDialogService,
+            IJamaDocumentParserService jamaDocumentParserService)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _workspaceDiagnosticsService = workspaceDiagnosticsService ?? throw new ArgumentNullException(nameof(workspaceDiagnosticsService));
             _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
+            _jamaDocumentParserService = jamaDocumentParserService ?? throw new ArgumentNullException(nameof(jamaDocumentParserService));
 
             _analysisHeartbeatTimer = new DispatcherTimer
             {
@@ -518,6 +521,95 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         }
 
         private bool CanSearchAttachments() => !IsAttachmentScanning && !IsAttachmentScraping;
+
+        [RelayCommand(CanExecute = nameof(CanExtractLocalDocument))]
+        private async Task ExtractLocalDocumentAsync()
+        {
+            try
+            {
+                var selectedPath = _fileDialogService.ShowOpenFile(
+                    "Select source document for local extraction",
+                    "Supported documents (*.docx;*.doc;*.pdf;*.xlsx;*.xls;*.txt;*.md;*.csv)|*.docx;*.doc;*.pdf;*.xlsx;*.xls;*.txt;*.md;*.csv|All files (*.*)|*.*");
+
+                if (string.IsNullOrWhiteSpace(selectedPath))
+                {
+                    AppendAttachmentLog("Local extraction canceled before file selection.");
+                    return;
+                }
+
+                _attachmentScraperCts?.Cancel();
+                _attachmentScraperCts?.Dispose();
+                _attachmentScraperCts = new CancellationTokenSource();
+
+                IsAttachmentScraping = true;
+                ExtractionOverallProgress = 0;
+                ExtractionCurrentStepProgress = 0;
+                ExtractionOverallLabel = "Overall Completeness: 0%";
+                ExtractionCurrentStepLabel = "Current Process: initializing";
+                ScrapedRequirements.Clear();
+                OnPropertyChanged(nameof(HasScrapedRequirements));
+                OnPropertyChanged(nameof(AttachmentScraperSummary));
+
+                var statusBuffer = $"Starting local extraction for {System.IO.Path.GetFileName(selectedPath)}...";
+                AttachmentScraperStatusText = statusBuffer;
+                AppendAttachmentLog(statusBuffer);
+                UpdateExtractionProgressFromMessage(statusBuffer);
+
+                var requirements = await _jamaDocumentParserService.ParseLocalDocumentAsync(
+                    selectedPath,
+                    progressCallback: message =>
+                    {
+                        statusBuffer = message;
+                        Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                        {
+                            UpdateExtractionProgressFromMessage(statusBuffer);
+                            AppendAttachmentLog(statusBuffer);
+                        }));
+                    },
+                    cancellationToken: _attachmentScraperCts.Token);
+
+                foreach (var requirement in requirements)
+                {
+                    var candidate = new ScrapedRequirementCandidate
+                    {
+                        Requirement = requirement,
+                        IsSelected = true
+                    };
+                    candidate.PropertyChanged += OnScrapedCandidatePropertyChanged;
+                    ScrapedRequirements.Add(candidate);
+                }
+
+                AttachmentScraperStatusText = $"Local extraction complete: {ScrapedRequirements.Count} candidate(s) found.";
+                ExtractionOverallProgress = 100;
+                ExtractionCurrentStepProgress = 100;
+                ExtractionOverallLabel = "Overall Completeness: 100%";
+                ExtractionCurrentStepLabel = "Current Process: extraction complete";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+                AppendAttachmentLog(BuildScraperOutputText(ScrapedRequirements.Select(c => c.Requirement)), force: true);
+                OnPropertyChanged(nameof(HasScrapedRequirements));
+                OnPropertyChanged(nameof(SelectedScrapedRequirementCount));
+                OnPropertyChanged(nameof(HasSelectedScrapedRequirements));
+                OnPropertyChanged(nameof(AttachmentScraperSummary));
+            }
+            catch (OperationCanceledException)
+            {
+                AttachmentScraperStatusText = "Local extraction canceled.";
+                ExtractionCurrentStepLabel = "Current Process: canceled";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+            }
+            catch (Exception ex)
+            {
+                AttachmentScraperStatusText = $"Local extraction failed: {ex.Message}";
+                ExtractionCurrentStepLabel = "Current Process: failed";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+            }
+            finally
+            {
+                IsAttachmentScraping = false;
+            }
+        }
+
+        private bool CanExtractLocalDocument() => !IsAttachmentScanning && !IsAttachmentScraping;
 
         [RelayCommand(CanExecute = nameof(CanScrapeSelectedAttachment))]
         private async Task ScrapeSelectedAttachmentAsync()
@@ -1316,6 +1408,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private void NotifyAttachmentScraperCanExecute()
         {
             SearchAttachmentsCommand.NotifyCanExecuteChanged();
+            ExtractLocalDocumentCommand.NotifyCanExecuteChanged();
             ScrapeSelectedAttachmentCommand.NotifyCanExecuteChanged();
             ImportScrapedRequirementsCommand.NotifyCanExecuteChanged();
             CancelAttachmentScraperCommand.NotifyCanExecuteChanged();
