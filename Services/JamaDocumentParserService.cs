@@ -4803,6 +4803,14 @@ Extract requirements now (JSON only):";
                     if (string.IsNullOrWhiteSpace(cleanedText) || !IsValidRequirement(cleanedText))
                         continue;
 
+                    var candidateTitle = BuildRequirementTitle(cleanedText, req.Category);
+                    if (!IsMeaningfulRequirementTitle(candidateTitle))
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn(
+                            $"[TemplateForm] Rejecting malformed extracted requirement '{req.Id ?? "<no-id>"}' with non-meaningful title '{candidateTitle}'.");
+                        continue;
+                    }
+
                     // Build source information
                     var sourceInfo = new List<string>();
                     if (!string.IsNullOrWhiteSpace(req.Page))
@@ -4817,7 +4825,7 @@ Extract requirements now (JSON only):";
                     {
                         GlobalId = req.Id ?? $"SYS-REQ-{extractedRequirements.Count + 1:D3}",
                         Item = req.Id ?? $"SYS-REQ-{extractedRequirements.Count + 1:D3}",
-                        Name = BuildRequirementTitle(cleanedText, req.Category),
+                        Name = candidateTitle,
                         RequirementType = req.Category ?? "System Requirement",
                         Status = "Draft",
                         Description = $"{cleanedText}\n\nSource: {sourceLine}\nFrom: {attachment.FileName}\nConfidence: {req.Confidence:P0} (Template Form extraction)",
@@ -5083,6 +5091,32 @@ Extract requirements now (JSON only):";
             }
 
             return string.IsNullOrWhiteSpace(category) ? "System Requirement" : category.Trim();
+        }
+
+        private static bool IsMeaningfulRequirementTitle(string? title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return false;
+            }
+
+            var trimmed = title.Trim();
+            if (trimmed.Length < 4)
+            {
+                return false;
+            }
+
+            if (!trimmed.Any(char.IsLetter))
+            {
+                return false;
+            }
+
+            if (Regex.IsMatch(trimmed, @"^[+\-]?\d+[A-Za-z]?$", RegexOptions.CultureInvariant))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private static string BuildExtractionTags(string? category, string? sourcePrefix, string? sourcePrefixType, bool isAtpDocument)
