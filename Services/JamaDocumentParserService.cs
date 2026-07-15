@@ -4856,6 +4856,18 @@ Extract requirements now (JSON only):";
                     extractedRequirements.Add(requirement);
                 }
 
+                if (extractedRequirements.Count == 0 && extractionFoundation != null)
+                {
+                    var deterministicRecovery = BuildRequirementsFromExtractionFoundation(extractionFoundation, attachment);
+                    if (deterministicRecovery.Count > 0)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn(
+                            $"[TemplateForm] Parsed envelope produced zero valid mapped requirements; deterministic foundation recovery produced {deterministicRecovery.Count} requirement(s).");
+                        progressCallback?.Invoke($"⚠️ Structured extraction returned no valid requirements - recovered {deterministicRecovery.Count} requirement(s) from document foundation.");
+                        return deterministicRecovery;
+                    }
+                }
+
                 if (_documentExtractionService != null && extractedRequirements.Count > 0)
                 {
                     var reverseVerdicts = await _documentExtractionService.ValidateRequirementsAsync(extractedRequirements, documentContent, attachment.FileName, cancellationToken);
