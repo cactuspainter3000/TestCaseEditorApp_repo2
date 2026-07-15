@@ -5218,6 +5218,39 @@ namespace TestCaseEditorApp.Services
                         return (true, "Requirement created successfully after lookup field repair", repairedAndRetried.JamaItemId.Value);
                     }
 
+                    var requiredFieldRetried = await TryPopulateRequiredFieldsAndRetryRequirementCreateAsync(
+                        projectId,
+                        itemTypeId.Value,
+                        requirementName,
+                        description,
+                        fields,
+                        effectiveParentContainerId,
+                        errorContent,
+                        cancellationToken);
+
+                    if (requiredFieldRetried.Success && requiredFieldRetried.JamaItemId.HasValue)
+                    {
+                        requirement.ApiId = requiredFieldRetried.JamaItemId.Value.ToString();
+                        if (!string.IsNullOrWhiteSpace(requiredFieldRetried.DocumentKey))
+                        {
+                            requirement.Item = requiredFieldRetried.DocumentKey;
+                            requirement.GlobalId = requiredFieldRetried.DocumentKey;
+                        }
+                        else if (!string.IsNullOrWhiteSpace(requiredFieldRetried.GlobalId))
+                        {
+                            requirement.Item = requiredFieldRetried.GlobalId;
+                            requirement.GlobalId = requiredFieldRetried.GlobalId;
+                        }
+
+                        await TryCreateTraceabilityRelationshipForDerivedRequirementAsync(
+                            projectId,
+                            requiredFieldRetried.JamaItemId.Value,
+                            requirement,
+                            cancellationToken);
+
+                        return (true, "Requirement created successfully after required-field repair", requiredFieldRetried.JamaItemId.Value);
+                    }
+
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Requirement create failed for project {projectId}, itemType {itemTypeId.Value}: {response.StatusCode} - {errorContent}");
                     return (false, $"Failed to create requirement item: {response.StatusCode} - {errorContent}", null);
                 }
@@ -5393,6 +5426,164 @@ namespace TestCaseEditorApp.Services
             }
 
             return (false, null, null, null);
+        }
+
+        private async Task<(bool Success, int? JamaItemId, string? DocumentKey, string? GlobalId)> TryPopulateRequiredFieldsAndRetryRequirementCreateAsync(
+            int projectId,
+            int itemTypeId,
+            string requirementName,
+            string description,
+            Dictionary<string, object?> fields,
+            int? preferredParentContainerId,
+            string errorContent,
+            CancellationToken cancellationToken)
+        {
+            var requiredFields = ParseMissingRequiredFieldNames(errorContent);
+            if (requiredFields.Count == 0)
+            {
+                return (false, null, null, null);
+            }
+
+            var repairedAny = false;
+            Dictionary<string, int>? lookupMappings = null;
+
+            foreach (var missingField in requiredFields)
+            {
+                if (string.IsNullOrWhiteSpace(missingField))
+                {
+                    continue;
+                }
+
+                var fieldName = missingField.Trim();
+                var candidateFieldName = ResolveExistingFieldNameForItemType(fields, fieldName, itemTypeId) ?? fieldName;
+
+                if (candidateFieldName.StartsWith("lookup", StringComparison.OrdinalIgnoreCase))
+                {
+                    var replacementId = await GetFirstPicklistOptionIdAsync(projectId, itemTypeId, candidateFieldName, cancellationToken);
+                    if (!replacementId.HasValue)
+                    {
+                        lookupMappings ??= await GetLookupFieldPicklistMappingsAsync(itemTypeId, cancellationToken);
+                        if (lookupMappings.TryGetValue(candidateFieldName, out var picklistId) && picklistId > 0)
+                        {
+                            replacementId = await GetFirstPicklistOptionIdByPicklistIdAsync(picklistId, cancellationToken);
+                        }
+                    }
+
+                    if (replacementId.HasValue)
+                    {
+                        fields[candidateFieldName] = replacementId.Value;
+                        repairedAny = true;
+                        TestCaseEditorApp.Services.Logging.Log.Warn(
+                            $"[JamaConnect] Repaired required lookup field '{candidateFieldName}' with picklist option ID {replacementId.Value} after create validation failure.");
+                    }
+
+                    continue;
+                }
+
+                if (!fields.TryGetValue(candidateFieldName, out var existingValue) || string.IsNullOrWhiteSpace(existingValue?.ToString()))
+                {
+                    fields[candidateFieldName] = candidateFieldName.Equals("description", StringComparison.OrdinalIgnoreCase)
+                        ? description
+                        : "User Selection Required";
+                    repairedAny = true;
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[JamaConnect] Repaired required field '{candidateFieldName}' with placeholder value after create validation failure.");
+                }
+            }
+
+            if (!repairedAny)
+            {
+                return (false, null, null, null);
+            }
+
+            object retryBody;
+            if (preferredParentContainerId.HasValue && preferredParentContainerId.Value > 0)
+            {
+                retryBody = new
+                {
+                    project = projectId,
+                    itemType = itemTypeId,
+                    location = new
+                    {
+                        parent = preferredParentContainerId.Value
+                    },
+                    fields
+                };
+            }
+            else
+            {
+                retryBody = new
+                {
+                    project = projectId,
+                    itemType = itemTypeId,
+                    fields
+                };
+            }
+
+            var retryJson = JsonSerializer.Serialize(retryBody);
+            var retryContent = new StringContent(retryJson, Encoding.UTF8, "application/json");
+            var retryUrl = $"{_baseUrl}/rest/v1/items";
+            var retryResponse = await _httpClient.PostAsync(retryUrl, retryContent, cancellationToken);
+            if (!retryResponse.IsSuccessStatusCode)
+            {
+                var retryError = await retryResponse.Content.ReadAsStringAsync(cancellationToken);
+                if (IsRequirementProjectRootLocationError(retryError))
+                {
+                    var locationRetry = await TryCreateRequirementInDiscoveredContainerAsync(
+                        projectId,
+                        itemTypeId,
+                        requirementName,
+                        description,
+                        fields,
+                        cancellationToken);
+
+                    if (locationRetry.Success)
+                    {
+                        return locationRetry;
+                    }
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Required-field repair retry failed for '{requirementName}': {retryResponse.StatusCode} - {retryError}");
+                return (false, null, null, null);
+            }
+
+            var retryResponseContent = await retryResponse.Content.ReadAsStringAsync(cancellationToken);
+            if (TryExtractCreatedItemInfo(retryResponse, retryResponseContent, out var retryCreatedId, out var retryDocumentKey, out var retryGlobalId))
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Requirement '{requirementName}' created after required-field repair.");
+                return (true, retryCreatedId, retryDocumentKey, retryGlobalId);
+            }
+
+            return (false, null, null, null);
+        }
+
+        private static List<string> ParseMissingRequiredFieldNames(string errorContent)
+        {
+            var fields = new List<string>();
+            if (string.IsNullOrWhiteSpace(errorContent))
+            {
+                return fields;
+            }
+
+            var match = Regex.Match(
+                errorContent,
+                @"required fields\s*\.\s*fields\s*:\s*([A-Za-z0-9_$,\s]+)",
+                RegexOptions.IgnoreCase);
+
+            if (!match.Success)
+            {
+                return fields;
+            }
+
+            foreach (var raw in match.Groups[1].Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (!string.IsNullOrWhiteSpace(raw))
+                {
+                    fields.Add(raw.Trim());
+                }
+            }
+
+            return fields;
         }
 
         private static bool IsRequirementProjectRootLocationError(string? errorContent)
