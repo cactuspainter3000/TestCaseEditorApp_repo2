@@ -1,0 +1,847 @@
+DERIVATION TRACEABILITY REPORT
+============================
+GeneratedUtc: 2026-07-07T13:54:11.6907301Z
+ProjectId: 686
+AttachmentId: 19849046
+FileName: 946-4DC0-001_C4B_DHM_ATP_Rev-.docx
+DerivedRequirementCount: 138
+CandidateClauseCount: 138
+UsedClauseCount: 138
+UnusedClauseCount: 0
+
+REQUIREMENT -> SOURCE MAP
+------------------------
+[1] RequirementId: DOC-001
+    TraceReference: TRC-ATT19849046-DOC-001
+    RequirementText: Collins The contents of this document are proprietary to Rockwell Collins and shall not be disclosed, disseminated, copied, or used except for purposes expressly authorized in writing by Rockwell Collins.
+    SourceRequirementText: Collins The contents of this document are proprietary to Rockwell Collins and shall not be disclosed, disseminated, copied, or used except for purposes expressly authorized in writing by Rockwell Collins.
+
+[2] RequirementId: DOC-002
+    TraceReference: TRC-ATT19849046-DOC-002
+    RequirementText: all tests shall be performed under the conditions defined in the following subsections.
+    SourceRequirementText: all tests shall be performed under the conditions defined in the following subsections.
+
+[3] RequirementId: DOC-003
+    TraceReference: TRC-ATT19849046-DOC-003
+    RequirementText: and atmospheric pressure will be normal factory ambient.
+    SourceRequirementText: and atmospheric pressure will be normal factory ambient.
+
+[4] RequirementId: DOC-004
+    TraceReference: TRC-ATT19849046-DOC-004
+    RequirementText: shall have a tolerance of ±2%.
+    SourceRequirementText: shall have a tolerance of ±2%.
+
+[5] RequirementId: DOC-005
+    TraceReference: TRC-ATT19849046-DOC-005
+    RequirementText: the photometer shall be at the specified angle +/- 2.
+    SourceRequirementText: the photometer shall be at the specified angle +/- 2.
+
+[6] RequirementId: DOC-006
+    TraceReference: TRC-ATT19849046-DOC-006
+    RequirementText: discrete inputs should be in the following states by default: PWR_WARN_F = GND DHM_LOAD_F = GND HEATER_ENABLED = GND DHM_SHOP_F = GND NVIS_ENB_F = OPEN Unless otherwise indicated, 5 VAC keypanel dimming voltage should be...
+    SourceRequirementText: discrete inputs should be in the following states by default: PWR_WARN_F = GND DHM_LOAD_F = GND HEATER_ENABLED = GND DHM_SHOP_F = GND NVIS_ENB_F = OPEN Unless otherwise indicated, 5 VAC keypanel dimming voltage should be...
+
+[7] RequirementId: DOC-007
+    TraceReference: TRC-ATT19849046-DOC-007
+    RequirementText: should be off or 0 VDC.
+    SourceRequirementText: should be off or 0 VDC.
+
+[8] RequirementId: DOC-008
+    TraceReference: TRC-ATT19849046-DOC-008
+    RequirementText: should be powered up together.
+    SourceRequirementText: should be powered up together.
+
+[9] RequirementId: DOC-009
+    TraceReference: TRC-ATT19849046-DOC-009
+    RequirementText: should be powered up at the same time or before backlight input power.
+    SourceRequirementText: should be powered up at the same time or before backlight input power.
+
+[10] RequirementId: DOC-010
+    TraceReference: TRC-ATT19849046-DOC-010
+    RequirementText: Test equipment circuitry used to drive the TTL inputs of the control card should be powered up at the same time as the low voltage power is applied to the control card.
+    SourceRequirementText: Test equipment circuitry used to drive the TTL inputs of the control card should be powered up at the same time as the low voltage power is applied to the control card.
+
+[11] RequirementId: DOC-011
+    TraceReference: TRC-ATT19849046-DOC-011
+    RequirementText: Heater input power should be powered up at the same time or after the low voltage power voltages.
+    SourceRequirementText: Heater input power should be powered up at the same time or after the low voltage power voltages.
+
+[12] RequirementId: DOC-012
+    TraceReference: TRC-ATT19849046-DOC-012
+    RequirementText: PWR_WARN_F to OPEN Recommended Power Down Procedure Heater and backlight power should be powered down at the same time or before the low voltage power voltages.
+    SourceRequirementText: PWR_WARN_F to OPEN Recommended Power Down Procedure Heater and backlight power should be powered down at the same time or before the low voltage power voltages.
+
+[13] RequirementId: DOC-013
+    TraceReference: TRC-ATT19849046-DOC-013
+    RequirementText: should be powered down together.
+    SourceRequirementText: should be powered down together.
+
+[14] RequirementId: DOC-014
+    TraceReference: TRC-ATT19849046-DOC-014
+    RequirementText: Test equipment circuitry used to drive the TTL inputs of the control card should be powered down at the same time as the low voltage power is removed from the control card.
+    SourceRequirementText: Test equipment circuitry used to drive the TTL inputs of the control card should be powered down at the same time as the low voltage power is removed from the control card.
+
+[15] RequirementId: DOC-015
+    TraceReference: TRC-ATT19849046-DOC-015
+    RequirementText: display head level tests should always set PWR_WARN_F to GND prior to removing low voltage power.
+    SourceRequirementText: display head level tests should always set PWR_WARN_F to GND prior to removing low voltage power.
+
+[16] RequirementId: DOC-016
+    TraceReference: TRC-ATT19849046-DOC-016
+    RequirementText: the default states Data Archive It is suggested that at least the following data should be recorded and stored in a retrievable and sortable format (Note: archiving is not required when the tests are performed manually):...
+    SourceRequirementText: the default states Data Archive It is suggested that at least the following data should be recorded and stored in a retrievable and sortable format (Note: archiving is not required when the tests are performed manually):...
+
+[17] RequirementId: DOC-017
+    TraceReference: TRC-ATT19849046-DOC-017
+    RequirementText: the measurement is positive and should be converted to a voltage value using REF _Ref46489449 \h Equation 3 where x is the decimal equivalent of the converted 12 bits.
+    SourceRequirementText: the measurement is positive and should be converted to a voltage value using REF _Ref46489449 \h Equation 3 where x is the decimal equivalent of the converted 12 bits.
+
+[18] RequirementId: DOC-018
+    TraceReference: TRC-ATT19849046-DOC-018
+    RequirementText: the measurement is negative and should be converted to a voltage value using REF _Ref46489628 \h \* MERGEFORMAT Equation 4 where x is the decimal equivalent of the 2’s complement of the converted 12 bits.
+    SourceRequirementText: the measurement is negative and should be converted to a voltage value using REF _Ref46489628 \h \* MERGEFORMAT Equation 4 where x is the decimal equivalent of the 2’s complement of the converted 12 bits.
+
+[19] RequirementId: DOC-019
+    TraceReference: TRC-ATT19849046-DOC-019
+    RequirementText: the measurement is positive and should be converted to a voltage value using REF _Ref82357491 \h Equation 11 where x is the decimal equivalent of the converted 8 bits.
+    SourceRequirementText: the measurement is positive and should be converted to a voltage value using REF _Ref82357491 \h Equation 11 where x is the decimal equivalent of the converted 8 bits.
+
+[20] RequirementId: DOC-020
+    TraceReference: TRC-ATT19849046-DOC-020
+    RequirementText: the measurement is negative and should be converted to a voltage value using REF _Ref82357577 \h Equation 12 where x is the decimal equivalent of the 2’s complement of the converted 8 bits.
+    SourceRequirementText: the measurement is negative and should be converted to a voltage value using REF _Ref82357577 \h Equation 12 where x is the decimal equivalent of the 2’s complement of the converted 8 bits.
+
+[21] RequirementId: DOC-021
+    TraceReference: TRC-ATT19849046-DOC-021
+    RequirementText: The display head will communicate on the half duplex RS485 interface at 460.
+    SourceRequirementText: The display head will communicate on the half duplex RS485 interface at 460.
+
+[22] RequirementId: DOC-022
+    TraceReference: TRC-ATT19849046-DOC-022
+    RequirementText: A DHM ID of Ah must be used to establish communication with the display head.
+    SourceRequirementText: A DHM ID of Ah must be used to establish communication with the display head.
+
+[23] RequirementId: DOC-023
+    TraceReference: TRC-ATT19849046-DOC-023
+    RequirementText: the full calibration text file should be used. This will load all of the memory settings needed for correct operation.
+    SourceRequirementText: the full calibration text file should be used. This will load all of the memory settings needed for correct operation.
+
+[24] RequirementId: DOC-024
+    TraceReference: TRC-ATT19849046-DOC-024
+    RequirementText: This includes data that will eventually be overwritten during calibration.
+    SourceRequirementText: This includes data that will eventually be overwritten during calibration.
+
+[25] RequirementId: DOC-025
+    TraceReference: TRC-ATT19849046-DOC-025
+    RequirementText: the no-cal text file should be used. This file will update most memory settings but will not overwrite the portions of memory which have the unit specific calibration data stored in them.
+    SourceRequirementText: the no-cal text file should be used. This file will update most memory settings but will not overwrite the portions of memory which have the unit specific calibration data stored in them.
+
+[26] RequirementId: DOC-026
+    TraceReference: TRC-ATT19849046-DOC-026
+    RequirementText: it will be indicated at an even address (ex.
+    SourceRequirementText: it will be indicated at an even address (ex.
+
+[27] RequirementId: DOC-027
+    TraceReference: TRC-ATT19849046-DOC-027
+    RequirementText: The LCD gate feedback hardware monitor will latch the backlight off if gate feedback pulses aren’t received at least every 200 ms.
+    SourceRequirementText: The LCD gate feedback hardware monitor will latch the backlight off if gate feedback pulses aren’t received at least every 200 ms.
+
+[28] RequirementId: DOC-028
+    TraceReference: TRC-ATT19849046-DOC-028
+    RequirementText: should”. Most control card level tests can be run at the display head assembly level.
+    SourceRequirementText: should”. Most control card level tests can be run at the display head assembly level.
+
+[29] RequirementId: DOC-029
+    TraceReference: TRC-ATT19849046-DOC-029
+    RequirementText: the Hera2 FPGA and microcontroller must be programmed and the default calibration data must be loaded to test a given function.
+    SourceRequirementText: the Hera2 FPGA and microcontroller must be programmed and the default calibration data must be loaded to test a given function.
+
+[30] RequirementId: DOC-030
+    TraceReference: TRC-ATT19849046-DOC-030
+    RequirementText: Acceptance Criteria The production test shall verify +3.3VDC is within the range [3.
+    SourceRequirementText: Acceptance Criteria The production test shall verify +3.3VDC is within the range [3.
+
+[31] RequirementId: DOC-031
+    TraceReference: TRC-ATT19849046-DOC-031
+    RequirementText: The production test shall verify +2.5VDC is within the range [2.
+    SourceRequirementText: The production test shall verify +2.5VDC is within the range [2.
+
+[32] RequirementId: DOC-032
+    TraceReference: TRC-ATT19849046-DOC-032
+    RequirementText: The production test shall verify +1.0VDC is within the range [0.
+    SourceRequirementText: The production test shall verify +1.0VDC is within the range [0.
+
+[33] RequirementId: DOC-033
+    TraceReference: TRC-ATT19849046-DOC-033
+    RequirementText: The production test shall verify +12VDC is within the range [11.
+    SourceRequirementText: The production test shall verify +12VDC is within the range [11.
+
+[34] RequirementId: DOC-034
+    TraceReference: TRC-ATT19849046-DOC-034
+    RequirementText: The production test shall verify -12VDC is within the range [-13.
+    SourceRequirementText: The production test shall verify -12VDC is within the range [-13.
+
+[35] RequirementId: DOC-035
+    TraceReference: TRC-ATT19849046-DOC-035
+    RequirementText: The production test shall verify +1.8VDC is within the range [1.
+    SourceRequirementText: The production test shall verify +1.8VDC is within the range [1.
+
+[36] RequirementId: DOC-036
+    TraceReference: TRC-ATT19849046-DOC-036
+    RequirementText: The production test shall verify +5VDC is within the range [4.
+    SourceRequirementText: The production test shall verify +5VDC is within the range [4.
+
+[37] RequirementId: DOC-037
+    TraceReference: TRC-ATT19849046-DOC-037
+    RequirementText: Acceptance Criteria The production test shall verify +5VREF is within the range [4.
+    SourceRequirementText: Acceptance Criteria The production test shall verify +5VREF is within the range [4.
+
+[38] RequirementId: DOC-038
+    TraceReference: TRC-ATT19849046-DOC-038
+    RequirementText: The production test shall verify -5VREF is within the range [-5.
+    SourceRequirementText: The production test shall verify -5VREF is within the range [-5.
+
+[39] RequirementId: DOC-039
+    TraceReference: TRC-ATT19849046-DOC-039
+    RequirementText: The production test shall verify +10VREF is within the range [9.
+    SourceRequirementText: The production test shall verify +10VREF is within the range [9.
+
+[40] RequirementId: DOC-040
+    TraceReference: TRC-ATT19849046-DOC-040
+    RequirementText: Acceptance Criteria The production test shall verify +4P5VDC_HLDUP is within the range [4.
+    SourceRequirementText: Acceptance Criteria The production test shall verify +4P5VDC_HLDUP is within the range [4.
+
+[41] RequirementId: DOC-041
+    TraceReference: TRC-ATT19849046-DOC-041
+    RequirementText: The production test shall verify +25VDC_HLDUP is within the range [24.
+    SourceRequirementText: The production test shall verify +25VDC_HLDUP is within the range [24.
+
+[42] RequirementId: DOC-042
+    TraceReference: TRC-ATT19849046-DOC-042
+    RequirementText: The production test shall verify +3.3VDC is within the range [3.
+    SourceRequirementText: The production test shall verify +3.3VDC is within the range [3.
+
+[43] RequirementId: DOC-043
+    TraceReference: TRC-ATT19849046-DOC-043
+    RequirementText: Acceptance Criteria The production test shall verify SYS_RST_F is logic low for at least 1.
+    SourceRequirementText: Acceptance Criteria The production test shall verify SYS_RST_F is logic low for at least 1.
+
+[44] RequirementId: DOC-044
+    TraceReference: TRC-ATT19849046-DOC-044
+    RequirementText: Acceptance Criteria The production test shall program the microcontroller in accordance with the load procedure indicated on the control card assembly drawing.
+    SourceRequirementText: Acceptance Criteria The production test shall program the microcontroller in accordance with the load procedure indicated on the control card assembly drawing.
+
+[45] RequirementId: DOC-045
+    TraceReference: TRC-ATT19849046-DOC-045
+    RequirementText: Acceptance Criteria The production test shall program the Hera2 FPGA in accordance with the load procedure indicated on the control card assembly drawing.
+    SourceRequirementText: Acceptance Criteria The production test shall program the Hera2 FPGA in accordance with the load procedure indicated on the control card assembly drawing.
+
+[46] RequirementId: DOC-046
+    TraceReference: TRC-ATT19849046-DOC-046
+    RequirementText: Acceptance Criteria The production test shall verify the default calibration data can be loaded into memory without error via the RS485 shop serial interface.
+    SourceRequirementText: Acceptance Criteria The production test shall verify the default calibration data can be loaded into memory without error via the RS485 shop serial interface.
+
+[47] RequirementId: DOC-047
+    TraceReference: TRC-ATT19849046-DOC-047
+    RequirementText: Acceptance Criteria The production test shall verify HTR_ENABLE correctly detects both OPEN and GND logic states.
+    SourceRequirementText: Acceptance Criteria The production test shall verify HTR_ENABLE correctly detects both OPEN and GND logic states.
+
+[48] RequirementId: DOC-048
+    TraceReference: TRC-ATT19849046-DOC-048
+    RequirementText: The production test shall verify REM_DATALOAD_F correctly detects both OPEN and GND logic states.
+    SourceRequirementText: The production test shall verify REM_DATALOAD_F correctly detects both OPEN and GND logic states.
+
+[49] RequirementId: DOC-049
+    TraceReference: TRC-ATT19849046-DOC-049
+    RequirementText: The production test shall verify REM_SHOP_F correctly detects both OPEN and GND logic states.
+    SourceRequirementText: The production test shall verify REM_SHOP_F correctly detects both OPEN and GND logic states.
+
+[50] RequirementId: DOC-050
+    TraceReference: TRC-ATT19849046-DOC-050
+    RequirementText: The production test shall verify PSIO_WARN_F correctly detects both OPEN and GND logic low states.
+    SourceRequirementText: The production test shall verify PSIO_WARN_F correctly detects both OPEN and GND logic low states.
+
+[51] RequirementId: DOC-051
+    TraceReference: TRC-ATT19849046-DOC-051
+    RequirementText: The production test shall verify DISCRETE_IN_0.
+    SourceRequirementText: The production test shall verify DISCRETE_IN_0.
+
+[52] RequirementId: DOC-052
+    TraceReference: TRC-ATT19849046-DOC-052
+    RequirementText: The production test should verify WHT_VOLT_1 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+    SourceRequirementText: The production test should verify WHT_VOLT_1 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+
+[53] RequirementId: DOC-053
+    TraceReference: TRC-ATT19849046-DOC-053
+    RequirementText: The production test should verify WHT_VOLT_2 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+    SourceRequirementText: The production test should verify WHT_VOLT_2 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+
+[54] RequirementId: DOC-054
+    TraceReference: TRC-ATT19849046-DOC-054
+    RequirementText: The production test should verify WHT_VOLT_3 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+    SourceRequirementText: The production test should verify WHT_VOLT_3 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+
+[55] RequirementId: DOC-055
+    TraceReference: TRC-ATT19849046-DOC-055
+    RequirementText: The production test should verify WHT_VOLT_1 is within the range [13.
+    SourceRequirementText: The production test should verify WHT_VOLT_1 is within the range [13.
+
+[56] RequirementId: DOC-056
+    TraceReference: TRC-ATT19849046-DOC-056
+    RequirementText: The production test should verify WHT_VOLT_2 is within the range [13.
+    SourceRequirementText: The production test should verify WHT_VOLT_2 is within the range [13.
+
+[57] RequirementId: DOC-057
+    TraceReference: TRC-ATT19849046-DOC-057
+    RequirementText: The production test should verify WHT_VOLT_3 is within the range [13.
+    SourceRequirementText: The production test should verify WHT_VOLT_3 is within the range [13.
+
+[58] RequirementId: DOC-058
+    TraceReference: TRC-ATT19849046-DOC-058
+    RequirementText: Acceptance Criteria The production test shall verify the analog to digital converter circuitry measures VREF_2.
+    SourceRequirementText: Acceptance Criteria The production test shall verify the analog to digital converter circuitry measures VREF_2.
+
+[59] RequirementId: DOC-059
+    TraceReference: TRC-ATT19849046-DOC-059
+    RequirementText: Acceptance Criteria The production test shall verify BRT_CMD_COARSE is within the range [-0.
+    SourceRequirementText: Acceptance Criteria The production test shall verify BRT_CMD_COARSE is within the range [-0.
+
+[60] RequirementId: DOC-060
+    TraceReference: TRC-ATT19849046-DOC-060
+    RequirementText: The production test shall verify BRT_CMD_FINE is within the range [-1.
+    SourceRequirementText: The production test shall verify BRT_CMD_FINE is within the range [-1.
+
+[61] RequirementId: DOC-061
+    TraceReference: TRC-ATT19849046-DOC-061
+    RequirementText: The production test shall verify RED_CHROM_CNTRL is within the range [-3.
+    SourceRequirementText: The production test shall verify RED_CHROM_CNTRL is within the range [-3.
+
+[62] RequirementId: DOC-062
+    TraceReference: TRC-ATT19849046-DOC-062
+    RequirementText: The production test shall verify BLUE_CHROM_CNTRL is within the range [-3.
+    SourceRequirementText: The production test shall verify BLUE_CHROM_CNTRL is within the range [-3.
+
+[63] RequirementId: DOC-063
+    TraceReference: TRC-ATT19849046-DOC-063
+    RequirementText: Acceptance Criteria The production test shall verify RS485 formatted data is received correctly on RS485_HI/LO at full RS485 voltage levels.
+    SourceRequirementText: Acceptance Criteria The production test shall verify RS485 formatted data is received correctly on RS485_HI/LO at full RS485 voltage levels.
+
+[64] RequirementId: DOC-064
+    TraceReference: TRC-ATT19849046-DOC-064
+    RequirementText: The production test shall verify RS485 formatted data is transmitted correctly on RS485_HI/LO at full RS485 voltage levels.
+    SourceRequirementText: The production test shall verify RS485 formatted data is transmitted correctly on RS485_HI/LO at full RS485 voltage levels.
+
+[65] RequirementId: DOC-065
+    TraceReference: TRC-ATT19849046-DOC-065
+    RequirementText: Acceptance Criteria The production test shall verify the control card temperature sensor indicates a temperature within the range [20, 40] degrees C at factory ambient.
+    SourceRequirementText: Acceptance Criteria The production test shall verify the control card temperature sensor indicates a temperature within the range [20, 40] degrees C at factory ambient.
+
+[66] RequirementId: DOC-066
+    TraceReference: TRC-ATT19849046-DOC-066
+    RequirementText: Acceptance Criteria The production test shall verify LCD_VCC_FILT is within the range [3.
+    SourceRequirementText: Acceptance Criteria The production test shall verify LCD_VCC_FILT is within the range [3.
+
+[67] RequirementId: DOC-067
+    TraceReference: TRC-ATT19849046-DOC-067
+    RequirementText: The production test shall verify LCD_VCC_FILT is within the range [-0.
+    SourceRequirementText: The production test shall verify LCD_VCC_FILT is within the range [-0.
+
+[68] RequirementId: DOC-068
+    TraceReference: TRC-ATT19849046-DOC-068
+    RequirementText: Acceptance Criteria The production test shall verify GMON_GOOD is logic low when GATE_FB_A is not toggling.
+    SourceRequirementText: Acceptance Criteria The production test shall verify GMON_GOOD is logic low when GATE_FB_A is not toggling.
+
+[69] RequirementId: DOC-069
+    TraceReference: TRC-ATT19849046-DOC-069
+    RequirementText: The production test shall verify GMON_GOOD is logic low when GATE_FB_B is not toggling.
+    SourceRequirementText: The production test shall verify GMON_GOOD is logic low when GATE_FB_B is not toggling.
+
+[70] RequirementId: DOC-070
+    TraceReference: TRC-ATT19849046-DOC-070
+    RequirementText: the LCD flex will likely need to be disconnected to get access to the gate feedback signals to test the monitor.
+    SourceRequirementText: the LCD flex will likely need to be disconnected to get access to the gate feedback signals to test the monitor.
+
+[71] RequirementId: DOC-071
+    TraceReference: TRC-ATT19849046-DOC-071
+    RequirementText: Acceptance Criteria The production test shall calculate the offset voltage and lookup table values for the Top ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in n...
+    SourceRequirementText: Acceptance Criteria The production test shall calculate the offset voltage and lookup table values for the Top ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in n...
+
+[72] RequirementId: DOC-072
+    TraceReference: TRC-ATT19849046-DOC-072
+    RequirementText: The production test shall calculate the offset voltage and lookup table values for the Center ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in non-volatile memor...
+    SourceRequirementText: The production test shall calculate the offset voltage and lookup table values for the Center ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in non-volatile memor...
+
+[73] RequirementId: DOC-073
+    TraceReference: TRC-ATT19849046-DOC-073
+    RequirementText: The production test shall calculate the offset voltage and lookup table values for the Bottom ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in non-volatile memor...
+    SourceRequirementText: The production test shall calculate the offset voltage and lookup table values for the Bottom ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in non-volatile memor...
+
+[74] RequirementId: DOC-074
+    TraceReference: TRC-ATT19849046-DOC-074
+    RequirementText: the production test shall verify the Center ITO Temperature Sensor indicates 25 +/- 10 degrees Celsius.
+    SourceRequirementText: the production test shall verify the Center ITO Temperature Sensor indicates 25 +/- 10 degrees Celsius.
+
+[75] RequirementId: DOC-075
+    TraceReference: TRC-ATT19849046-DOC-075
+    RequirementText: the production test shall verify the Top ITO Temperature Sensor indicates a temperature reading within +/- 5 degrees Celsius of the Center ITO Temperature Sensor reading.
+    SourceRequirementText: the production test shall verify the Top ITO Temperature Sensor indicates a temperature reading within +/- 5 degrees Celsius of the Center ITO Temperature Sensor reading.
+
+[76] RequirementId: DOC-076
+    TraceReference: TRC-ATT19849046-DOC-076
+    RequirementText: the production test shall verify the Bottom ITO Temperature Sensor indicates a temperature reading within +/- 5 degrees Celsius of the Center ITO Temperature Sensor reading.
+    SourceRequirementText: the production test shall verify the Bottom ITO Temperature Sensor indicates a temperature reading within +/- 5 degrees Celsius of the Center ITO Temperature Sensor reading.
+
+[77] RequirementId: DOC-077
+    TraceReference: TRC-ATT19849046-DOC-077
+    RequirementText: Acceptance Criteria The production test shall verify ITO_CURRENT measures within the range [-0.
+    SourceRequirementText: Acceptance Criteria The production test shall verify ITO_CURRENT measures within the range [-0.
+
+[78] RequirementId: DOC-078
+    TraceReference: TRC-ATT19849046-DOC-078
+    RequirementText: The production test shall verify ITO_CURRENT measures within the range [2.
+    SourceRequirementText: The production test shall verify ITO_CURRENT measures within the range [2.
+
+[79] RequirementId: DOC-079
+    TraceReference: TRC-ATT19849046-DOC-079
+    RequirementText: The production test shall calculate the ITO heater resistance based on the +28VDC_HTR voltage and the ITO_CURRENT measurement, generate the heater power lookup table, and store the table in non-volatile memory.
+    SourceRequirementText: The production test shall calculate the ITO heater resistance based on the +28VDC_HTR voltage and the ITO_CURRENT measurement, generate the heater power lookup table, and store the table in non-volatile memory.
+
+[80] RequirementId: DOC-080
+    TraceReference: TRC-ATT19849046-DOC-080
+    RequirementText: The production test shall verify HEATER_PWR_GOOD is logic high when +28VDC_HTR is 28.
+    SourceRequirementText: The production test shall verify HEATER_PWR_GOOD is logic high when +28VDC_HTR is 28.
+
+[81] RequirementId: DOC-081
+    TraceReference: TRC-ATT19849046-DOC-081
+    RequirementText: The production test shall verify the Center ITO Temperature Sensor temperature reading increases at least 5 degrees when the LCD heater is enabled for at least 30 seconds.
+    SourceRequirementText: The production test shall verify the Center ITO Temperature Sensor temperature reading increases at least 5 degrees when the LCD heater is enabled for at least 30 seconds.
+
+[82] RequirementId: DOC-082
+    TraceReference: TRC-ATT19849046-DOC-082
+    RequirementText: The production test shall verify the reported heater power is within +/-15% of the power being delivered by the test equipment to the +28VDC_HTR power input of the display head.
+    SourceRequirementText: The production test shall verify the reported heater power is within +/-15% of the power being delivered by the test equipment to the +28VDC_HTR power input of the display head.
+
+[83] RequirementId: DOC-083
+    TraceReference: TRC-ATT19849046-DOC-083
+    RequirementText: The production test shall verify the LCD heater shuts off when enabled and +28VDC_HTR is increased above 33 VDC.
+    SourceRequirementText: The production test shall verify the LCD heater shuts off when enabled and +28VDC_HTR is increased above 33 VDC.
+
+[84] RequirementId: DOC-084
+    TraceReference: TRC-ATT19849046-DOC-084
+    RequirementText: The production test shall verify HEATER_PWR_GOOD is logic low when +28VDC_HTR is increased above 33 VDC.
+    SourceRequirementText: The production test shall verify HEATER_PWR_GOOD is logic low when +28VDC_HTR is increased above 33 VDC.
+
+[85] RequirementId: DOC-085
+    TraceReference: TRC-ATT19849046-DOC-085
+    RequirementText: The production test shall verify the LCD turns on when enabled and +28VDC_HTR is decreased from out of range high to 28.
+    SourceRequirementText: The production test shall verify the LCD turns on when enabled and +28VDC_HTR is decreased from out of range high to 28.
+
+[86] RequirementId: DOC-086
+    TraceReference: TRC-ATT19849046-DOC-086
+    RequirementText: The production test shall verify the LCD shuts off when enabled and +28VDC_HTR is decreased below 20 VDC.
+    SourceRequirementText: The production test shall verify the LCD shuts off when enabled and +28VDC_HTR is decreased below 20 VDC.
+
+[87] RequirementId: DOC-087
+    TraceReference: TRC-ATT19849046-DOC-087
+    RequirementText: The production test shall verify HEATER_PWR_GOOD is logic low when +28VDC_HTR is decreased below 20 VDC.
+    SourceRequirementText: The production test shall verify HEATER_PWR_GOOD is logic low when +28VDC_HTR is decreased below 20 VDC.
+
+[88] RequirementId: DOC-088
+    TraceReference: TRC-ATT19849046-DOC-088
+    RequirementText: The production test shall verify the LCD heater turns on when enabled and +28VDC_HTR is increased from out of range low to 28.
+    SourceRequirementText: The production test shall verify the LCD heater turns on when enabled and +28VDC_HTR is increased from out of range low to 28.
+
+[89] RequirementId: DOC-089
+    TraceReference: TRC-ATT19849046-DOC-089
+    RequirementText: The production test shall verify the LCD heater shuts off when enabled and HEATERS_ENABLED is set to GND.
+    SourceRequirementText: The production test shall verify the LCD heater shuts off when enabled and HEATERS_ENABLED is set to GND.
+
+[90] RequirementId: DOC-090
+    TraceReference: TRC-ATT19849046-DOC-090
+    RequirementText: The production test shall verify the LCD heater shuts off when enabled and PWR_WARN_F is set to GND.
+    SourceRequirementText: The production test shall verify the LCD heater shuts off when enabled and PWR_WARN_F is set to GND.
+
+[91] RequirementId: DOC-091
+    TraceReference: TRC-ATT19849046-DOC-091
+    RequirementText: The production test shall verify the LCD heater shuts off when enabled and ITO_CTR_TEMP indicates greater than 85 degrees Celsius.
+    SourceRequirementText: The production test shall verify the LCD heater shuts off when enabled and ITO_CTR_TEMP indicates greater than 85 degrees Celsius.
+
+[92] RequirementId: DOC-092
+    TraceReference: TRC-ATT19849046-DOC-092
+    RequirementText: The production test shall verify the LCD heater shuts off when enabled and ITO_TOP_TEMP indicates greater than 85 degrees Celsius.
+    SourceRequirementText: The production test shall verify the LCD heater shuts off when enabled and ITO_TOP_TEMP indicates greater than 85 degrees Celsius.
+
+[93] RequirementId: DOC-093
+    TraceReference: TRC-ATT19849046-DOC-093
+    RequirementText: The production test shall verify the LCD heater shuts off when enabled and ITO_BOT_TEMP indicates greater than 85 degrees Celsius.
+    SourceRequirementText: The production test shall verify the LCD heater shuts off when enabled and ITO_BOT_TEMP indicates greater than 85 degrees Celsius.
+
+[94] RequirementId: DOC-094
+    TraceReference: TRC-ATT19849046-DOC-094
+    RequirementText: Acceptance Criteria The production test shall verify that XGA video data received on the input pixel bus is correctly displayed on the LCD.
+    SourceRequirementText: Acceptance Criteria The production test shall verify that XGA video data received on the input pixel bus is correctly displayed on the LCD.
+
+[95] RequirementId: DOC-095
+    TraceReference: TRC-ATT19849046-DOC-095
+    RequirementText: The production test shall verify the LCD does not indicate self-protect mode when powered up and displaying an image.
+    SourceRequirementText: The production test shall verify the LCD does not indicate self-protect mode when powered up and displaying an image.
+
+[96] RequirementId: DOC-096
+    TraceReference: TRC-ATT19849046-DOC-096
+    RequirementText: The production test shall verify the LCD does not indicate a fail condition when powered up and displaying an image.
+    SourceRequirementText: The production test shall verify the LCD does not indicate a fail condition when powered up and displaying an image.
+
+[97] RequirementId: DOC-097
+    TraceReference: TRC-ATT19849046-DOC-097
+    RequirementText: The production test shall verify that the hardware gate feedback monitor doesn’t indicate a fault when powered up and displaying an image.
+    SourceRequirementText: The production test shall verify that the hardware gate feedback monitor doesn’t indicate a fault when powered up and displaying an image.
+
+[98] RequirementId: DOC-098
+    TraceReference: TRC-ATT19849046-DOC-098
+    RequirementText: Acceptance Criteria The production test shall verify that UXGA video data received on the DVI input bus is correctly displayed on the LCD.
+    SourceRequirementText: Acceptance Criteria The production test shall verify that UXGA video data received on the DVI input bus is correctly displayed on the LCD.
+
+[99] RequirementId: DOC-099
+    TraceReference: TRC-ATT19849046-DOC-099
+    RequirementText: The production test shall verify that no active UXGA Clock, UXGA DE, UXGA Hsync, or UXGA Vsync faults are present when the display head receives valid pixel bus data.
+    SourceRequirementText: The production test shall verify that no active UXGA Clock, UXGA DE, UXGA Hsync, or UXGA Vsync faults are present when the display head receives valid pixel bus data.
+
+[100] RequirementId: DOC-100
+    TraceReference: TRC-ATT19849046-DOC-100
+    RequirementText: Acceptance Criteria The production test shall verify NVIS_ENB_F correctly detects both OPEN and GND logic states.
+    SourceRequirementText: Acceptance Criteria The production test shall verify NVIS_ENB_F correctly detects both OPEN and GND logic states.
+
+[101] RequirementId: DOC-101
+    TraceReference: TRC-ATT19849046-DOC-101
+    RequirementText: The production test shall verify no button press is indicated when no keypanel buttons or rocker switches are being pressed.
+    SourceRequirementText: The production test shall verify no button press is indicated when no keypanel buttons or rocker switches are being pressed.
+
+[102] RequirementId: DOC-102
+    TraceReference: TRC-ATT19849046-DOC-102
+    RequirementText: The production test shall verify that the correct button press is detected when each of the 32 keypanel buttons is individually pressed.
+    SourceRequirementText: The production test shall verify that the correct button press is detected when each of the 32 keypanel buttons is individually pressed.
+
+[103] RequirementId: DOC-103
+    TraceReference: TRC-ATT19849046-DOC-103
+    RequirementText: The production test shall verify that the correct button press is detected when each of the 24 keypanel buttons is individually pressed.
+    SourceRequirementText: The production test shall verify that the correct button press is detected when each of the 24 keypanel buttons is individually pressed.
+
+[104] RequirementId: DOC-104
+    TraceReference: TRC-ATT19849046-DOC-104
+    RequirementText: The production test shall verify that the correct button press is detected when each half of the Video Brightness and Video Contrast rocker switches is individually pressed.
+    SourceRequirementText: The production test shall verify that the correct button press is detected when each half of the Video Brightness and Video Contrast rocker switches is individually pressed.
+
+[105] RequirementId: DOC-105
+    TraceReference: TRC-ATT19849046-DOC-105
+    RequirementText: The production test shall verify the backlight brightness can be adjusted up and down using the Backlight Brightness rocker switch.
+    SourceRequirementText: The production test shall verify the backlight brightness can be adjusted up and down using the Backlight Brightness rocker switch.
+
+[106] RequirementId: DOC-106
+    TraceReference: TRC-ATT19849046-DOC-106
+    RequirementText: The production test shall verify the Power/Backlight Mode knob operates correctly in all three positions.
+    SourceRequirementText: The production test shall verify the Power/Backlight Mode knob operates correctly in all three positions.
+
+[107] RequirementId: DOC-107
+    TraceReference: TRC-ATT19849046-DOC-107
+    RequirementText: The production test shall verify the Power On/Off toggle switch operates correctly in both positions.
+    SourceRequirementText: The production test shall verify the Power On/Off toggle switch operates correctly in both positions.
+
+[108] RequirementId: DOC-108
+    TraceReference: TRC-ATT19849046-DOC-108
+    RequirementText: The production test shall verify all keypanel bezel buttons and the rocker switch are illuminated when 5 +/- 0.
+    SourceRequirementText: The production test shall verify all keypanel bezel buttons and the rocker switch are illuminated when 5 +/- 0.
+
+[109] RequirementId: DOC-109
+    TraceReference: TRC-ATT19849046-DOC-109
+    RequirementText: the production test shall verify the backlight temperature sensor indicates a temperature within the range [20, 40] degrees C at factory ambient.
+    SourceRequirementText: the production test shall verify the backlight temperature sensor indicates a temperature within the range [20, 40] degrees C at factory ambient.
+
+[110] RequirementId: DOC-110
+    TraceReference: TRC-ATT19849046-DOC-110
+    RequirementText: Acceptance Criteria The production test shall verify FAN_PWR is logic ‘0’ (fan voltage not detected) when 115VAC is not applied to the control card.
+    SourceRequirementText: Acceptance Criteria The production test shall verify FAN_PWR is logic ‘0’ (fan voltage not detected) when 115VAC is not applied to the control card.
+
+[111] RequirementId: DOC-111
+    TraceReference: TRC-ATT19849046-DOC-111
+    RequirementText: The production test shall verify FAN_CUR_F is logic ‘1’ (fan current not detected) when 115VAC is not applied to the control card.
+    SourceRequirementText: The production test shall verify FAN_CUR_F is logic ‘1’ (fan current not detected) when 115VAC is not applied to the control card.
+
+[112] RequirementId: DOC-112
+    TraceReference: TRC-ATT19849046-DOC-112
+    RequirementText: The production test shall verify FAN_PWR is logic ‘1’ when 115VAC is applied between 115VAC_H and 115VAC_L and the fan is commanded off.
+    SourceRequirementText: The production test shall verify FAN_PWR is logic ‘1’ when 115VAC is applied between 115VAC_H and 115VAC_L and the fan is commanded off.
+
+[113] RequirementId: DOC-113
+    TraceReference: TRC-ATT19849046-DOC-113
+    RequirementText: The production test shall verify FAN_CUR_F is logic ‘1’ (fan current not detected) when 115VAC is applied between 115VAC_H and 115VAC_L and the fan is commanded off.
+    SourceRequirementText: The production test shall verify FAN_CUR_F is logic ‘1’ (fan current not detected) when 115VAC is applied between 115VAC_H and 115VAC_L and the fan is commanded off.
+
+[114] RequirementId: DOC-114
+    TraceReference: TRC-ATT19849046-DOC-114
+    RequirementText: The production test shall verify the fan runs when commanded on.
+    SourceRequirementText: The production test shall verify the fan runs when commanded on.
+
+[115] RequirementId: DOC-115
+    TraceReference: TRC-ATT19849046-DOC-115
+    RequirementText: The production test shall verify FAN_PWR is logic ‘1’ (fan power detected) when the fan is running.
+    SourceRequirementText: The production test shall verify FAN_PWR is logic ‘1’ (fan power detected) when the fan is running.
+
+[116] RequirementId: DOC-116
+    TraceReference: TRC-ATT19849046-DOC-116
+    RequirementText: The production test shall verify the direction of airflow is into the fan when the fan is on.
+    SourceRequirementText: The production test shall verify the direction of airflow is into the fan when the fan is on.
+
+[117] RequirementId: DOC-117
+    TraceReference: TRC-ATT19849046-DOC-117
+    RequirementText: The production test shall verify FAN_CUR_F is logic ‘0’ (fan current detected) when the fan is commanded on and the fan is running.
+    SourceRequirementText: The production test shall verify FAN_CUR_F is logic ‘0’ (fan current detected) when the fan is commanded on and the fan is running.
+
+[118] RequirementId: DOC-118
+    TraceReference: TRC-ATT19849046-DOC-118
+    RequirementText: the production test shall verify the fan turns off when commanded off.
+    SourceRequirementText: the production test shall verify the fan turns off when commanded off.
+
+[119] RequirementId: DOC-119
+    TraceReference: TRC-ATT19849046-DOC-119
+    RequirementText: Acceptance Criteria The production test shall adjust the red drive to achieve the color targets in REF _Ref82426123 \h Table 41 within a radius of 0.
+    SourceRequirementText: Acceptance Criteria The production test shall adjust the red drive to achieve the color targets in REF _Ref82426123 \h Table 41 within a radius of 0.
+
+[120] RequirementId: DOC-120
+    TraceReference: TRC-ATT19849046-DOC-120
+    RequirementText: The production test shall adjust the blue drive to achieve the color targets in REF _Ref82426123 \h Table 41 within a radius of 0.
+    SourceRequirementText: The production test shall adjust the blue drive to achieve the color targets in REF _Ref82426123 \h Table 41 within a radius of 0.
+
+[121] RequirementId: DOC-121
+    TraceReference: TRC-ATT19849046-DOC-121
+    RequirementText: Chromaticity Targets The production test shall verify the chromaticity of white, red, green, and blue are within a Delta C*(≤26.
+    SourceRequirementText: Chromaticity Targets The production test shall verify the chromaticity of white, red, green, and blue are within a Delta C*(≤26.
+
+[122] RequirementId: DOC-122
+    TraceReference: TRC-ATT19849046-DOC-122
+    RequirementText: Chromaticity Targets The production test shall write the measured white chromaticity to the following addresses as indicated (e.
+    SourceRequirementText: Chromaticity Targets The production test shall write the measured white chromaticity to the following addresses as indicated (e.
+
+[123] RequirementId: DOC-123
+    TraceReference: TRC-ATT19849046-DOC-123
+    RequirementText: The production test shall write the measured red chromaticity to the following addresses as indicated (e.
+    SourceRequirementText: The production test shall write the measured red chromaticity to the following addresses as indicated (e.
+
+[124] RequirementId: DOC-124
+    TraceReference: TRC-ATT19849046-DOC-124
+    RequirementText: The production test shall write the measured green chromaticity to the following addresses as indicated (e.
+    SourceRequirementText: The production test shall write the measured green chromaticity to the following addresses as indicated (e.
+
+[125] RequirementId: DOC-125
+    TraceReference: TRC-ATT19849046-DOC-125
+    RequirementText: The production test shall write the measured blue chromaticity to the following addresses as indicated (e.
+    SourceRequirementText: The production test shall write the measured blue chromaticity to the following addresses as indicated (e.
+
+[126] RequirementId: DOC-126
+    TraceReference: TRC-ATT19849046-DOC-126
+    RequirementText: Acceptance Criteria The production test shall calibrate the maximum Day mode luminance within the range [324, 334] fL for the 987-8392-050 and [235, 245] fL for the 987-8392-054.
+    SourceRequirementText: Acceptance Criteria The production test shall calibrate the maximum Day mode luminance within the range [324, 334] fL for the 987-8392-050 and [235, 245] fL for the 987-8392-054.
+
+[127] RequirementId: DOC-127
+    TraceReference: TRC-ATT19849046-DOC-127
+    RequirementText: The production test shall calibrate the minimum Day mode luminance within the range [0.
+    SourceRequirementText: The production test shall calibrate the minimum Day mode luminance within the range [0.
+
+[128] RequirementId: DOC-128
+    TraceReference: TRC-ATT19849046-DOC-128
+    RequirementText: The production test shall calibrate the maximum NVIS mode luminance within the range [2.
+    SourceRequirementText: The production test shall calibrate the maximum NVIS mode luminance within the range [2.
+
+[129] RequirementId: DOC-129
+    TraceReference: TRC-ATT19849046-DOC-129
+    RequirementText: The production test shall calibrate the minimum NVIS mode luminance within the range [0.
+    SourceRequirementText: The production test shall calibrate the minimum NVIS mode luminance within the range [0.
+
+[130] RequirementId: DOC-130
+    TraceReference: TRC-ATT19849046-DOC-130
+    RequirementText: The production test shall write the calibration date to the following addresses in ASCII format (e.
+    SourceRequirementText: The production test shall write the calibration date to the following addresses in ASCII format (e.
+
+[131] RequirementId: DOC-131
+    TraceReference: TRC-ATT19849046-DOC-131
+    RequirementText: The production test shall write the Day maximum luminance in fL to the following addresses in ASCII format (e.
+    SourceRequirementText: The production test shall write the Day maximum luminance in fL to the following addresses in ASCII format (e.
+
+[132] RequirementId: DOC-132
+    TraceReference: TRC-ATT19849046-DOC-132
+    RequirementText: The production test shall write the Day minimum luminance in fL to the following addresses in ASCII format (e.
+    SourceRequirementText: The production test shall write the Day minimum luminance in fL to the following addresses in ASCII format (e.
+
+[133] RequirementId: DOC-133
+    TraceReference: TRC-ATT19849046-DOC-133
+    RequirementText: The production test shall write the NVIS maximum luminance in fL to the following addresses in ASCII format (e.
+    SourceRequirementText: The production test shall write the NVIS maximum luminance in fL to the following addresses in ASCII format (e.
+
+[134] RequirementId: DOC-134
+    TraceReference: TRC-ATT19849046-DOC-134
+    RequirementText: The production test shall write the NVIS minimum luminance in fL to the following addresses in ASCII format (e.
+    SourceRequirementText: The production test shall write the NVIS minimum luminance in fL to the following addresses in ASCII format (e.
+
+[135] RequirementId: DOC-135
+    TraceReference: TRC-ATT19849046-DOC-135
+    RequirementText: Acceptance Criteria The production test shall verify the display contrast ratio is at least 200:1.
+    SourceRequirementText: Acceptance Criteria The production test shall verify the display contrast ratio is at least 200:1.
+
+[136] RequirementId: DOC-136
+    TraceReference: TRC-ATT19849046-DOC-136
+    RequirementText: Acceptance Criteria The production test shall load the 10 digit display head part number into memory.
+    SourceRequirementText: Acceptance Criteria The production test shall load the 10 digit display head part number into memory.
+
+[137] RequirementId: DOC-137
+    TraceReference: TRC-ATT19849046-DOC-137
+    RequirementText: Acceptance Criteria The production test shall verify there are no unexpected active faults indicated.
+    SourceRequirementText: Acceptance Criteria The production test shall verify there are no unexpected active faults indicated.
+
+[138] RequirementId: DOC-138
+    TraceReference: TRC-ATT19849046-DOC-138
+    RequirementText: The production test shall clear the fault log.
+    SourceRequirementText: The production test shall clear the fault log.
+
+USED SOURCE CLAUSES
+-------------------
+[1] Collins The contents of this document are proprietary to Rockwell Collins and shall not be disclosed, disseminated, copied, or used except for purposes expressly authorized in writing by Rockwell Collins.
+[2] all tests shall be performed under the conditions defined in the following subsections.
+[3] and atmospheric pressure will be normal factory ambient.
+[4] shall have a tolerance of ±2%.
+[5] the photometer shall be at the specified angle +/- 2.
+[6] discrete inputs should be in the following states by default: PWR_WARN_F = GND DHM_LOAD_F = GND HEATER_ENABLED = GND DHM_SHOP_F = GND NVIS_ENB_F = OPEN Unless otherwise indicated, 5 VAC keypanel dimming voltage should be off or 0 VAC.
+[7] should be off or 0 VDC.
+[8] should be powered up together.
+[9] should be powered up at the same time or before backlight input power.
+[10] Test equipment circuitry used to drive the TTL inputs of the control card should be powered up at the same time as the low voltage power is applied to the control card.
+[11] Heater input power should be powered up at the same time or after the low voltage power voltages.
+[12] PWR_WARN_F to OPEN Recommended Power Down Procedure Heater and backlight power should be powered down at the same time or before the low voltage power voltages.
+[13] should be powered down together.
+[14] Test equipment circuitry used to drive the TTL inputs of the control card should be powered down at the same time as the low voltage power is removed from the control card.
+[15] display head level tests should always set PWR_WARN_F to GND prior to removing low voltage power.
+[16] the default states Data Archive It is suggested that at least the following data should be recorded and stored in a retrievable and sortable format (Note: archiving is not required when the tests are performed manually): Pass/fail status and measurements for all tests performed.
+[17] the measurement is positive and should be converted to a voltage value using REF _Ref46489449 \h Equation 3 where x is the decimal equivalent of the converted 12 bits.
+[18] the measurement is negative and should be converted to a voltage value using REF _Ref46489628 \h \* MERGEFORMAT Equation 4 where x is the decimal equivalent of the 2’s complement of the converted 12 bits.
+[19] the measurement is positive and should be converted to a voltage value using REF _Ref82357491 \h Equation 11 where x is the decimal equivalent of the converted 8 bits.
+[20] the measurement is negative and should be converted to a voltage value using REF _Ref82357577 \h Equation 12 where x is the decimal equivalent of the 2’s complement of the converted 8 bits.
+[21] The display head will communicate on the half duplex RS485 interface at 460.
+[22] A DHM ID of Ah must be used to establish communication with the display head.
+[23] the full calibration text file should be used. This will load all of the memory settings needed for correct operation.
+[24] This includes data that will eventually be overwritten during calibration.
+[25] the no-cal text file should be used. This file will update most memory settings but will not overwrite the portions of memory which have the unit specific calibration data stored in them.
+[26] it will be indicated at an even address (ex.
+[27] The LCD gate feedback hardware monitor will latch the backlight off if gate feedback pulses aren’t received at least every 200 ms.
+[28] should”. Most control card level tests can be run at the display head assembly level.
+[29] the Hera2 FPGA and microcontroller must be programmed and the default calibration data must be loaded to test a given function.
+[30] Acceptance Criteria The production test shall verify +3.3VDC is within the range [3.
+[31] The production test shall verify +2.5VDC is within the range [2.
+[32] The production test shall verify +1.0VDC is within the range [0.
+[33] The production test shall verify +12VDC is within the range [11.
+[34] The production test shall verify -12VDC is within the range [-13.
+[35] The production test shall verify +1.8VDC is within the range [1.
+[36] The production test shall verify +5VDC is within the range [4.
+[37] Acceptance Criteria The production test shall verify +5VREF is within the range [4.
+[38] The production test shall verify -5VREF is within the range [-5.
+[39] The production test shall verify +10VREF is within the range [9.
+[40] Acceptance Criteria The production test shall verify +4P5VDC_HLDUP is within the range [4.
+[41] The production test shall verify +25VDC_HLDUP is within the range [24.
+[42] The production test shall verify +3.3VDC is within the range [3.
+[43] Acceptance Criteria The production test shall verify SYS_RST_F is logic low for at least 1.
+[44] Acceptance Criteria The production test shall program the microcontroller in accordance with the load procedure indicated on the control card assembly drawing.
+[45] Acceptance Criteria The production test shall program the Hera2 FPGA in accordance with the load procedure indicated on the control card assembly drawing.
+[46] Acceptance Criteria The production test shall verify the default calibration data can be loaded into memory without error via the RS485 shop serial interface.
+[47] Acceptance Criteria The production test shall verify HTR_ENABLE correctly detects both OPEN and GND logic states.
+[48] The production test shall verify REM_DATALOAD_F correctly detects both OPEN and GND logic states.
+[49] The production test shall verify REM_SHOP_F correctly detects both OPEN and GND logic states.
+[50] The production test shall verify PSIO_WARN_F correctly detects both OPEN and GND logic low states.
+[51] The production test shall verify DISCRETE_IN_0.
+[52] The production test should verify WHT_VOLT_1 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+[53] The production test should verify WHT_VOLT_2 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+[54] The production test should verify WHT_VOLT_3 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+[55] The production test should verify WHT_VOLT_1 is within the range [13.
+[56] The production test should verify WHT_VOLT_2 is within the range [13.
+[57] The production test should verify WHT_VOLT_3 is within the range [13.
+[58] Acceptance Criteria The production test shall verify the analog to digital converter circuitry measures VREF_2.
+[59] Acceptance Criteria The production test shall verify BRT_CMD_COARSE is within the range [-0.
+[60] The production test shall verify BRT_CMD_FINE is within the range [-1.
+[61] The production test shall verify RED_CHROM_CNTRL is within the range [-3.
+[62] The production test shall verify BLUE_CHROM_CNTRL is within the range [-3.
+[63] Acceptance Criteria The production test shall verify RS485 formatted data is received correctly on RS485_HI/LO at full RS485 voltage levels.
+[64] The production test shall verify RS485 formatted data is transmitted correctly on RS485_HI/LO at full RS485 voltage levels.
+[65] Acceptance Criteria The production test shall verify the control card temperature sensor indicates a temperature within the range [20, 40] degrees C at factory ambient.
+[66] Acceptance Criteria The production test shall verify LCD_VCC_FILT is within the range [3.
+[67] The production test shall verify LCD_VCC_FILT is within the range [-0.
+[68] Acceptance Criteria The production test shall verify GMON_GOOD is logic low when GATE_FB_A is not toggling.
+[69] The production test shall verify GMON_GOOD is logic low when GATE_FB_B is not toggling.
+[70] the LCD flex will likely need to be disconnected to get access to the gate feedback signals to test the monitor.
+[71] Acceptance Criteria The production test shall calculate the offset voltage and lookup table values for the Top ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in non-volatile memory.
+[72] The production test shall calculate the offset voltage and lookup table values for the Center ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in non-volatile memory.
+[73] The production test shall calculate the offset voltage and lookup table values for the Bottom ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in non-volatile memory.
+[74] the production test shall verify the Center ITO Temperature Sensor indicates 25 +/- 10 degrees Celsius.
+[75] the production test shall verify the Top ITO Temperature Sensor indicates a temperature reading within +/- 5 degrees Celsius of the Center ITO Temperature Sensor reading.
+[76] the production test shall verify the Bottom ITO Temperature Sensor indicates a temperature reading within +/- 5 degrees Celsius of the Center ITO Temperature Sensor reading.
+[77] Acceptance Criteria The production test shall verify ITO_CURRENT measures within the range [-0.
+[78] The production test shall verify ITO_CURRENT measures within the range [2.
+[79] The production test shall calculate the ITO heater resistance based on the +28VDC_HTR voltage and the ITO_CURRENT measurement, generate the heater power lookup table, and store the table in non-volatile memory.
+[80] The production test shall verify HEATER_PWR_GOOD is logic high when +28VDC_HTR is 28.
+[81] The production test shall verify the Center ITO Temperature Sensor temperature reading increases at least 5 degrees when the LCD heater is enabled for at least 30 seconds.
+[82] The production test shall verify the reported heater power is within +/-15% of the power being delivered by the test equipment to the +28VDC_HTR power input of the display head.
+[83] The production test shall verify the LCD heater shuts off when enabled and +28VDC_HTR is increased above 33 VDC.
+[84] The production test shall verify HEATER_PWR_GOOD is logic low when +28VDC_HTR is increased above 33 VDC.
+[85] The production test shall verify the LCD turns on when enabled and +28VDC_HTR is decreased from out of range high to 28.
+[86] The production test shall verify the LCD shuts off when enabled and +28VDC_HTR is decreased below 20 VDC.
+[87] The production test shall verify HEATER_PWR_GOOD is logic low when +28VDC_HTR is decreased below 20 VDC.
+[88] The production test shall verify the LCD heater turns on when enabled and +28VDC_HTR is increased from out of range low to 28.
+[89] The production test shall verify the LCD heater shuts off when enabled and HEATERS_ENABLED is set to GND.
+[90] The production test shall verify the LCD heater shuts off when enabled and PWR_WARN_F is set to GND.
+[91] The production test shall verify the LCD heater shuts off when enabled and ITO_CTR_TEMP indicates greater than 85 degrees Celsius.
+[92] The production test shall verify the LCD heater shuts off when enabled and ITO_TOP_TEMP indicates greater than 85 degrees Celsius.
+[93] The production test shall verify the LCD heater shuts off when enabled and ITO_BOT_TEMP indicates greater than 85 degrees Celsius.
+[94] Acceptance Criteria The production test shall verify that XGA video data received on the input pixel bus is correctly displayed on the LCD.
+[95] The production test shall verify the LCD does not indicate self-protect mode when powered up and displaying an image.
+[96] The production test shall verify the LCD does not indicate a fail condition when powered up and displaying an image.
+[97] The production test shall verify that the hardware gate feedback monitor doesn’t indicate a fault when powered up and displaying an image.
+[98] Acceptance Criteria The production test shall verify that UXGA video data received on the DVI input bus is correctly displayed on the LCD.
+[99] The production test shall verify that no active UXGA Clock, UXGA DE, UXGA Hsync, or UXGA Vsync faults are present when the display head receives valid pixel bus data.
+[100] Acceptance Criteria The production test shall verify NVIS_ENB_F correctly detects both OPEN and GND logic states.
+[101] The production test shall verify no button press is indicated when no keypanel buttons or rocker switches are being pressed.
+[102] The production test shall verify that the correct button press is detected when each of the 32 keypanel buttons is individually pressed.
+[103] The production test shall verify that the correct button press is detected when each of the 24 keypanel buttons is individually pressed.
+[104] The production test shall verify that the correct button press is detected when each half of the Video Brightness and Video Contrast rocker switches is individually pressed.
+[105] The production test shall verify the backlight brightness can be adjusted up and down using the Backlight Brightness rocker switch.
+[106] The production test shall verify the Power/Backlight Mode knob operates correctly in all three positions.
+[107] The production test shall verify the Power On/Off toggle switch operates correctly in both positions.
+[108] The production test shall verify all keypanel bezel buttons and the rocker switch are illuminated when 5 +/- 0.
+[109] the production test shall verify the backlight temperature sensor indicates a temperature within the range [20, 40] degrees C at factory ambient.
+[110] Acceptance Criteria The production test shall verify FAN_PWR is logic ‘0’ (fan voltage not detected) when 115VAC is not applied to the control card.
+[111] The production test shall verify FAN_CUR_F is logic ‘1’ (fan current not detected) when 115VAC is not applied to the control card.
+[112] The production test shall verify FAN_PWR is logic ‘1’ when 115VAC is applied between 115VAC_H and 115VAC_L and the fan is commanded off.
+[113] The production test shall verify FAN_CUR_F is logic ‘1’ (fan current not detected) when 115VAC is applied between 115VAC_H and 115VAC_L and the fan is commanded off.
+[114] The production test shall verify the fan runs when commanded on.
+[115] The production test shall verify FAN_PWR is logic ‘1’ (fan power detected) when the fan is running.
+[116] The production test shall verify the direction of airflow is into the fan when the fan is on.
+[117] The production test shall verify FAN_CUR_F is logic ‘0’ (fan current detected) when the fan is commanded on and the fan is running.
+[118] the production test shall verify the fan turns off when commanded off.
+[119] Acceptance Criteria The production test shall adjust the red drive to achieve the color targets in REF _Ref82426123 \h Table 41 within a radius of 0.
+[120] The production test shall adjust the blue drive to achieve the color targets in REF _Ref82426123 \h Table 41 within a radius of 0.
+[121] Chromaticity Targets The production test shall verify the chromaticity of white, red, green, and blue are within a Delta C*(≤26.
+[122] Chromaticity Targets The production test shall write the measured white chromaticity to the following addresses as indicated (e.
+[123] The production test shall write the measured red chromaticity to the following addresses as indicated (e.
+[124] The production test shall write the measured green chromaticity to the following addresses as indicated (e.
+[125] The production test shall write the measured blue chromaticity to the following addresses as indicated (e.
+[126] Acceptance Criteria The production test shall calibrate the maximum Day mode luminance within the range [324, 334] fL for the 987-8392-050 and [235, 245] fL for the 987-8392-054.
+[127] The production test shall calibrate the minimum Day mode luminance within the range [0.
+[128] The production test shall calibrate the maximum NVIS mode luminance within the range [2.
+[129] The production test shall calibrate the minimum NVIS mode luminance within the range [0.
+[130] The production test shall write the calibration date to the following addresses in ASCII format (e.
+[131] The production test shall write the Day maximum luminance in fL to the following addresses in ASCII format (e.
+[132] The production test shall write the Day minimum luminance in fL to the following addresses in ASCII format (e.
+[133] The production test shall write the NVIS maximum luminance in fL to the following addresses in ASCII format (e.
+[134] The production test shall write the NVIS minimum luminance in fL to the following addresses in ASCII format (e.
+[135] Acceptance Criteria The production test shall verify the display contrast ratio is at least 200:1.
+[136] Acceptance Criteria The production test shall load the 10 digit display head part number into memory.
+[137] Acceptance Criteria The production test shall verify there are no unexpected active faults indicated.
+[138] The production test shall clear the fault log.
+
+UNUSED SOURCE CLAUSES (REVIEW FOR MISSED REQUIREMENTS)
+------------------------------------------------------
+<none>
