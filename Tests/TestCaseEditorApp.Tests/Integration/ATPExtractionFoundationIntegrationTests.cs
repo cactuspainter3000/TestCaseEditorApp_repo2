@@ -156,6 +156,85 @@ namespace TestCaseEditorApp.Tests.Integration
             TestContext.WriteLine($"ATR Accepted: {result.AcceptedCandidateCount}, Review: {result.ReviewCandidateCount}, Rejected: {result.RejectedCandidateCount}");
             TestContext.WriteLine(result.BuildEvidenceLedger(8));
 
+            var reviewCandidates = result.Candidates
+                .Where(candidate => candidate.Status == ExtractionCandidateStatus.NeedsReview)
+                .ToList();
+
+            var reviewFlagHistogram = reviewCandidates
+                .SelectMany(candidate => candidate.AnalysisFlags ?? new List<string>())
+                .GroupBy(flag => string.IsNullOrWhiteSpace(flag) ? "<none>" : flag)
+                .OrderByDescending(group => group.Count())
+                .ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(group => $"{group.Count(),3} x {group.Key}")
+                .ToList();
+
+            var reviewPriorityHistogram = reviewCandidates
+                .GroupBy(candidate => string.IsNullOrWhiteSpace(candidate.AnalysisPriority) ? "<none>" : candidate.AnalysisPriority)
+                .OrderByDescending(group => group.Count())
+                .ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(group => $"{group.Count(),3} x {group.Key}")
+                .ToList();
+
+            var reviewFixTypeHistogram = reviewCandidates
+                .GroupBy(candidate => string.IsNullOrWhiteSpace(candidate.FixType) ? "<none>" : candidate.FixType)
+                .OrderByDescending(group => group.Count())
+                .ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(group => $"{group.Count(),3} x {group.Key}")
+                .ToList();
+
+            var reviewDispositionHistogram = reviewCandidates
+                .GroupBy(candidate => string.IsNullOrWhiteSpace(candidate.DispositionRecommendation) ? "<none>" : candidate.DispositionRecommendation)
+                .OrderByDescending(group => group.Count())
+                .ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(group => $"{group.Count(),3} x {group.Key}")
+                .ToList();
+
+            var reviewConfidenceBuckets = new[]
+            {
+                new { Label = "<0.25", Count = reviewCandidates.Count(candidate => candidate.Confidence < 0.25) },
+                new { Label = "0.25-0.45", Count = reviewCandidates.Count(candidate => candidate.Confidence >= 0.25 && candidate.Confidence < 0.45) },
+                new { Label = "0.45-0.65", Count = reviewCandidates.Count(candidate => candidate.Confidence >= 0.45 && candidate.Confidence < 0.65) },
+                new { Label = "0.65-0.75", Count = reviewCandidates.Count(candidate => candidate.Confidence >= 0.65 && candidate.Confidence < 0.75) },
+                new { Label = ">=0.75", Count = reviewCandidates.Count(candidate => candidate.Confidence >= 0.75) }
+            };
+
+            TestContext.WriteLine("ATR Review Flag Histogram:");
+            foreach (var line in reviewFlagHistogram)
+            {
+                TestContext.WriteLine($"  {line}");
+            }
+
+            TestContext.WriteLine("ATR Review Priority Histogram:");
+            foreach (var line in reviewPriorityHistogram)
+            {
+                TestContext.WriteLine($"  {line}");
+            }
+
+            TestContext.WriteLine("ATR Review FixType Histogram:");
+            foreach (var line in reviewFixTypeHistogram)
+            {
+                TestContext.WriteLine($"  {line}");
+            }
+
+            TestContext.WriteLine("ATR Review Disposition Histogram:");
+            foreach (var line in reviewDispositionHistogram)
+            {
+                TestContext.WriteLine($"  {line}");
+            }
+
+            TestContext.WriteLine("ATR Review Confidence Buckets:");
+            foreach (var bucket in reviewConfidenceBuckets)
+            {
+                TestContext.WriteLine($"  {bucket.Count,3} x {bucket.Label}");
+            }
+
+            TestContext.WriteLine("ATR Review Sample (first 8):");
+            foreach (var candidate in reviewCandidates.Take(8))
+            {
+                TestContext.WriteLine(
+                    $"  {candidate.CandidateId} | confidence={candidate.Confidence:F2} | prefix={candidate.SourcePrefix ?? "UNK"} | text={candidate.NormalizedText}");
+            }
+
             Assert.IsTrue(result.Blocks.Count > 0, "ATR export should segment into blocks.");
             Assert.IsTrue(result.Candidates.Count > 0, "ATR export should produce at least one requirement candidate.");
             Assert.IsTrue(result.RejectedCandidateCount == 0,

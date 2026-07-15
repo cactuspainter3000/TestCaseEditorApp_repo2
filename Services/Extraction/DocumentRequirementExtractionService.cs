@@ -379,6 +379,11 @@ namespace TestCaseEditorApp.Services.Extraction
                     continue;
                 }
 
+                if (ShouldSkipIdentifierMetadataCandidate(block))
+                {
+                    continue;
+                }
+
                 var candidateId = $"cand-{block.BlockIndex + 1:D4}";
                 var confidence = Math.Clamp(block.EvidenceScore + (block.HasRequirementLanguage ? 0.05 : -0.05), 0.0, 1.0);
                 var status = confidence >= AcceptedConfidenceThreshold
@@ -389,6 +394,14 @@ namespace TestCaseEditorApp.Services.Extraction
                 if (!block.HasRequirementLanguage && status == ExtractionCandidateStatus.Accepted)
                 {
                     status = ExtractionCandidateStatus.NeedsReview;
+                }
+
+                // Calibration: promote identifier-backed, high-signal non-modal clauses that
+                // read like declarative requirements to reduce avoidable review noise.
+                if (status == ExtractionCandidateStatus.NeedsReview &&
+                    ShouldPromoteIdentifierBackedNonModal(block, confidence))
+                {
+                    status = ExtractionCandidateStatus.Accepted;
                 }
 
                 var analysisFlags = BuildAnalysisFlags(block, confidence, status);
@@ -426,6 +439,77 @@ namespace TestCaseEditorApp.Services.Extraction
             }
 
             return candidates;
+        }
+
+        private static bool ShouldPromoteIdentifierBackedNonModal(DocumentBlock block, double confidence)
+        {
+            if (block == null)
+            {
+                return false;
+            }
+
+            if (block.HasRequirementLanguage || !block.HasExplicitIdentifier)
+            {
+                return false;
+            }
+
+            var normalized = block.NormalizedText ?? string.Empty;
+            if (normalized.Length < 60)
+            {
+                return false;
+            }
+
+            if (confidence < 0.55)
+            {
+                return false;
+            }
+
+            if (IsLikelyFormulaBlock(normalized))
+            {
+                return false;
+            }
+
+            return Regex.IsMatch(
+                normalized,
+                @"\b(provides?|performs?|supports?|monitors?|contains?|includes?|allows?|records?|displays?|detects?|verifies?|ensures?)\b",
+                RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        }
+
+        private static bool ShouldSkipIdentifierMetadataCandidate(DocumentBlock block)
+        {
+            if (block == null || block.HasRequirementLanguage || !block.HasExplicitIdentifier)
+            {
+                return false;
+            }
+
+            var normalized = Regex.Replace(block.NormalizedText ?? string.Empty, @"\s+", " ").Trim();
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return true;
+            }
+
+            if (Regex.IsMatch(normalized, @"^ID\s*:\s*[A-Za-z0-9_.\-]+$", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            {
+                return true;
+            }
+
+            if (Regex.IsMatch(normalized, @"^[A-Za-z][A-Za-z0-9_\- ]{0,40}:\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            {
+                return true;
+            }
+
+            var tokenCount = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+            if (tokenCount <= 4)
+            {
+                return true;
+            }
+
+            var hasPredicateVerb = Regex.IsMatch(
+                normalized,
+                @"\b(shall|must|will|should|is|are|provides?|performs?|supports?|monitors?|contains?|includes?|allows?|records?|displays?|detects?|verifies?|ensures?)\b",
+                RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+            return !hasPredicateVerb && normalized.Length < 50;
         }
 
         private static (string Priority, string FixType, string SuggestedRewrite, string Disposition) BuildAnalysisTriage(
