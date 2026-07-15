@@ -4749,15 +4749,6 @@ Extract requirements now (JSON only):";
 
                 if (envelope == null || envelope.Requirements == null || envelope.Requirements.Count == 0)
                 {
-                    var recoveredRequirements = ParseRequirementsFromText(safeLlmResponse, attachment);
-                    if (recoveredRequirements.Count > 0)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Warn(
-                            $"[TemplateForm] Envelope parse produced no requirements; recovered {recoveredRequirements.Count} requirement(s) from raw response text.");
-                        progressCallback?.Invoke($"⚠️ Structured output was empty - recovered {recoveredRequirements.Count} requirement(s) from raw response.");
-                        return recoveredRequirements;
-                    }
-
                     TestCaseEditorApp.Services.Logging.Log.Error($"[TemplateForm] Failed to parse structured output - NO FALLBACK (legacy parsing disabled)");
                     progressCallback?.Invoke("❌ Structured extraction failed - Template Form Architecture required");
                     
