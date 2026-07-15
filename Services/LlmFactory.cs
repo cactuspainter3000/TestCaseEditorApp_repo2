@@ -67,18 +67,15 @@ namespace TestCaseEditorApp.Services
                             return new NoopTextGenerationService();
                         }
                         
-                        // Validate model availability before proceeding - fail fast if not available.
-                        // Keep this check short so it cannot hang app startup or pre-warm flows.
+                        // Validate model availability before proceeding - fail fast if not available
                         try
                         {
-                            using var validationTimeoutCts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(10));
                             var testRequest = new HttpRequestMessage(HttpMethod.Post, "/api/generate")
                             {
                                 Content = new StringContent($$"""{"model": "{{model}}", "prompt": "test", "stream": false}""", 
                                     System.Text.Encoding.UTF8, "application/json")
                             };
-                            var validationClient = new HttpClient { BaseAddress = new Uri("http://localhost:11434/"), Timeout = TimeSpan.FromSeconds(10) };
-                            var testResponse = validationClient.Send(testRequest, validationTimeoutCts.Token);
+                            var testResponse = ollamaClient.Send(testRequest);
                             if (!testResponse.IsSuccessStatusCode)
                             {
                                 var errorContent = testResponse.Content.ReadAsStringAsync().Result;
@@ -88,10 +85,6 @@ namespace TestCaseEditorApp.Services
                         catch (HttpRequestException ex)
                         {
                             throw new InvalidOperationException($"Cannot connect to Ollama service at http://localhost:11434. Please ensure Ollama is running with: ollama serve\n\nError: {ex.Message}\n\nTo temporarily bypass this for development, set environment variable: SKIP_LLM_VALIDATION=true");
-                        }
-                        catch (OperationCanceledException ex)
-                        {
-                            throw new InvalidOperationException($"Timed out validating Ollama model '{model}' after 10 seconds. Please verify Ollama is responsive or set SKIP_LLM_VALIDATION=true for development.\n\nError: {ex.Message}");
                         }
                         catch (InvalidOperationException)
                         {
