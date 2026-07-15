@@ -1051,10 +1051,6 @@ For a technical ATP/SRS document, expect 15-50+ requirements minimum.";
                 var sourcePrefixEvidence = ExtractFieldValue(reqData, new[] { "Source Prefix Evidence", "Prefix Evidence" });
                 var sourcePrefixConfidence = ExtractNullableDouble(
                     ExtractFieldValue(reqData, new[] { "Source Prefix Confidence", "Prefix Confidence" }));
-                var analysisPriority = ExtractFieldValue(reqData, new[] { "Analysis Priority", "Priority" });
-                var fixType = ExtractFieldValue(reqData, new[] { "Fix Type" });
-                var suggestedRewrite = ExtractFieldValue(reqData, new[] { "Suggested Rewrite", "Suggested Rewrite Text" });
-                var dispositionRecommendation = ExtractFieldValue(reqData, new[] { "Disposition Recommendation", "Disposition" });
 
                 var descriptionSections = new List<string> { text };
                 if (!string.IsNullOrWhiteSpace(purpose))
@@ -1082,10 +1078,6 @@ For a technical ATP/SRS document, expect 15-50+ requirements minimum.";
                     SourcePrefixType = sourcePrefixType ?? string.Empty,
                     SourcePrefixEvidence = sourcePrefixEvidence ?? string.Empty,
                     SourcePrefixConfidence = sourcePrefixConfidence,
-                    AnalysisPriority = analysisPriority ?? string.Empty,
-                    FixType = fixType ?? string.Empty,
-                    SuggestedRewrite = suggestedRewrite ?? string.Empty,
-                    DispositionRecommendation = dispositionRecommendation ?? string.Empty,
                     SourceSection = sourcePrefix ?? string.Empty,
                     TraceReference = BuildRequirementTraceReference(attachment.Id, id, 0),
                     SourceDocumentName = attachment.FileName,
@@ -2722,7 +2714,6 @@ Extract all legitimate requirements:";
                     string? id = null, text = null, category = null, page = null, sectionRef = null;
                     string? sourcePrefix = null, sourcePrefixType = null, sourcePrefixEvidence = null;
                     double? sourcePrefixConfidence = null;
-                    string? analysisPriority = null, fixType = null, suggestedRewrite = null, dispositionRecommendation = null;
                     
                     foreach (var line in lines)
                     {
@@ -2745,14 +2736,6 @@ Extract all legitimate requirements:";
                             sourcePrefixEvidence = trimmedLine.Substring(23).Trim();
                         else if (trimmedLine.StartsWith("Source Prefix Confidence:", StringComparison.OrdinalIgnoreCase))
                             sourcePrefixConfidence = ExtractNullableDouble(trimmedLine.Substring(25).Trim());
-                        else if (trimmedLine.StartsWith("Analysis Priority:", StringComparison.OrdinalIgnoreCase))
-                            analysisPriority = trimmedLine.Substring(18).Trim();
-                        else if (trimmedLine.StartsWith("Fix Type:", StringComparison.OrdinalIgnoreCase))
-                            fixType = trimmedLine.Substring(9).Trim();
-                        else if (trimmedLine.StartsWith("Suggested Rewrite:", StringComparison.OrdinalIgnoreCase))
-                            suggestedRewrite = trimmedLine.Substring(18).Trim();
-                        else if (trimmedLine.StartsWith("Disposition Recommendation:", StringComparison.OrdinalIgnoreCase))
-                            dispositionRecommendation = trimmedLine.Substring(27).Trim();
                     }
                     
                     if (!string.IsNullOrEmpty(text) && IsValidRequirement(text))
@@ -2781,10 +2764,6 @@ Extract all legitimate requirements:";
                             SourcePrefixType = sourcePrefixType ?? string.Empty,
                             SourcePrefixEvidence = sourcePrefixEvidence ?? string.Empty,
                             SourcePrefixConfidence = sourcePrefixConfidence,
-                            AnalysisPriority = analysisPriority ?? string.Empty,
-                            FixType = fixType ?? string.Empty,
-                            SuggestedRewrite = suggestedRewrite ?? string.Empty,
-                            DispositionRecommendation = dispositionRecommendation ?? string.Empty,
                             SourceSection = resolvedSourcePrefix ?? string.Empty,
                             TraceReference = BuildRequirementTraceReference(attachment.Id, id, requirements.Count + 1),
                             SourceDocumentName = attachment.FileName,
@@ -2883,37 +2862,6 @@ Extract all legitimate requirements:";
             return $"{structuralExcerpt}\n\n[Context]\n{contextContent}";
         }
 
-        private static string BuildFlagPriorityGuidance(DocumentRequirementExtractionResult? extractionFoundation)
-        {
-            if (extractionFoundation == null || extractionFoundation.Candidates.Count == 0)
-            {
-                return "No extraction triage flags available; process all candidates normally.";
-            }
-
-            var flaggedCandidates = extractionFoundation.Candidates
-                .Where(candidate => candidate.AnalysisFlags != null && candidate.AnalysisFlags.Count > 0)
-                .ToList();
-
-            if (flaggedCandidates.Count == 0)
-            {
-                return "No analysis flags present; process candidates using confidence and provenance evidence.";
-            }
-
-            var topFlags = flaggedCandidates
-                .SelectMany(candidate => candidate.AnalysisFlags)
-                .GroupBy(flag => flag, StringComparer.OrdinalIgnoreCase)
-                .OrderByDescending(group => group.Count())
-                .Take(5)
-                .Select(group => $"{group.Key}: {group.Count()}")
-                .ToList();
-
-            var highPriority = flaggedCandidates.Count(candidate =>
-                string.Equals(candidate.AnalysisPriority, "High", StringComparison.OrdinalIgnoreCase));
-
-            return $"Flagged candidates: {flaggedCandidates.Count}/{extractionFoundation.Candidates.Count}; " +
-                   $"high priority: {highPriority}; top flags => {string.Join(" | ", topFlags)}";
-        }
-
         private static EnvelopeSchema BuildRequirementExtractionEnvelopeSchema()
         {
             return new EnvelopeSchema
@@ -2993,10 +2941,6 @@ Extract all legitimate requirements:";
                     SourcePrefixType = ExtractJsonStringValue(rawObject, "source_prefix_type"),
                     SourcePrefixEvidence = ExtractJsonStringValue(rawObject, "source_prefix_evidence"),
                     SourcePrefixConfidence = ExtractJsonDoubleValue(rawObject, "source_prefix_confidence"),
-                    AnalysisPriority = ExtractJsonStringValue(rawObject, "analysis_priority"),
-                    FixType = ExtractJsonStringValue(rawObject, "fix_type"),
-                    SuggestedRewrite = ExtractJsonStringValue(rawObject, "suggested_rewrite"),
-                    DispositionRecommendation = ExtractJsonStringValue(rawObject, "disposition_recommendation"),
                     Confidence = ExtractJsonDoubleValue(rawObject, "confidence") ?? 0.7
                 });
             }
@@ -4623,10 +4567,6 @@ Extract all legitimate requirements:";
                             source_prefix_type = "string (section|document_id|table|figure|step|heading|unknown)",
                             source_prefix_evidence = "string (exact text snippet proving the prefix choice)",
                             source_prefix_confidence = "number (0.0-1.0, confidence that the prefix is correct)",
-                            analysis_priority = "string (High|Medium|Low, triage urgency for human review)",
-                            fix_type = "string (short remediation category for analyst)",
-                            suggested_rewrite = "string (optional rewrite preserving source intent)",
-                            disposition_recommendation = "string (Accept|NeedsReview with rationale)",
                             confidence = "number (0.0-1.0, extraction confidence)"
                         }
                     },
@@ -4660,22 +4600,12 @@ Extract all legitimate requirements:";
                 var focusedContent = !string.IsNullOrWhiteSpace(extractionFoundation?.NormalizedContent)
                     ? extractionFoundation!.BuildPromptContext(12000)
                     : BuildRequirementFocusedExcerpt(documentContent, 12000);
-                var flagPriorityGuidance = BuildFlagPriorityGuidance(extractionFoundation);
                 var prompt = $@"Extract all technical requirements from this document. Requirements typically use words like 'shall', 'must', 'will', or 'should' and define what a system must do or how it must perform.
 
 DOCUMENT: {attachment.FileName}
 
 CONTENT:
 {focusedContent}
-
-ANALYSIS TRIAGE GUIDANCE:
-{flagPriorityGuidance}
-
-When triage flags are present in the evidence ledger, prioritize these in order:
-1) Missing Modal Verb
-2) Missing Explicit Identifier
-3) Needs Human Reconciliation / Very Low Composite Evidence
-For flagged candidates, preserve the requirement intent, normalize into verifiable requirement phrasing, and avoid dropping potentially salvageable requirements.
 
 IMPORTANT: Respond ONLY with valid JSON matching this schema:
 {schemaJson}
@@ -4734,18 +4664,6 @@ Extract requirements now (JSON only):";
                             continue;
                         }
                         throw; // Different error - don't retry
-                    }
-                    catch (TaskCanceledException timeoutEx) when (!cancellationToken.IsCancellationRequested && attempt < maxRetries)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[TemplateForm] Request timeout on attempt {attempt + 1}/{maxRetries + 1}: {timeoutEx.Message}. Retrying in {retryDelayMs}ms...");
-                        progressCallback?.Invoke($"⏳ Extraction request timed out - retrying ({attempt + 1}/{maxRetries + 1})...");
-                        await Task.Delay(retryDelayMs, cancellationToken);
-                        retryDelayMs *= 2;
-
-                        if (attempt == maxRetries - 1)
-                        {
-                            shouldRestartOllama = true;
-                        }
                     }
                 }
 
@@ -4885,10 +4803,6 @@ Extract requirements now (JSON only):";
                         SourcePrefixType = req.SourcePrefixType ?? string.Empty,
                         SourcePrefixEvidence = req.SourcePrefixEvidence ?? string.Empty,
                         SourcePrefixConfidence = req.SourcePrefixConfidence,
-                        AnalysisPriority = req.AnalysisPriority ?? string.Empty,
-                        FixType = req.FixType ?? string.Empty,
-                        SuggestedRewrite = req.SuggestedRewrite ?? string.Empty,
-                        DispositionRecommendation = req.DispositionRecommendation ?? string.Empty,
                         SourceSection = resolvedSourcePrefix ?? string.Empty,
                         TraceReference = BuildRequirementTraceReference(attachment.Id, req.Id, extractedRequirements.Count + 1),
                         SourceDocumentName = attachment.FileName,
@@ -5035,22 +4949,10 @@ Extract requirements now (JSON only):";
             public string? Category { get; set; }
             public string? Page { get; set; }
             public string? Section { get; set; }
-            [System.Text.Json.Serialization.JsonPropertyName("source_prefix")]
             public string? SourcePrefix { get; set; }
-            [System.Text.Json.Serialization.JsonPropertyName("source_prefix_type")]
             public string? SourcePrefixType { get; set; }
-            [System.Text.Json.Serialization.JsonPropertyName("source_prefix_evidence")]
             public string? SourcePrefixEvidence { get; set; }
-            [System.Text.Json.Serialization.JsonPropertyName("source_prefix_confidence")]
             public double? SourcePrefixConfidence { get; set; }
-            [System.Text.Json.Serialization.JsonPropertyName("analysis_priority")]
-            public string? AnalysisPriority { get; set; }
-            [System.Text.Json.Serialization.JsonPropertyName("fix_type")]
-            public string? FixType { get; set; }
-            [System.Text.Json.Serialization.JsonPropertyName("suggested_rewrite")]
-            public string? SuggestedRewrite { get; set; }
-            [System.Text.Json.Serialization.JsonPropertyName("disposition_recommendation")]
-            public string? DispositionRecommendation { get; set; }
             public double Confidence { get; set; } = 0.8;
         }
 
