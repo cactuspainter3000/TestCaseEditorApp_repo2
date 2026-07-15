@@ -50,6 +50,11 @@ namespace TestCaseEditorApp.Services
         // Derived/gap requirements must be produced manually by systems engineering review.
         private const bool ENABLE_AUTOMATIC_DERIVED_REQUIREMENTS = false;
         
+        // Runtime guardrails: full LLM enrichment can trigger 4 calls per requirement.
+        // Keep a hard budget so large extraction runs do not take excessively long.
+        private const int MAX_REQUIREMENTS_FOR_FULL_LLM_ENRICHMENT = 60;
+        private const int MAX_LLM_ENRICHMENT_CALL_BUDGET = 80;
+        
         private const string PARSING_WORKSPACE_PREFIX = "jama-doc-parse";
 
         public bool IsConfigured => _jamaService.IsConfigured && (_llmService != null || _directRagService?.IsConfigured == true);
@@ -137,9 +142,7 @@ namespace TestCaseEditorApp.Services
                         TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] ParserReturn AttachmentId={attachment.Id} FileName={attachment.FileName} Source=DirectRag Count={directRagRequirements.Count} Sample={BuildRequirementTraceSample(directRagRequirements)}");
                         EnrichRequirementsWithAttachmentMetadata(directRagRequirements, attachment);
                         EnrichRequirementsWithValidationMethod(directRagRequirements);
-                        await EnrichRequirementsWithVerificationMethodAsync(directRagRequirements, cancellationToken);
-                        await EnrichRequirementsWithAllocationAsync(directRagRequirements, cancellationToken);
-                        await EnrichRequirementsWithJamaPicklistHintsAsync(directRagRequirements, cancellationToken);
+                        await EnrichRequirementsWithRuntimeBudgetAsync(directRagRequirements, progressCallback, cancellationToken);
                         return directRagRequirements;
                     }
                     else
@@ -154,9 +157,7 @@ namespace TestCaseEditorApp.Services
                 TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] ParserReturn AttachmentId={attachment.Id} FileName={attachment.FileName} Source=AnythingLLM Count={anythingLlmRequirements.Count} Sample={BuildRequirementTraceSample(anythingLlmRequirements)}");
                 EnrichRequirementsWithAttachmentMetadata(anythingLlmRequirements, attachment);
                 EnrichRequirementsWithValidationMethod(anythingLlmRequirements);
-                await EnrichRequirementsWithVerificationMethodAsync(anythingLlmRequirements, cancellationToken);
-                await EnrichRequirementsWithAllocationAsync(anythingLlmRequirements, cancellationToken);
-                await EnrichRequirementsWithJamaPicklistHintsAsync(anythingLlmRequirements, cancellationToken);
+                await EnrichRequirementsWithRuntimeBudgetAsync(anythingLlmRequirements, progressCallback, cancellationToken);
                 return anythingLlmRequirements;
             }
             catch (Exception ex)
@@ -1797,6 +1798,255 @@ But thoroughly scan all sections first before concluding.";
         }
 
         /// <summary>
+        /// Apply runtime guardrails to enrichment so large extraction sets avoid long per-item LLM loops.
+        /// </summary>
+        private async Task EnrichRequirementsWithRuntimeBudgetAsync(
+            List<Requirement> requirements,
+            System.Action<string>? progressCallback,
+            CancellationToken cancellationToken = default)
+        {
+            if (requirements == null || requirements.Count == 0)
+                return;
+
+            var maxByBudget = Math.Max(1, MAX_LLM_ENRICHMENT_CALL_BUDGET);
+            var maxFullLlmRequirements = Math.Min(MAX_REQUIREMENTS_FOR_FULL_LLM_ENRICHMENT, maxByBudget);
+            var useDeterministicOnly = _textGenerationService == null || requirements.Count > maxFullLlmRequirements;
+
+            if (useDeterministicOnly)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn(
+                    $"[FieldEnrichment] Using deterministic enrichment for {requirements.Count} requirements (LLM budget threshold: {maxFullLlmRequirements})");
+                progressCallback?.Invoke($"⚡ Applying fast deterministic enrichment to {requirements.Count} requirements...");
+                EnrichRequirementsDeterministically(requirements);
+                return;
+            }
+
+            progressCallback?.Invoke($"🧩 Enriching {requirements.Count} requirements with bundled AI field selection...");
+            await EnrichRequirementsWithBundledLlmAsync(requirements, cancellationToken);
+        }
+
+        /// <summary>
+        /// Fast, deterministic field enrichment fallback for high-volume extraction runs.
+        /// </summary>
+        private static void EnrichRequirementsDeterministically(List<Requirement> requirements)
+        {
+            foreach (var requirement in requirements.Where(r => r != null))
+            {
+                EnrichRequirementDeterministically(requirement);
+            }
+
+            TestCaseEditorApp.Services.Logging.Log.Info($"[FieldEnrichment] Deterministic enrichment completed for {requirements.Count} requirements");
+        }
+
+        private static void EnrichRequirementDeterministically(Requirement requirement)
+        {
+            if (requirement == null)
+                return;
+
+            var corpus = $"{requirement.Name} {requirement.Description}".ToLowerInvariant();
+
+            if (requirement.Method == VerificationMethod.Unassigned && (requirement.VerificationMethods == null || requirement.VerificationMethods.Count == 0))
+            {
+                var method = InferVerificationMethod(corpus);
+                requirement.Method = method;
+                requirement.AddVerificationMethod(method);
+            }
+
+            if (requirement.Allocation == AllocationTarget.Unassigned)
+            {
+                requirement.Allocation = InferAllocation(corpus);
+            }
+
+            if (string.IsNullOrWhiteSpace(requirement.RequirementType))
+            {
+                requirement.RequirementType = InferRequirementType(corpus);
+            }
+
+            if (string.IsNullOrWhiteSpace(requirement.Status))
+            {
+                requirement.Status = "Draft";
+                requirement.RelationshipStatus = "Draft";
+            }
+        }
+
+        /// <summary>
+        /// Enrich each requirement with one structured LLM call that returns all target fields.
+        /// </summary>
+        private async Task EnrichRequirementsWithBundledLlmAsync(List<Requirement> requirements, CancellationToken cancellationToken = default)
+        {
+            if (requirements == null || _textGenerationService == null)
+                return;
+
+            try
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[FieldEnrichment] Starting bundled enrichment for {requirements.Count} requirements");
+
+                foreach (var requirement in requirements.Where(r => r != null))
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn("[FieldEnrichment] Bundled enrichment cancelled");
+                        break;
+                    }
+
+                    var prompt = BuildBundledFieldEnrichmentPrompt(requirement);
+                    var response = await _textGenerationService.GenerateAsync(prompt, cancellationToken);
+
+                    if (string.IsNullOrWhiteSpace(response))
+                    {
+                        EnrichRequirementDeterministically(requirement);
+                        continue;
+                    }
+
+                    var applied = TryApplyBundledFieldEnrichmentResponse(requirement, response);
+                    if (!applied)
+                    {
+                        EnrichRequirementDeterministically(requirement);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[FieldEnrichment] Error during bundled enrichment: {ex.Message}");
+                EnrichRequirementsDeterministically(requirements);
+            }
+        }
+
+        private string BuildBundledFieldEnrichmentPrompt(Requirement requirement)
+        {
+            return $@"You are enriching requirement metadata. Return ONLY valid JSON with this exact shape:
+{{
+  ""verificationMethod"": ""Analysis|Simulation|Demonstration|Inspection|ServiceHistory|Test|TestUnintendedFunction|VerifiedAtAnotherLevel"",
+  ""allocation"": ""Hardware|Software|Both"",
+  ""requirementType"": ""System|Hardware|Software|Interface|Performance|Safety|Security|Reliability|Environmental|User Selection Required"",
+  ""status"": ""Draft|Proposed|In Review|Approved|Rejected|User Selection Required""
+}}
+
+Requirement ID: {requirement.Item}
+Requirement Name: {requirement.Name}
+Requirement Description: {requirement.Description}
+
+Rules:
+- Choose one value from each allowed set.
+- Do not include markdown, prose, or extra keys.
+- If uncertain, use: Test, Both, System, Draft.
+
+JSON only:";
+        }
+
+        private bool TryApplyBundledFieldEnrichmentResponse(Requirement requirement, string response)
+        {
+            if (requirement == null || string.IsNullOrWhiteSpace(response))
+                return false;
+
+            try
+            {
+                var jsonText = response.Trim();
+                var jsonStart = jsonText.IndexOf('{');
+                var jsonEnd = jsonText.LastIndexOf('}');
+                if (jsonStart >= 0 && jsonEnd > jsonStart)
+                {
+                    jsonText = jsonText.Substring(jsonStart, jsonEnd - jsonStart + 1);
+                }
+
+                var selection = JsonSerializer.Deserialize<BundledFieldEnrichmentSelection>(jsonText, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (selection == null)
+                    return false;
+
+                var appliedAny = false;
+
+                var selectedMethod = ParseVerificationMethodFromResponse(selection.VerificationMethod ?? string.Empty);
+                if (selectedMethod.HasValue)
+                {
+                    requirement.Method = selectedMethod.Value;
+                    requirement.AddVerificationMethod(selectedMethod.Value);
+                    appliedAny = true;
+                }
+
+                var selectedAllocation = ParseAllocationFromResponse(selection.Allocation ?? string.Empty);
+                if (selectedAllocation != AllocationTarget.Unassigned)
+                {
+                    requirement.Allocation = selectedAllocation;
+                    appliedAny = true;
+                }
+
+                var selectedType = ParseRequirementTypeFromResponse(selection.RequirementType);
+                if (!string.IsNullOrWhiteSpace(selectedType))
+                {
+                    requirement.RequirementType = selectedType;
+                    appliedAny = true;
+                }
+
+                var selectedStatus = ParseRequirementStatusFromResponse(selection.Status);
+                if (!string.IsNullOrWhiteSpace(selectedStatus))
+                {
+                    requirement.Status = selectedStatus;
+                    requirement.RelationshipStatus = selectedStatus;
+                    appliedAny = true;
+                }
+
+                return appliedAny;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private sealed class BundledFieldEnrichmentSelection
+        {
+            public string? VerificationMethod { get; set; }
+            public string? Allocation { get; set; }
+            public string? RequirementType { get; set; }
+            public string? Status { get; set; }
+        }
+
+        private static VerificationMethod InferVerificationMethod(string corpus)
+        {
+            if (corpus.Contains("inspect") || corpus.Contains("review") || corpus.Contains("document"))
+                return VerificationMethod.Inspection;
+            if (corpus.Contains("simulate") || corpus.Contains("model"))
+                return VerificationMethod.Simulation;
+            if (corpus.Contains("analy") || corpus.Contains("calculate") || corpus.Contains("derive"))
+                return VerificationMethod.Analysis;
+            if (corpus.Contains("demonstrat") || corpus.Contains("show"))
+                return VerificationMethod.Demonstration;
+
+            return VerificationMethod.Test;
+        }
+
+        private static AllocationTarget InferAllocation(string corpus)
+        {
+            var hasHardwareCue = corpus.Contains("hardware") || corpus.Contains("board") || corpus.Contains("connector") || corpus.Contains("pin") || corpus.Contains("voltage") || corpus.Contains("electrical") || corpus.Contains("mechanical") || corpus.Contains("sensor");
+            var hasSoftwareCue = corpus.Contains("software") || corpus.Contains("firmware") || corpus.Contains("algorithm") || corpus.Contains("logic") || corpus.Contains("code") || corpus.Contains("data") || corpus.Contains("database") || corpus.Contains("ui");
+
+            if (hasHardwareCue && hasSoftwareCue)
+                return AllocationTarget.Both;
+            if (hasHardwareCue)
+                return AllocationTarget.Hardware;
+            if (hasSoftwareCue)
+                return AllocationTarget.Software;
+
+            return AllocationTarget.Both;
+        }
+
+        private static string InferRequirementType(string corpus)
+        {
+            if (corpus.Contains("safety") || corpus.Contains("hazard")) return "Safety";
+            if (corpus.Contains("security") || corpus.Contains("auth") || corpus.Contains("encrypt")) return "Security";
+            if (corpus.Contains("latency") || corpus.Contains("throughput") || corpus.Contains("response time") || corpus.Contains("performance")) return "Performance";
+            if (corpus.Contains("interface") || corpus.Contains("protocol") || corpus.Contains("api") || corpus.Contains("connector")) return "Interface";
+            if (corpus.Contains("software") || corpus.Contains("firmware") || corpus.Contains("algorithm")) return "Software";
+            if (corpus.Contains("hardware") || corpus.Contains("electrical") || corpus.Contains("mechanical")) return "Hardware";
+
+            return "System";
+        }
+
+        /// <summary>
         /// Enrich requirements with verification method using LLM assistance
         /// Selects from: Analysis, Simulation, Demonstration, Inspection, ServiceHistory, Test, TestUnintendedFunction, VerifiedAtAnotherLevel
         /// </summary>
@@ -1811,6 +2061,12 @@ But thoroughly scan all sections first before concluding.";
 
                 foreach (var requirement in requirements.Where(r => r != null))
                 {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn("[FieldEnrichment] Verification method enrichment cancelled");
+                        break;
+                    }
+
                     var prompt = BuildVerificationMethodSelectionPrompt(requirement);
                     var response = await _textGenerationService.GenerateAsync(prompt, cancellationToken);
                     
@@ -1848,6 +2104,12 @@ But thoroughly scan all sections first before concluding.";
 
                 foreach (var requirement in requirements.Where(r => r != null))
                 {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn("[FieldEnrichment] Allocation enrichment cancelled");
+                        break;
+                    }
+
                     var prompt = BuildAllocationSelectionPrompt(requirement);
                     var response = await _textGenerationService.GenerateAsync(prompt, cancellationToken);
                     
@@ -1966,6 +2228,12 @@ Respond with ONLY one of: Hardware, Software, Both. Nothing else. If unsure, res
 
                 foreach (var requirement in requirements.Where(r => r != null))
                 {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn("[FieldEnrichment] Jama picklist hint enrichment cancelled");
+                        break;
+                    }
+
                     var typePrompt = BuildRequirementTypeSelectionPrompt(requirement);
                     var typeResponse = await _textGenerationService.GenerateAsync(typePrompt, cancellationToken);
                     var selectedType = ParseRequirementTypeFromResponse(typeResponse);
