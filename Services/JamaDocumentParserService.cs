@@ -5256,11 +5256,13 @@ Extract requirements now (JSON only):";
 
             var generatedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var seenBodies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var isAtpDocument = IsAtpDocument(attachment.FileName, string.Empty);
 
             var selectedCandidates = extractionFoundation.Candidates
                 .Where(candidate => candidate != null &&
                                     !string.IsNullOrWhiteSpace(candidate.NormalizedText) &&
-                                    (candidate.Status == ExtractionCandidateStatus.Accepted || candidate.Status == ExtractionCandidateStatus.NeedsReview))
+                                    (candidate.Status == ExtractionCandidateStatus.Accepted ||
+                                     (candidate.Status == ExtractionCandidateStatus.NeedsReview && candidate.Confidence >= 0.45)))
                 .OrderBy(candidate => candidate.Status == ExtractionCandidateStatus.Accepted ? 0 : 1)
                 .ThenByDescending(candidate => candidate.Confidence)
                 .ThenBy(candidate => candidate.BlockIndex)
@@ -5273,11 +5275,11 @@ Extract requirements now (JSON only):";
 
                 var requirementBody = string.Empty;
 
-                if (IsValidFoundationRequirementBody(cleanedText))
+                if (IsValidFoundationRequirementBody(cleanedText, isAtpDocument))
                 {
                     requirementBody = cleanedText;
                 }
-                else if (IsValidFoundationRewriteBody(rewrittenText))
+                else if (IsValidFoundationRewriteBody(rewrittenText, isAtpDocument))
                 {
                     requirementBody = rewrittenText;
                 }
@@ -5329,8 +5331,13 @@ Extract requirements now (JSON only):";
             return fallbackRequirements;
         }
 
-        private bool IsValidFoundationRequirementBody(string? text)
+        private bool IsValidFoundationRequirementBody(string? text, bool isAtpDocument)
         {
+            if (isAtpDocument)
+            {
+                return IsValidAtpFoundationCandidate(text);
+            }
+
             if (!IsValidRequirement(text))
             {
                 return false;
@@ -5344,8 +5351,13 @@ Extract requirements now (JSON only):";
             return true;
         }
 
-        private bool IsValidFoundationRewriteBody(string? text)
+        private bool IsValidFoundationRewriteBody(string? text, bool isAtpDocument)
         {
+            if (isAtpDocument)
+            {
+                return IsValidAtpFoundationCandidate(text);
+            }
+
             if (!IsValidRequirement(text))
             {
                 return false;
@@ -5357,6 +5369,59 @@ Extract requirements now (JSON only):";
             }
 
             return true;
+        }
+
+        private static bool IsValidAtpFoundationCandidate(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var normalized = text.Trim();
+            if (normalized.Length < 20)
+            {
+                return false;
+            }
+
+            if (ContainsFoundationArtifactNoise(normalized))
+            {
+                return false;
+            }
+
+            var lower = normalized.ToLowerInvariant();
+
+            // Reject document boilerplate/header noise.
+            if (lower.Contains("cage code") ||
+                lower.Contains("proprietary") ||
+                lower.Contains("table of contents") ||
+                lower.Contains("revision history") ||
+                lower.StartsWith("from:") ||
+                lower.StartsWith("document:") ||
+                lower.StartsWith("section:"))
+            {
+                return false;
+            }
+
+            var words = lower.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length < 5)
+            {
+                return false;
+            }
+
+            // ATP often uses verification phrasing that may not look like pure system requirements.
+            var hasVerificationLanguage =
+                lower.Contains("shall") ||
+                lower.Contains("must") ||
+                lower.Contains("will") ||
+                lower.Contains("should") ||
+                lower.Contains("verify") ||
+                lower.Contains("verification") ||
+                lower.Contains("test") ||
+                lower.Contains("procedure") ||
+                lower.Contains("step");
+
+            return hasVerificationLanguage;
         }
 
         private static string NormalizeFoundationRecoveryText(string? text)
