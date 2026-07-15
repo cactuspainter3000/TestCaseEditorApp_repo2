@@ -122,6 +122,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Dashboard.ViewModels
         }
 
         [RelayCommand]
+        public void OpenExtractionTroubleshooter()
+        {
+            try
+            {
+                _logger.LogInformation("[DashboardViewModel] Opening extraction troubleshooter");
+                StatusMessage = "Opening extraction troubleshooter...";
+                _navigationMediator.NavigateToSection("project");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[DashboardViewModel] Error opening extraction troubleshooter");
+                StatusMessage = $"Error: {ex.Message}";
+            }
+        }
+
+        [RelayCommand]
         public async Task OpenSelectedWorkshop()
         {
             if (SelectedRecentProject == null)
