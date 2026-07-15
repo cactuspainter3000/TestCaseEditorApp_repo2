@@ -5268,8 +5268,8 @@ Extract requirements now (JSON only):";
 
             foreach (var candidate in selectedCandidates)
             {
-                var cleanedText = SanitizeRequirementBodyText(candidate.NormalizedText);
-                var rewrittenText = SanitizeRequirementBodyText(candidate.SuggestedRewrite);
+                var cleanedText = NormalizeFoundationRecoveryText(SanitizeRequirementBodyText(candidate.NormalizedText));
+                var rewrittenText = NormalizeFoundationRecoveryText(SanitizeRequirementBodyText(candidate.SuggestedRewrite));
 
                 var requirementBody = string.Empty;
 
@@ -5356,13 +5356,37 @@ Extract requirements now (JSON only):";
                 return false;
             }
 
-            var normalized = text?.Trim() ?? string.Empty;
-            if (normalized.StartsWith("The system shall satisfy the following requirement intent", StringComparison.OrdinalIgnoreCase))
+            return true;
+        }
+
+        private static string NormalizeFoundationRecoveryText(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
             {
-                return false;
+                return string.Empty;
             }
 
-            return true;
+            var normalized = text.Trim();
+
+            // Strip common DOCX TOC artifacts that pollute recovered candidates.
+            normalized = Regex.Replace(normalized, @"_Toc\d+", " ", RegexOptions.IgnoreCase);
+            normalized = Regex.Replace(normalized, @"\\h\s*\d+", " ", RegexOptions.IgnoreCase);
+
+            // Clean synthetic instruction wrappers while preserving requirement intent content.
+            normalized = Regex.Replace(
+                normalized,
+                @"^\s*The\s+system\s+shall\s+satisfy\s+the\s+following\s+requirement\s+intent\s*:\s*",
+                "",
+                RegexOptions.IgnoreCase);
+
+            normalized = Regex.Replace(
+                normalized,
+                @"^\s*\[Assign\s+requirement\s+ID\]\s*The\s+system\s+shall\s+meet\s+the\s+requirement\s+statement\s*:\s*",
+                "",
+                RegexOptions.IgnoreCase);
+
+            normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
+            return normalized;
         }
 
         private static bool ContainsFoundationArtifactNoise(string? text)
