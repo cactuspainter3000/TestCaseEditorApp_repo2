@@ -33,7 +33,7 @@ namespace TestCaseEditorApp.MVVM.Utils
             // Console.WriteLine($"*** NavigationMediator: NavigateToSection('{sectionName}') called ***");
             
             // Write to log file for easier debugging
-            // System.IO.File.AppendAllText(@"c:\temp\navigation-debug.log", 
+            // System.IO.File.AppendAllText(Path.Combine(Path.GetTempPath(), "TestCaseEditorApp", "navigation-debug.log"), 
             //     $"[{DateTime.Now:HH:mm:ss}] NavigationMediator: NavigateToSection('{sectionName}') called\n");
             
             _logger?.LogDebug("Navigation request: {PreviousSection} -> {NewSection}", 
@@ -43,7 +43,7 @@ namespace TestCaseEditorApp.MVVM.Utils
             // System.Diagnostics.Debug.WriteLine($"*** NavigationMediator: Publishing SectionChangeRequested ***");
             // Console.WriteLine($"*** NavigationMediator: Publishing SectionChangeRequested for '{sectionName}' ***");
             
-            // System.IO.File.AppendAllText(@"c:\temp\navigation-debug.log", 
+            // System.IO.File.AppendAllText(Path.Combine(Path.GetTempPath(), "TestCaseEditorApp", "navigation-debug.log"), 
             //     $"[{DateTime.Now:HH:mm:ss}] NavigationMediator: Publishing SectionChangeRequested for '{sectionName}'\n");
                 
             Publish(new NavigationEvents.SectionChangeRequested(sectionName, context));

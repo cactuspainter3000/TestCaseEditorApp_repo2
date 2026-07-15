@@ -57,6 +57,7 @@ Between the March 13, 2026 snapshot (`40c99d4`) and the April 6, 2026 merge (`dd
 2. **After every snapshot restore, check `Services/JamaConnectService.cs` for the OAuth token request and ensure it uses `FormUrlEncodedContent` with `scope=token_information`.**
 3. **`TestConnectionAsync()` must NOT gate the project-load flow.** The Jama server at Rockwell Collins returns HTTP 500 on `/rest/v1/projects` due to a server-side pagination bug. This makes `TestConnection` always fail even when OAuth is working. Use it only for the "Test Connection" button, not as a guard in Browse/load flows.
 4. **The working Jama UI commit is `40c99d4` (March 13, 2026).** If Jama breaks again, compare against this commit first: `git diff 40c99d4 HEAD -- MVVM/Domains/NewProject/ViewModels/NewProjectWorkflowViewModel.cs`
+5. **Do not hardcode machine-specific drive paths in scripts or source code.** Use environment-based and platform APIs (`Path.GetTempPath()`, `Environment.SpecialFolder`, `%TEMP%`, `%USERPROFILE%`) so the repo remains portable across drives (for example C: and D:).
 
 ---
 

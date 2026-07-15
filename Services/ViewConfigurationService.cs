@@ -273,15 +273,17 @@ namespace TestCaseEditorApp.Services
         {
             Console.WriteLine($"[DEBUG] TestCaseGenerator called with context: {context}");
             Console.WriteLine($"[DEBUG] Creating TestCaseGenerator configuration...");
+            var debugLogPath = Path.Combine(Path.GetTempPath(), "TestCaseEditorApp", "navigation-debug.log");
+            Directory.CreateDirectory(Path.GetDirectoryName(debugLogPath)!);
             
-            File.AppendAllText(@"c:\temp\navigation-debug.log", 
+            File.AppendAllText(debugLogPath, 
                 $"[{DateTime.Now:HH:mm:ss}] DebugAndCallTestCaseGenerator: Creating TestCaseGenerator configuration with context: {context}\n");
                 
             var config = CreateTestCaseGeneratorConfiguration(context);
             Console.WriteLine($"[DEBUG] TestCaseGenerator config created.");
             Console.WriteLine($"[DEBUG] Config type: {config?.GetType().Name}");
             
-            File.AppendAllText(@"c:\temp\navigation-debug.log", 
+            File.AppendAllText(debugLogPath, 
                 $"[{DateTime.Now:HH:mm:ss}] DebugAndCallTestCaseGenerator: TestCaseGenerator config created - type: {config?.GetType().Name}\n");
                 
             return config;

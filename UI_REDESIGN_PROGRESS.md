@@ -239,7 +239,7 @@ User clicks "Attachment Scraper" → Modal opens
 ## Build Command
 
 ```powershell
-cd C:\Users\nicol\TestCaseEditorApp_repo2
+cd .
 dotnet build TestCaseEditorApp.csproj
 ```
 

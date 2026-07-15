@@ -1,5 +1,5 @@
 param(
-    [string]$DocumentPath = "c:\Users\e10653214\Downloads\Decagon_Boundary Scan.docx",
+    [string]$DocumentPath = "$env:USERPROFILE\Downloads\Decagon_Boundary Scan.docx",
     [string]$OutputPath = ".\decagon_word_content.txt"
 )
 

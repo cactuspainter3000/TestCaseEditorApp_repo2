@@ -328,7 +328,7 @@ namespace TestCaseEditorApp.Services
             // Common workspace storage locations
             var searchLocations = new[]
             {
-                @"C:\Users\e10653214\Desktop\testing import", // Known test folder
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "testing import"), // Known test folder name
                 Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
                 Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "TestCaseEditor"),

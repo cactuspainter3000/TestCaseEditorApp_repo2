@@ -245,8 +245,8 @@ public static class WorkspaceService
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Failed to write companion marker: {ex.Message}");
         }
 
-        // Fallback diagnostics: also append to a system-wide temp log and drop a
-        // copy of the saved JSON into C:\Temp\TestCaseEditorApp so we can find
+        // Fallback diagnostics: also append to a system temp log and drop a
+        // copy of the saved JSON into %TEMP%\TestCaseEditorApp so we can find
         // it even if Desktop is redirected or permissions differ.
         try
         {
