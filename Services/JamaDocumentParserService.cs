@@ -4642,11 +4642,7 @@ Extract requirements now (JSON only):";
                 {
                     try
                     {
-                        using var attemptCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                        attemptCts.CancelAfter(TimeSpan.FromSeconds(90));
-                        TestCaseEditorApp.Services.Logging.Log.Info(
-                            $"[TemplateForm] Generation attempt {attempt + 1}/{maxRetries + 1} with 90s timeout (prompt length: {prompt.Length})");
-                        llmResponse = await _textGenerationService.GenerateAsync(prompt, attemptCts.Token);
+                        llmResponse = await _textGenerationService.GenerateAsync(prompt, cancellationToken);
                         break; // Success - exit retry loop
                     }
                     catch (HttpRequestException httpEx) when (httpEx.Message.Contains("500") && attempt < maxRetries)
@@ -4669,18 +4665,6 @@ Extract requirements now (JSON only):";
                         }
                         throw; // Different error - don't retry
                     }
-                    catch (TaskCanceledException timeoutEx) when (!cancellationToken.IsCancellationRequested && attempt < maxRetries)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[TemplateForm] Request timeout on attempt {attempt + 1}/{maxRetries + 1}: {timeoutEx.Message}. Retrying in {retryDelayMs}ms...");
-                        progressCallback?.Invoke($"⏳ Extraction request timed out - retrying ({attempt + 1}/{maxRetries + 1})...");
-                        await Task.Delay(retryDelayMs, cancellationToken);
-                        retryDelayMs *= 2;
-
-                        if (attempt == maxRetries - 1)
-                        {
-                            shouldRestartOllama = true;
-                        }
-                    }
                 }
 
                 // If all retries failed with model loading timeout, try restarting Ollama
@@ -4696,11 +4680,7 @@ Extract requirements now (JSON only):";
                         progressCallback?.Invoke("✅ Ollama restarted - making final attempt...");
                         
                         // Final attempt after restart
-                        using var finalAttemptCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                        finalAttemptCts.CancelAfter(TimeSpan.FromSeconds(90));
-                        TestCaseEditorApp.Services.Logging.Log.Info(
-                            $"[TemplateForm] Final generation attempt after restart with 90s timeout (prompt length: {prompt.Length})");
-                        llmResponse = await _textGenerationService.GenerateAsync(prompt, finalAttemptCts.Token);
+                        llmResponse = await _textGenerationService.GenerateAsync(prompt, cancellationToken);
                     }
                     catch (Exception restartEx)
                     {
