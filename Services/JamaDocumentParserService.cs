@@ -1618,13 +1618,13 @@ But thoroughly scan all sections first before concluding.";
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Insufficient context content ({contextContent?.Length ?? 0} chars) - using full document");
                     // Use the extracted document content directly if RAG context is insufficient  
-                    contextContent = documentContent.Length > 12000 ? documentContent.Substring(0, 12000) + "..." : documentContent;
+                    contextContent = documentContent.Length > 8000 ? documentContent.Substring(0, 8000) + "..." : documentContent;
                 }
-                else if (contextContent.Length > 12000)
+                else if (contextContent.Length > 8000)
                 {
                     // Trim context if it's too large for the LLM
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Context too large ({contextContent.Length} chars), trimming to 12000 chars");
-                    contextContent = contextContent.Substring(0, 12000) + "...";
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Context too large ({contextContent.Length} chars), trimming to 8000 chars");
+                    contextContent = contextContent.Substring(0, 8000) + "...";
                 }
 
                 if (contextCoverage < 0.15)
@@ -4598,8 +4598,8 @@ Extract all legitimate requirements:";
                 }
 
                 var focusedContent = !string.IsNullOrWhiteSpace(extractionFoundation?.NormalizedContent)
-                    ? extractionFoundation!.BuildPromptContext(12000)
-                    : BuildRequirementFocusedExcerpt(documentContent, 12000);
+                    ? extractionFoundation!.BuildPromptContext(8000)
+                    : BuildRequirementFocusedExcerpt(documentContent, 8000);
                 var prompt = $@"Extract all technical requirements from this document. Requirements typically use words like 'shall', 'must', 'will', or 'should' and define what a system must do or how it must perform.
 
 DOCUMENT: {attachment.FileName}
