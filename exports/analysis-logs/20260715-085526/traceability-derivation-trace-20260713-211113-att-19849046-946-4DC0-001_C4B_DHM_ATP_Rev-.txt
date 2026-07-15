@@ -1,0 +1,986 @@
+DERIVATION TRACEABILITY REPORT
+============================
+GeneratedUtc: 2026-07-13T21:11:13.7881956Z
+ProjectId: 686
+AttachmentId: 19849046
+FileName: 946-4DC0-001_C4B_DHM_ATP_Rev-.docx
+CandidateCount: 138
+PromotedRequirementCount: 68
+HeldCandidateCount: 70
+CandidateClauseCount: 138
+UsedClauseCount: 68
+UnusedClauseCount: 70
+
+REQUIREMENT -> SOURCE MAP
+------------------------
+[1] RequirementId: DOC-027
+    TraceReference: TRC-ATT19849046-DOC-027
+    RequirementText: The LCD gate feedback hardware monitor will latch the backlight off if gate feedback pulses aren’t received at least every 200 ms.
+    SourceRequirementText: The LCD gate feedback hardware monitor will latch the backlight off if gate feedback pulses aren’t received at least every 200 ms.
+    Qualification: Verification/Test Requirement (Score 11/14)
+    QualificationReason: Score 11/14 (obligation 1, actor 1, action 2, constraint 2, verifiable 1, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+
+[2] RequirementId: DOC-043
+    TraceReference: TRC-ATT19849046-DOC-043
+    RequirementText: Acceptance Criteria The production test shall verify SYS_RST_F is logic low for at least 1.
+    SourceRequirementText: Acceptance Criteria The production test shall verify SYS_RST_F is logic low for at least 1.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[3] RequirementId: DOC-046
+    TraceReference: TRC-ATT19849046-DOC-046
+    RequirementText: Acceptance Criteria The production test shall verify the default calibration data can be loaded into memory without error via the RS485 shop serial interface.
+    SourceRequirementText: Acceptance Criteria The production test shall verify the default calibration data can be loaded into memory without error via the RS485 shop serial interface.
+    Qualification: Verification/Test Requirement (Score 12/14)
+    QualificationReason: Score 12/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[4] RequirementId: DOC-047
+    TraceReference: TRC-ATT19849046-DOC-047
+    RequirementText: Acceptance Criteria The production test shall verify HTR_ENABLE correctly detects both OPEN and GND logic states.
+    SourceRequirementText: Acceptance Criteria The production test shall verify HTR_ENABLE correctly detects both OPEN and GND logic states.
+    Qualification: Verification/Test Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 2, actor 2, action 2, constraint 1, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[5] RequirementId: DOC-048
+    TraceReference: TRC-ATT19849046-DOC-048
+    RequirementText: The production test shall verify REM_DATALOAD_F correctly detects both OPEN and GND logic states.
+    SourceRequirementText: The production test shall verify REM_DATALOAD_F correctly detects both OPEN and GND logic states.
+    Qualification: Verification/Test Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 2, actor 2, action 2, constraint 1, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[6] RequirementId: DOC-049
+    TraceReference: TRC-ATT19849046-DOC-049
+    RequirementText: The production test shall verify REM_SHOP_F correctly detects both OPEN and GND logic states.
+    SourceRequirementText: The production test shall verify REM_SHOP_F correctly detects both OPEN and GND logic states.
+    Qualification: Verification/Test Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 2, actor 2, action 2, constraint 1, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[7] RequirementId: DOC-050
+    TraceReference: TRC-ATT19849046-DOC-050
+    RequirementText: The production test shall verify PSIO_WARN_F correctly detects both OPEN and GND logic low states.
+    SourceRequirementText: The production test shall verify PSIO_WARN_F correctly detects both OPEN and GND logic low states.
+    Qualification: Verification/Test Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 2, actor 2, action 2, constraint 1, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[8] RequirementId: DOC-051
+    TraceReference: TRC-ATT19849046-DOC-051
+    RequirementText: The production test shall verify DISCRETE_IN_0.
+    SourceRequirementText: The production test shall verify DISCRETE_IN_0.
+    Qualification: Verification/Test Requirement (Score 12/14)
+    QualificationReason: Score 12/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[9] RequirementId: DOC-052
+    TraceReference: TRC-ATT19849046-DOC-052
+    RequirementText: The production test should verify WHT_VOLT_1 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+    SourceRequirementText: The production test should verify WHT_VOLT_1 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+    Qualification: True System Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 1, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+
+[10] RequirementId: DOC-053
+    TraceReference: TRC-ATT19849046-DOC-053
+    RequirementText: The production test should verify WHT_VOLT_2 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+    SourceRequirementText: The production test should verify WHT_VOLT_2 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+    Qualification: True System Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 1, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+
+[11] RequirementId: DOC-054
+    TraceReference: TRC-ATT19849046-DOC-054
+    RequirementText: The production test should verify WHT_VOLT_3 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+    SourceRequirementText: The production test should verify WHT_VOLT_3 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+    Qualification: True System Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 1, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+
+[12] RequirementId: DOC-058
+    TraceReference: TRC-ATT19849046-DOC-058
+    RequirementText: Acceptance Criteria The production test shall verify the analog to digital converter circuitry measures VREF_2.
+    SourceRequirementText: Acceptance Criteria The production test shall verify the analog to digital converter circuitry measures VREF_2.
+    Qualification: Verification/Test Requirement (Score 12/14)
+    QualificationReason: Score 12/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[13] RequirementId: DOC-063
+    TraceReference: TRC-ATT19849046-DOC-063
+    RequirementText: Acceptance Criteria The production test shall verify RS485 formatted data is received correctly on RS485_HI/LO at full RS485 voltage levels.
+    SourceRequirementText: Acceptance Criteria The production test shall verify RS485 formatted data is received correctly on RS485_HI/LO at full RS485 voltage levels.
+    Qualification: Verification/Test Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 2, actor 2, action 2, constraint 1, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[14] RequirementId: DOC-064
+    TraceReference: TRC-ATT19849046-DOC-064
+    RequirementText: The production test shall verify RS485 formatted data is transmitted correctly on RS485_HI/LO at full RS485 voltage levels.
+    SourceRequirementText: The production test shall verify RS485 formatted data is transmitted correctly on RS485_HI/LO at full RS485 voltage levels.
+    Qualification: Verification/Test Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 2, actor 2, action 2, constraint 1, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[15] RequirementId: DOC-065
+    TraceReference: TRC-ATT19849046-DOC-065
+    RequirementText: Acceptance Criteria The production test shall verify the control card temperature sensor indicates a temperature within the range [20, 40] degrees C at factory ambient.
+    SourceRequirementText: Acceptance Criteria The production test shall verify the control card temperature sensor indicates a temperature within the range [20, 40] degrees C at factory ambient.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[16] RequirementId: DOC-068
+    TraceReference: TRC-ATT19849046-DOC-068
+    RequirementText: Acceptance Criteria The production test shall verify GMON_GOOD is logic low when GATE_FB_A is not toggling.
+    SourceRequirementText: Acceptance Criteria The production test shall verify GMON_GOOD is logic low when GATE_FB_A is not toggling.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[17] RequirementId: DOC-069
+    TraceReference: TRC-ATT19849046-DOC-069
+    RequirementText: The production test shall verify GMON_GOOD is logic low when GATE_FB_B is not toggling.
+    SourceRequirementText: The production test shall verify GMON_GOOD is logic low when GATE_FB_B is not toggling.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[18] RequirementId: DOC-071
+    TraceReference: TRC-ATT19849046-DOC-071
+    RequirementText: Acceptance Criteria The production test shall calculate the offset voltage and lookup table values for the Top ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in n...
+    SourceRequirementText: Acceptance Criteria The production test shall calculate the offset voltage and lookup table values for the Top ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in n...
+    Qualification: True System Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 2, actor 2, action 2, constraint 1, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+
+[19] RequirementId: DOC-072
+    TraceReference: TRC-ATT19849046-DOC-072
+    RequirementText: The production test shall calculate the offset voltage and lookup table values for the Center ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in non-volatile memor...
+    SourceRequirementText: The production test shall calculate the offset voltage and lookup table values for the Center ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in non-volatile memor...
+    Qualification: True System Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 2, actor 2, action 2, constraint 1, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+
+[20] RequirementId: DOC-073
+    TraceReference: TRC-ATT19849046-DOC-073
+    RequirementText: The production test shall calculate the offset voltage and lookup table values for the Bottom ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in non-volatile memor...
+    SourceRequirementText: The production test shall calculate the offset voltage and lookup table values for the Bottom ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in non-volatile memor...
+    Qualification: True System Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 2, actor 2, action 2, constraint 1, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+
+[21] RequirementId: DOC-074
+    TraceReference: TRC-ATT19849046-DOC-074
+    RequirementText: the production test shall verify the Center ITO Temperature Sensor indicates 25 +/- 10 degrees Celsius.
+    SourceRequirementText: the production test shall verify the Center ITO Temperature Sensor indicates 25 +/- 10 degrees Celsius.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[22] RequirementId: DOC-075
+    TraceReference: TRC-ATT19849046-DOC-075
+    RequirementText: the production test shall verify the Top ITO Temperature Sensor indicates a temperature reading within +/- 5 degrees Celsius of the Center ITO Temperature Sensor reading.
+    SourceRequirementText: the production test shall verify the Top ITO Temperature Sensor indicates a temperature reading within +/- 5 degrees Celsius of the Center ITO Temperature Sensor reading.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[23] RequirementId: DOC-076
+    TraceReference: TRC-ATT19849046-DOC-076
+    RequirementText: the production test shall verify the Bottom ITO Temperature Sensor indicates a temperature reading within +/- 5 degrees Celsius of the Center ITO Temperature Sensor reading.
+    SourceRequirementText: the production test shall verify the Bottom ITO Temperature Sensor indicates a temperature reading within +/- 5 degrees Celsius of the Center ITO Temperature Sensor reading.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[24] RequirementId: DOC-079
+    TraceReference: TRC-ATT19849046-DOC-079
+    RequirementText: The production test shall calculate the ITO heater resistance based on the +28VDC_HTR voltage and the ITO_CURRENT measurement, generate the heater power lookup table, and store the table in non-volatile memory.
+    SourceRequirementText: The production test shall calculate the ITO heater resistance based on the +28VDC_HTR voltage and the ITO_CURRENT measurement, generate the heater power lookup table, and store the table in non-volatile memory.
+    Qualification: True System Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 2, actor 2, action 2, constraint 1, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+
+[25] RequirementId: DOC-080
+    TraceReference: TRC-ATT19849046-DOC-080
+    RequirementText: The production test shall verify HEATER_PWR_GOOD is logic high when +28VDC_HTR is 28.
+    SourceRequirementText: The production test shall verify HEATER_PWR_GOOD is logic high when +28VDC_HTR is 28.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[26] RequirementId: DOC-081
+    TraceReference: TRC-ATT19849046-DOC-081
+    RequirementText: The production test shall verify the Center ITO Temperature Sensor temperature reading increases at least 5 degrees when the LCD heater is enabled for at least 30 seconds.
+    SourceRequirementText: The production test shall verify the Center ITO Temperature Sensor temperature reading increases at least 5 degrees when the LCD heater is enabled for at least 30 seconds.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[27] RequirementId: DOC-082
+    TraceReference: TRC-ATT19849046-DOC-082
+    RequirementText: The production test shall verify the reported heater power is within +/-15% of the power being delivered by the test equipment to the +28VDC_HTR power input of the display head.
+    SourceRequirementText: The production test shall verify the reported heater power is within +/-15% of the power being delivered by the test equipment to the +28VDC_HTR power input of the display head.
+    Qualification: Verification/Test Requirement (Score 12/14)
+    QualificationReason: Score 12/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[28] RequirementId: DOC-083
+    TraceReference: TRC-ATT19849046-DOC-083
+    RequirementText: The production test shall verify the LCD heater shuts off when enabled and +28VDC_HTR is increased above 33 VDC.
+    SourceRequirementText: The production test shall verify the LCD heater shuts off when enabled and +28VDC_HTR is increased above 33 VDC.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[29] RequirementId: DOC-084
+    TraceReference: TRC-ATT19849046-DOC-084
+    RequirementText: The production test shall verify HEATER_PWR_GOOD is logic low when +28VDC_HTR is increased above 33 VDC.
+    SourceRequirementText: The production test shall verify HEATER_PWR_GOOD is logic low when +28VDC_HTR is increased above 33 VDC.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[30] RequirementId: DOC-085
+    TraceReference: TRC-ATT19849046-DOC-085
+    RequirementText: The production test shall verify the LCD turns on when enabled and +28VDC_HTR is decreased from out of range high to 28.
+    SourceRequirementText: The production test shall verify the LCD turns on when enabled and +28VDC_HTR is decreased from out of range high to 28.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[31] RequirementId: DOC-086
+    TraceReference: TRC-ATT19849046-DOC-086
+    RequirementText: The production test shall verify the LCD shuts off when enabled and +28VDC_HTR is decreased below 20 VDC.
+    SourceRequirementText: The production test shall verify the LCD shuts off when enabled and +28VDC_HTR is decreased below 20 VDC.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[32] RequirementId: DOC-087
+    TraceReference: TRC-ATT19849046-DOC-087
+    RequirementText: The production test shall verify HEATER_PWR_GOOD is logic low when +28VDC_HTR is decreased below 20 VDC.
+    SourceRequirementText: The production test shall verify HEATER_PWR_GOOD is logic low when +28VDC_HTR is decreased below 20 VDC.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[33] RequirementId: DOC-088
+    TraceReference: TRC-ATT19849046-DOC-088
+    RequirementText: The production test shall verify the LCD heater turns on when enabled and +28VDC_HTR is increased from out of range low to 28.
+    SourceRequirementText: The production test shall verify the LCD heater turns on when enabled and +28VDC_HTR is increased from out of range low to 28.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[34] RequirementId: DOC-089
+    TraceReference: TRC-ATT19849046-DOC-089
+    RequirementText: The production test shall verify the LCD heater shuts off when enabled and HEATERS_ENABLED is set to GND.
+    SourceRequirementText: The production test shall verify the LCD heater shuts off when enabled and HEATERS_ENABLED is set to GND.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[35] RequirementId: DOC-090
+    TraceReference: TRC-ATT19849046-DOC-090
+    RequirementText: The production test shall verify the LCD heater shuts off when enabled and PWR_WARN_F is set to GND.
+    SourceRequirementText: The production test shall verify the LCD heater shuts off when enabled and PWR_WARN_F is set to GND.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[36] RequirementId: DOC-091
+    TraceReference: TRC-ATT19849046-DOC-091
+    RequirementText: The production test shall verify the LCD heater shuts off when enabled and ITO_CTR_TEMP indicates greater than 85 degrees Celsius.
+    SourceRequirementText: The production test shall verify the LCD heater shuts off when enabled and ITO_CTR_TEMP indicates greater than 85 degrees Celsius.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[37] RequirementId: DOC-092
+    TraceReference: TRC-ATT19849046-DOC-092
+    RequirementText: The production test shall verify the LCD heater shuts off when enabled and ITO_TOP_TEMP indicates greater than 85 degrees Celsius.
+    SourceRequirementText: The production test shall verify the LCD heater shuts off when enabled and ITO_TOP_TEMP indicates greater than 85 degrees Celsius.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[38] RequirementId: DOC-093
+    TraceReference: TRC-ATT19849046-DOC-093
+    RequirementText: The production test shall verify the LCD heater shuts off when enabled and ITO_BOT_TEMP indicates greater than 85 degrees Celsius.
+    SourceRequirementText: The production test shall verify the LCD heater shuts off when enabled and ITO_BOT_TEMP indicates greater than 85 degrees Celsius.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[39] RequirementId: DOC-094
+    TraceReference: TRC-ATT19849046-DOC-094
+    RequirementText: Acceptance Criteria The production test shall verify that XGA video data received on the input pixel bus is correctly displayed on the LCD.
+    SourceRequirementText: Acceptance Criteria The production test shall verify that XGA video data received on the input pixel bus is correctly displayed on the LCD.
+    Qualification: Verification/Test Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 2, actor 2, action 2, constraint 1, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[40] RequirementId: DOC-095
+    TraceReference: TRC-ATT19849046-DOC-095
+    RequirementText: The production test shall verify the LCD does not indicate self-protect mode when powered up and displaying an image.
+    SourceRequirementText: The production test shall verify the LCD does not indicate self-protect mode when powered up and displaying an image.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[41] RequirementId: DOC-096
+    TraceReference: TRC-ATT19849046-DOC-096
+    RequirementText: The production test shall verify the LCD does not indicate a fail condition when powered up and displaying an image.
+    SourceRequirementText: The production test shall verify the LCD does not indicate a fail condition when powered up and displaying an image.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[42] RequirementId: DOC-097
+    TraceReference: TRC-ATT19849046-DOC-097
+    RequirementText: The production test shall verify that the hardware gate feedback monitor doesn’t indicate a fault when powered up and displaying an image.
+    SourceRequirementText: The production test shall verify that the hardware gate feedback monitor doesn’t indicate a fault when powered up and displaying an image.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[43] RequirementId: DOC-098
+    TraceReference: TRC-ATT19849046-DOC-098
+    RequirementText: Acceptance Criteria The production test shall verify that UXGA video data received on the DVI input bus is correctly displayed on the LCD.
+    SourceRequirementText: Acceptance Criteria The production test shall verify that UXGA video data received on the DVI input bus is correctly displayed on the LCD.
+    Qualification: Verification/Test Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 2, actor 2, action 2, constraint 1, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[44] RequirementId: DOC-099
+    TraceReference: TRC-ATT19849046-DOC-099
+    RequirementText: The production test shall verify that no active UXGA Clock, UXGA DE, UXGA Hsync, or UXGA Vsync faults are present when the display head receives valid pixel bus data.
+    SourceRequirementText: The production test shall verify that no active UXGA Clock, UXGA DE, UXGA Hsync, or UXGA Vsync faults are present when the display head receives valid pixel bus data.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[45] RequirementId: DOC-100
+    TraceReference: TRC-ATT19849046-DOC-100
+    RequirementText: Acceptance Criteria The production test shall verify NVIS_ENB_F correctly detects both OPEN and GND logic states.
+    SourceRequirementText: Acceptance Criteria The production test shall verify NVIS_ENB_F correctly detects both OPEN and GND logic states.
+    Qualification: Verification/Test Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 2, actor 2, action 2, constraint 1, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[46] RequirementId: DOC-101
+    TraceReference: TRC-ATT19849046-DOC-101
+    RequirementText: The production test shall verify no button press is indicated when no keypanel buttons or rocker switches are being pressed.
+    SourceRequirementText: The production test shall verify no button press is indicated when no keypanel buttons or rocker switches are being pressed.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[47] RequirementId: DOC-102
+    TraceReference: TRC-ATT19849046-DOC-102
+    RequirementText: The production test shall verify that the correct button press is detected when each of the 32 keypanel buttons is individually pressed.
+    SourceRequirementText: The production test shall verify that the correct button press is detected when each of the 32 keypanel buttons is individually pressed.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[48] RequirementId: DOC-103
+    TraceReference: TRC-ATT19849046-DOC-103
+    RequirementText: The production test shall verify that the correct button press is detected when each of the 24 keypanel buttons is individually pressed.
+    SourceRequirementText: The production test shall verify that the correct button press is detected when each of the 24 keypanel buttons is individually pressed.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[49] RequirementId: DOC-104
+    TraceReference: TRC-ATT19849046-DOC-104
+    RequirementText: The production test shall verify that the correct button press is detected when each half of the Video Brightness and Video Contrast rocker switches is individually pressed.
+    SourceRequirementText: The production test shall verify that the correct button press is detected when each half of the Video Brightness and Video Contrast rocker switches is individually pressed.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[50] RequirementId: DOC-105
+    TraceReference: TRC-ATT19849046-DOC-105
+    RequirementText: The production test shall verify the backlight brightness can be adjusted up and down using the Backlight Brightness rocker switch.
+    SourceRequirementText: The production test shall verify the backlight brightness can be adjusted up and down using the Backlight Brightness rocker switch.
+    Qualification: Verification/Test Requirement (Score 12/14)
+    QualificationReason: Score 12/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[51] RequirementId: DOC-106
+    TraceReference: TRC-ATT19849046-DOC-106
+    RequirementText: The production test shall verify the Power/Backlight Mode knob operates correctly in all three positions.
+    SourceRequirementText: The production test shall verify the Power/Backlight Mode knob operates correctly in all three positions.
+    Qualification: Verification/Test Requirement (Score 12/14)
+    QualificationReason: Score 12/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[52] RequirementId: DOC-107
+    TraceReference: TRC-ATT19849046-DOC-107
+    RequirementText: The production test shall verify the Power On/Off toggle switch operates correctly in both positions.
+    SourceRequirementText: The production test shall verify the Power On/Off toggle switch operates correctly in both positions.
+    Qualification: Verification/Test Requirement (Score 13/14)
+    QualificationReason: Score 13/14 (obligation 2, actor 2, action 2, constraint 1, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[53] RequirementId: DOC-108
+    TraceReference: TRC-ATT19849046-DOC-108
+    RequirementText: The production test shall verify all keypanel bezel buttons and the rocker switch are illuminated when 5 +/- 0.
+    SourceRequirementText: The production test shall verify all keypanel bezel buttons and the rocker switch are illuminated when 5 +/- 0.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[54] RequirementId: DOC-109
+    TraceReference: TRC-ATT19849046-DOC-109
+    RequirementText: the production test shall verify the backlight temperature sensor indicates a temperature within the range [20, 40] degrees C at factory ambient.
+    SourceRequirementText: the production test shall verify the backlight temperature sensor indicates a temperature within the range [20, 40] degrees C at factory ambient.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[55] RequirementId: DOC-110
+    TraceReference: TRC-ATT19849046-DOC-110
+    RequirementText: Acceptance Criteria The production test shall verify FAN_PWR is logic ‘0’ (fan voltage not detected) when 115VAC is not applied to the control card.
+    SourceRequirementText: Acceptance Criteria The production test shall verify FAN_PWR is logic ‘0’ (fan voltage not detected) when 115VAC is not applied to the control card.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[56] RequirementId: DOC-111
+    TraceReference: TRC-ATT19849046-DOC-111
+    RequirementText: The production test shall verify FAN_CUR_F is logic ‘1’ (fan current not detected) when 115VAC is not applied to the control card.
+    SourceRequirementText: The production test shall verify FAN_CUR_F is logic ‘1’ (fan current not detected) when 115VAC is not applied to the control card.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[57] RequirementId: DOC-112
+    TraceReference: TRC-ATT19849046-DOC-112
+    RequirementText: The production test shall verify FAN_PWR is logic ‘1’ when 115VAC is applied between 115VAC_H and 115VAC_L and the fan is commanded off.
+    SourceRequirementText: The production test shall verify FAN_PWR is logic ‘1’ when 115VAC is applied between 115VAC_H and 115VAC_L and the fan is commanded off.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[58] RequirementId: DOC-113
+    TraceReference: TRC-ATT19849046-DOC-113
+    RequirementText: The production test shall verify FAN_CUR_F is logic ‘1’ (fan current not detected) when 115VAC is applied between 115VAC_H and 115VAC_L and the fan is commanded off.
+    SourceRequirementText: The production test shall verify FAN_CUR_F is logic ‘1’ (fan current not detected) when 115VAC is applied between 115VAC_H and 115VAC_L and the fan is commanded off.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[59] RequirementId: DOC-114
+    TraceReference: TRC-ATT19849046-DOC-114
+    RequirementText: The production test shall verify the fan runs when commanded on.
+    SourceRequirementText: The production test shall verify the fan runs when commanded on.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[60] RequirementId: DOC-115
+    TraceReference: TRC-ATT19849046-DOC-115
+    RequirementText: The production test shall verify FAN_PWR is logic ‘1’ (fan power detected) when the fan is running.
+    SourceRequirementText: The production test shall verify FAN_PWR is logic ‘1’ (fan power detected) when the fan is running.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[61] RequirementId: DOC-116
+    TraceReference: TRC-ATT19849046-DOC-116
+    RequirementText: The production test shall verify the direction of airflow is into the fan when the fan is on.
+    SourceRequirementText: The production test shall verify the direction of airflow is into the fan when the fan is on.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[62] RequirementId: DOC-117
+    TraceReference: TRC-ATT19849046-DOC-117
+    RequirementText: The production test shall verify FAN_CUR_F is logic ‘0’ (fan current detected) when the fan is commanded on and the fan is running.
+    SourceRequirementText: The production test shall verify FAN_CUR_F is logic ‘0’ (fan current detected) when the fan is commanded on and the fan is running.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[63] RequirementId: DOC-118
+    TraceReference: TRC-ATT19849046-DOC-118
+    RequirementText: the production test shall verify the fan turns off when commanded off.
+    SourceRequirementText: the production test shall verify the fan turns off when commanded off.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[64] RequirementId: DOC-126
+    TraceReference: TRC-ATT19849046-DOC-126
+    RequirementText: Acceptance Criteria The production test shall calibrate the maximum Day mode luminance within the range [324, 334] fL for the 987-8392-050 and [235, 245] fL for the 987-8392-054.
+    SourceRequirementText: Acceptance Criteria The production test shall calibrate the maximum Day mode luminance within the range [324, 334] fL for the 987-8392-050 and [235, 245] fL for the 987-8392-054.
+    Qualification: True System Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+
+[65] RequirementId: DOC-135
+    TraceReference: TRC-ATT19849046-DOC-135
+    RequirementText: Acceptance Criteria The production test shall verify the display contrast ratio is at least 200:1.
+    SourceRequirementText: Acceptance Criteria The production test shall verify the display contrast ratio is at least 200:1.
+    Qualification: Verification/Test Requirement (Score 14/14)
+    QualificationReason: Score 14/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[66] RequirementId: DOC-136
+    TraceReference: TRC-ATT19849046-DOC-136
+    RequirementText: Acceptance Criteria The production test shall load the 10 digit display head part number into memory.
+    SourceRequirementText: Acceptance Criteria The production test shall load the 10 digit display head part number into memory.
+    Qualification: True System Requirement (Score 12/14)
+    QualificationReason: Score 12/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+
+[67] RequirementId: DOC-137
+    TraceReference: TRC-ATT19849046-DOC-137
+    RequirementText: Acceptance Criteria The production test shall verify there are no unexpected active faults indicated.
+    SourceRequirementText: Acceptance Criteria The production test shall verify there are no unexpected active faults indicated.
+    Qualification: Verification/Test Requirement (Score 12/14)
+    QualificationReason: Score 12/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+
+[68] RequirementId: DOC-138
+    TraceReference: TRC-ATT19849046-DOC-138
+    RequirementText: The production test shall clear the fault log.
+    SourceRequirementText: The production test shall clear the fault log.
+    Qualification: True System Requirement (Score 12/14)
+    QualificationReason: Score 12/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+
+HELD CANDIDATES (NOT PROMOTED)
+------------------------------
+[1] Classification: Rejected Candidate
+    QualificationScore: 0/14
+    QualificationReason: Legal/template boilerplate
+    SourceClause: Collins The contents of this document are proprietary to Rockwell Collins and shall not be disclosed, disseminated, copied, or used except for purposes expressly authorized in writing by Rockwell Collins.
+
+[2] Classification: Derived Requirement Candidate
+    QualificationScore: 4/14
+    QualificationReason: Score 4/14 (obligation 2, actor 0, action 0, constraint 0, verifiable 0, scope 0, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: all tests shall be performed under the conditions defined in the following subsections.
+
+[3] Classification: Heading/Structure
+    QualificationScore: 2/14
+    QualificationReason: Continuation fragment without stable subject
+    SourceClause: and atmospheric pressure will be normal factory ambient.
+
+[4] Classification: Derived Requirement Candidate
+    QualificationScore: 6/14
+    QualificationReason: Score 6/14 (obligation 2, actor 0, action 2, constraint 0, verifiable 0, scope 0, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: shall have a tolerance of ±2%.
+
+[5] Classification: Derived Requirement Candidate
+    QualificationScore: 4/14
+    QualificationReason: Score 4/14 (obligation 2, actor 0, action 0, constraint 0, verifiable 0, scope 0, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: the photometer shall be at the specified angle +/- 2.
+
+[6] Classification: Derived Requirement Candidate
+    QualificationScore: 5/14
+    QualificationReason: Score 5/14 (obligation 1, actor 0, action 0, constraint 2, verifiable 0, scope 0, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: discrete inputs should be in the following states by default: PWR_WARN_F = GND DHM_LOAD_F = GND HEATER_ENABLED = GND DHM_SHOP_F = GND NVIS_ENB_F = OPEN Unless otherwise indicated, 5 VAC keypanel dimming voltage should be...
+
+[7] Classification: Heading/Structure
+    QualificationScore: 1/14
+    QualificationReason: Very short or incomplete fragment
+    SourceClause: should be off or 0 VDC.
+
+[8] Classification: Rejected Candidate
+    QualificationScore: 3/14
+    QualificationReason: Score 3/14 (obligation 1, actor 0, action 0, constraint 0, verifiable 0, scope 0, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: should be powered up together.
+
+[9] Classification: Rejected Candidate
+    QualificationScore: 3/14
+    QualificationReason: Score 3/14 (obligation 1, actor 0, action 0, constraint 0, verifiable 0, scope 0, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: should be powered up at the same time or before backlight input power.
+
+[10] Classification: Potential Requirement
+    QualificationScore: 8/14
+    QualificationReason: Score 8/14 (obligation 1, actor 1, action 0, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: Test equipment circuitry used to drive the TTL inputs of the control card should be powered up at the same time as the low voltage power is applied to the control card.
+
+[11] Classification: Rejected Candidate
+    QualificationScore: 3/14
+    QualificationReason: Score 3/14 (obligation 1, actor 0, action 0, constraint 0, verifiable 0, scope 0, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: Heater input power should be powered up at the same time or after the low voltage power voltages.
+
+[12] Classification: Rejected Candidate
+    QualificationScore: 2/14
+    QualificationReason: Score 2/14 (obligation 1, actor 0, action 0, constraint 1, verifiable 0, scope 0, non-procedural 0); verification-led=False, explicit-system-obligation=False
+    SourceClause: PWR_WARN_F to OPEN Recommended Power Down Procedure Heater and backlight power should be powered down at the same time or before the low voltage power voltages.
+
+[13] Classification: Rejected Candidate
+    QualificationScore: 3/14
+    QualificationReason: Score 3/14 (obligation 1, actor 0, action 0, constraint 0, verifiable 0, scope 0, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: should be powered down together.
+
+[14] Classification: Potential Requirement
+    QualificationScore: 8/14
+    QualificationReason: Score 8/14 (obligation 1, actor 1, action 0, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: Test equipment circuitry used to drive the TTL inputs of the control card should be powered down at the same time as the low voltage power is removed from the control card.
+
+[15] Classification: Potential Requirement
+    QualificationScore: 10/14
+    QualificationReason: Score 10/14 (obligation 1, actor 2, action 2, constraint 1, verifiable 0, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: display head level tests should always set PWR_WARN_F to GND prior to removing low voltage power.
+
+[16] Classification: Rejected Candidate
+    QualificationScore: 2/14
+    QualificationReason: Score 2/14 (obligation 1, actor 0, action 0, constraint 2, verifiable 1, scope 0, non-procedural 0); verification-led=False, explicit-system-obligation=False
+    SourceClause: the default states Data Archive It is suggested that at least the following data should be recorded and stored in a retrievable and sortable format (Note: archiving is not required when the tests are performed manually):...
+
+[17] Classification: Rejected Candidate
+    QualificationScore: 1/14
+    QualificationReason: Score 1/14 (obligation 1, actor 0, action 0, constraint 0, verifiable 0, scope 0, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: the measurement is positive and should be converted to a voltage value using REF _Ref46489449 \h Equation 3 where x is the decimal equivalent of the converted 12 bits.
+
+[18] Classification: Rejected Candidate
+    QualificationScore: 0/14
+    QualificationReason: Score 0/14 (obligation 1, actor 0, action 0, constraint 0, verifiable 0, scope 0, non-procedural 0); verification-led=False, explicit-system-obligation=False
+    SourceClause: the measurement is negative and should be converted to a voltage value using REF _Ref46489628 \h \* MERGEFORMAT Equation 4 where x is the decimal equivalent of the 2’s complement of the converted 12 bits.
+
+[19] Classification: Rejected Candidate
+    QualificationScore: 1/14
+    QualificationReason: Score 1/14 (obligation 1, actor 0, action 0, constraint 0, verifiable 0, scope 0, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: the measurement is positive and should be converted to a voltage value using REF _Ref82357491 \h Equation 11 where x is the decimal equivalent of the converted 8 bits.
+
+[20] Classification: Rejected Candidate
+    QualificationScore: 1/14
+    QualificationReason: Score 1/14 (obligation 1, actor 0, action 0, constraint 0, verifiable 0, scope 0, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: the measurement is negative and should be converted to a voltage value using REF _Ref82357577 \h Equation 12 where x is the decimal equivalent of the 2’s complement of the converted 8 bits.
+
+[21] Classification: Potential Requirement
+    QualificationScore: 10/14
+    QualificationReason: Score 10/14 (obligation 1, actor 2, action 2, constraint 1, verifiable 0, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: The display head will communicate on the half duplex RS485 interface at 460.
+
+[22] Classification: Potential Requirement
+    QualificationScore: 7/14
+    QualificationReason: Score 7/14 (obligation 2, actor 1, action 0, constraint 0, verifiable 0, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: A DHM ID of Ah must be used to establish communication with the display head.
+
+[23] Classification: Derived Requirement Candidate
+    QualificationScore: 5/14
+    QualificationReason: Score 5/14 (obligation 1, actor 0, action 2, constraint 0, verifiable 0, scope 0, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: the full calibration text file should be used. This will load all of the memory settings needed for correct operation.
+
+[24] Classification: Heading/Structure
+    QualificationScore: 2/14
+    QualificationReason: Continuation fragment without stable subject
+    SourceClause: This includes data that will eventually be overwritten during calibration.
+
+[25] Classification: Potential Requirement
+    QualificationScore: 8/14
+    QualificationReason: Score 8/14 (obligation 1, actor 1, action 2, constraint 0, verifiable 0, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: the no-cal text file should be used. This file will update most memory settings but will not overwrite the portions of memory which have the unit specific calibration data stored in them.
+
+[26] Classification: Heading/Structure
+    QualificationScore: 2/14
+    QualificationReason: Continuation fragment without stable subject
+    SourceClause: it will be indicated at an even address (ex.
+
+[27] Classification: Derived Requirement Candidate
+    QualificationScore: 6/14
+    QualificationReason: Score 6/14 (obligation 1, actor 1, action 0, constraint 0, verifiable 0, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: should”. Most control card level tests can be run at the display head assembly level.
+
+[28] Classification: Potential Requirement
+    QualificationScore: 7/14
+    QualificationReason: Score 7/14 (obligation 2, actor 1, action 0, constraint 0, verifiable 2, scope 0, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: the Hera2 FPGA and microcontroller must be programmed and the default calibration data must be loaded to test a given function.
+
+[29] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: Acceptance Criteria The production test shall verify +3.3VDC is within the range [3.
+
+[30] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: The production test shall verify +2.5VDC is within the range [2.
+
+[31] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: The production test shall verify +1.0VDC is within the range [0.
+
+[32] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: The production test shall verify +12VDC is within the range [11.
+
+[33] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: The production test shall verify -12VDC is within the range [-13.
+
+[34] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: The production test shall verify +1.8VDC is within the range [1.
+
+[35] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: The production test shall verify +5VDC is within the range [4.
+
+[36] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: Acceptance Criteria The production test shall verify +5VREF is within the range [4.
+
+[37] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: The production test shall verify -5VREF is within the range [-5.
+
+[38] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: The production test shall verify +10VREF is within the range [9.
+
+[39] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: Acceptance Criteria The production test shall verify +4P5VDC_HLDUP is within the range [4.
+
+[40] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: The production test shall verify +25VDC_HLDUP is within the range [24.
+
+[41] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: The production test shall verify +3.3VDC is within the range [3.
+
+[42] Classification: True System Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 1, verifiable 2, scope 2, non-procedural 0); verification-led=False, explicit-system-obligation=False
+    SourceClause: Acceptance Criteria The production test shall program the microcontroller in accordance with the load procedure indicated on the control card assembly drawing.
+
+[43] Classification: True System Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 1, verifiable 2, scope 2, non-procedural 0); verification-led=False, explicit-system-obligation=False
+    SourceClause: Acceptance Criteria The production test shall program the Hera2 FPGA in accordance with the load procedure indicated on the control card assembly drawing.
+
+[44] Classification: Verification/Test Requirement
+    QualificationScore: 10/14
+    QualificationReason: Score 10/14 (obligation 1, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: The production test should verify WHT_VOLT_1 is within the range [13.
+
+[45] Classification: Verification/Test Requirement
+    QualificationScore: 10/14
+    QualificationReason: Score 10/14 (obligation 1, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: The production test should verify WHT_VOLT_2 is within the range [13.
+
+[46] Classification: Verification/Test Requirement
+    QualificationScore: 10/14
+    QualificationReason: Score 10/14 (obligation 1, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: The production test should verify WHT_VOLT_3 is within the range [13.
+
+[47] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: Acceptance Criteria The production test shall verify BRT_CMD_COARSE is within the range [-0.
+
+[48] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: The production test shall verify BRT_CMD_FINE is within the range [-1.
+
+[49] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: The production test shall verify RED_CHROM_CNTRL is within the range [-3.
+
+[50] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: The production test shall verify BLUE_CHROM_CNTRL is within the range [-3.
+
+[51] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: Acceptance Criteria The production test shall verify LCD_VCC_FILT is within the range [3.
+
+[52] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: The production test shall verify LCD_VCC_FILT is within the range [-0.
+
+[53] Classification: Potential Requirement
+    QualificationScore: 8/14
+    QualificationReason: Score 8/14 (obligation 1, actor 1, action 2, constraint 0, verifiable 2, scope 0, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: the LCD flex will likely need to be disconnected to get access to the gate feedback signals to test the monitor.
+
+[54] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: Acceptance Criteria The production test shall verify ITO_CURRENT measures within the range [-0.
+
+[55] Classification: Verification/Test Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=True, explicit-system-obligation=False
+    SourceClause: The production test shall verify ITO_CURRENT measures within the range [2.
+
+[56] Classification: Verification/Test Requirement
+    QualificationScore: 10/14
+    QualificationReason: Score 10/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 0); verification-led=False, explicit-system-obligation=False
+    SourceClause: Acceptance Criteria The production test shall adjust the red drive to achieve the color targets in REF _Ref82426123 \h Table 41 within a radius of 0.
+
+[57] Classification: Verification/Test Requirement
+    QualificationScore: 10/14
+    QualificationReason: Score 10/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 0); verification-led=False, explicit-system-obligation=False
+    SourceClause: The production test shall adjust the blue drive to achieve the color targets in REF _Ref82426123 \h Table 41 within a radius of 0.
+
+[58] Classification: Potential Requirement
+    QualificationScore: 8/14
+    QualificationReason: Score 8/14 (obligation 2, actor 1, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: Chromaticity Targets The production test shall verify the chromaticity of white, red, green, and blue are within a Delta C*(≤26.
+
+[59] Classification: Potential Requirement
+    QualificationScore: 8/14
+    QualificationReason: Score 8/14 (obligation 2, actor 1, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: Chromaticity Targets The production test shall write the measured white chromaticity to the following addresses as indicated (e.
+
+[60] Classification: Verification/Test Requirement
+    QualificationScore: 9/14
+    QualificationReason: Score 9/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: The production test shall write the measured red chromaticity to the following addresses as indicated (e.
+
+[61] Classification: Verification/Test Requirement
+    QualificationScore: 9/14
+    QualificationReason: Score 9/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: The production test shall write the measured green chromaticity to the following addresses as indicated (e.
+
+[62] Classification: Verification/Test Requirement
+    QualificationScore: 9/14
+    QualificationReason: Score 9/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: The production test shall write the measured blue chromaticity to the following addresses as indicated (e.
+
+[63] Classification: True System Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: The production test shall calibrate the minimum Day mode luminance within the range [0.
+
+[64] Classification: True System Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: The production test shall calibrate the maximum NVIS mode luminance within the range [2.
+
+[65] Classification: True System Requirement
+    QualificationScore: 11/14
+    QualificationReason: Score 11/14 (obligation 2, actor 2, action 2, constraint 2, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: The production test shall calibrate the minimum NVIS mode luminance within the range [0.
+
+[66] Classification: Verification/Test Requirement
+    QualificationScore: 9/14
+    QualificationReason: Score 9/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: The production test shall write the calibration date to the following addresses in ASCII format (e.
+
+[67] Classification: Verification/Test Requirement
+    QualificationScore: 9/14
+    QualificationReason: Score 9/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: The production test shall write the Day maximum luminance in fL to the following addresses in ASCII format (e.
+
+[68] Classification: Verification/Test Requirement
+    QualificationScore: 9/14
+    QualificationReason: Score 9/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: The production test shall write the Day minimum luminance in fL to the following addresses in ASCII format (e.
+
+[69] Classification: Verification/Test Requirement
+    QualificationScore: 9/14
+    QualificationReason: Score 9/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: The production test shall write the NVIS maximum luminance in fL to the following addresses in ASCII format (e.
+
+[70] Classification: Verification/Test Requirement
+    QualificationScore: 9/14
+    QualificationReason: Score 9/14 (obligation 2, actor 2, action 2, constraint 0, verifiable 2, scope 2, non-procedural 2); verification-led=False, explicit-system-obligation=False
+    SourceClause: The production test shall write the NVIS minimum luminance in fL to the following addresses in ASCII format (e.
+
+USED SOURCE CLAUSES
+-------------------
+[1] The LCD gate feedback hardware monitor will latch the backlight off if gate feedback pulses aren’t received at least every 200 ms.
+[2] Acceptance Criteria The production test shall verify SYS_RST_F is logic low for at least 1.
+[3] Acceptance Criteria The production test shall verify the default calibration data can be loaded into memory without error via the RS485 shop serial interface.
+[4] Acceptance Criteria The production test shall verify HTR_ENABLE correctly detects both OPEN and GND logic states.
+[5] The production test shall verify REM_DATALOAD_F correctly detects both OPEN and GND logic states.
+[6] The production test shall verify REM_SHOP_F correctly detects both OPEN and GND logic states.
+[7] The production test shall verify PSIO_WARN_F correctly detects both OPEN and GND logic low states.
+[8] The production test shall verify DISCRETE_IN_0.
+[9] The production test should verify WHT_VOLT_1 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+[10] The production test should verify WHT_VOLT_2 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+[11] The production test should verify WHT_VOLT_3 is within the range [61, 67] VDC with +28VDC_BL at 29 VDC +/- 1 VDC.
+[12] Acceptance Criteria The production test shall verify the analog to digital converter circuitry measures VREF_2.
+[13] Acceptance Criteria The production test shall verify RS485 formatted data is received correctly on RS485_HI/LO at full RS485 voltage levels.
+[14] The production test shall verify RS485 formatted data is transmitted correctly on RS485_HI/LO at full RS485 voltage levels.
+[15] Acceptance Criteria The production test shall verify the control card temperature sensor indicates a temperature within the range [20, 40] degrees C at factory ambient.
+[16] Acceptance Criteria The production test shall verify GMON_GOOD is logic low when GATE_FB_A is not toggling.
+[17] The production test shall verify GMON_GOOD is logic low when GATE_FB_B is not toggling.
+[18] Acceptance Criteria The production test shall calculate the offset voltage and lookup table values for the Top ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in non-volatile memory.
+[19] The production test shall calculate the offset voltage and lookup table values for the Center ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in non-volatile memory.
+[20] The production test shall calculate the offset voltage and lookup table values for the Bottom ITO Temperature Sensor based on the characterization data on the heater assembly flex and store the data in non-volatile memory.
+[21] the production test shall verify the Center ITO Temperature Sensor indicates 25 +/- 10 degrees Celsius.
+[22] the production test shall verify the Top ITO Temperature Sensor indicates a temperature reading within +/- 5 degrees Celsius of the Center ITO Temperature Sensor reading.
+[23] the production test shall verify the Bottom ITO Temperature Sensor indicates a temperature reading within +/- 5 degrees Celsius of the Center ITO Temperature Sensor reading.
+[24] The production test shall calculate the ITO heater resistance based on the +28VDC_HTR voltage and the ITO_CURRENT measurement, generate the heater power lookup table, and store the table in non-volatile memory.
+[25] The production test shall verify HEATER_PWR_GOOD is logic high when +28VDC_HTR is 28.
+[26] The production test shall verify the Center ITO Temperature Sensor temperature reading increases at least 5 degrees when the LCD heater is enabled for at least 30 seconds.
+[27] The production test shall verify the reported heater power is within +/-15% of the power being delivered by the test equipment to the +28VDC_HTR power input of the display head.
+[28] The production test shall verify the LCD heater shuts off when enabled and +28VDC_HTR is increased above 33 VDC.
+[29] The production test shall verify HEATER_PWR_GOOD is logic low when +28VDC_HTR is increased above 33 VDC.
+[30] The production test shall verify the LCD turns on when enabled and +28VDC_HTR is decreased from out of range high to 28.
+[31] The production test shall verify the LCD shuts off when enabled and +28VDC_HTR is decreased below 20 VDC.
+[32] The production test shall verify HEATER_PWR_GOOD is logic low when +28VDC_HTR is decreased below 20 VDC.
+[33] The production test shall verify the LCD heater turns on when enabled and +28VDC_HTR is increased from out of range low to 28.
+[34] The production test shall verify the LCD heater shuts off when enabled and HEATERS_ENABLED is set to GND.
+[35] The production test shall verify the LCD heater shuts off when enabled and PWR_WARN_F is set to GND.
+[36] The production test shall verify the LCD heater shuts off when enabled and ITO_CTR_TEMP indicates greater than 85 degrees Celsius.
+[37] The production test shall verify the LCD heater shuts off when enabled and ITO_TOP_TEMP indicates greater than 85 degrees Celsius.
+[38] The production test shall verify the LCD heater shuts off when enabled and ITO_BOT_TEMP indicates greater than 85 degrees Celsius.
+[39] Acceptance Criteria The production test shall verify that XGA video data received on the input pixel bus is correctly displayed on the LCD.
+[40] The production test shall verify the LCD does not indicate self-protect mode when powered up and displaying an image.
+[41] The production test shall verify the LCD does not indicate a fail condition when powered up and displaying an image.
+[42] The production test shall verify that the hardware gate feedback monitor doesn’t indicate a fault when powered up and displaying an image.
+[43] Acceptance Criteria The production test shall verify that UXGA video data received on the DVI input bus is correctly displayed on the LCD.
+[44] The production test shall verify that no active UXGA Clock, UXGA DE, UXGA Hsync, or UXGA Vsync faults are present when the display head receives valid pixel bus data.
+[45] Acceptance Criteria The production test shall verify NVIS_ENB_F correctly detects both OPEN and GND logic states.
+[46] The production test shall verify no button press is indicated when no keypanel buttons or rocker switches are being pressed.
+[47] The production test shall verify that the correct button press is detected when each of the 32 keypanel buttons is individually pressed.
+[48] The production test shall verify that the correct button press is detected when each of the 24 keypanel buttons is individually pressed.
+[49] The production test shall verify that the correct button press is detected when each half of the Video Brightness and Video Contrast rocker switches is individually pressed.
+[50] The production test shall verify the backlight brightness can be adjusted up and down using the Backlight Brightness rocker switch.
+[51] The production test shall verify the Power/Backlight Mode knob operates correctly in all three positions.
+[52] The production test shall verify the Power On/Off toggle switch operates correctly in both positions.
+[53] The production test shall verify all keypanel bezel buttons and the rocker switch are illuminated when 5 +/- 0.
+[54] the production test shall verify the backlight temperature sensor indicates a temperature within the range [20, 40] degrees C at factory ambient.
+[55] Acceptance Criteria The production test shall verify FAN_PWR is logic ‘0’ (fan voltage not detected) when 115VAC is not applied to the control card.
+[56] The production test shall verify FAN_CUR_F is logic ‘1’ (fan current not detected) when 115VAC is not applied to the control card.
+[57] The production test shall verify FAN_PWR is logic ‘1’ when 115VAC is applied between 115VAC_H and 115VAC_L and the fan is commanded off.
+[58] The production test shall verify FAN_CUR_F is logic ‘1’ (fan current not detected) when 115VAC is applied between 115VAC_H and 115VAC_L and the fan is commanded off.
+[59] The production test shall verify the fan runs when commanded on.
+[60] The production test shall verify FAN_PWR is logic ‘1’ (fan power detected) when the fan is running.
+[61] The production test shall verify the direction of airflow is into the fan when the fan is on.
+[62] The production test shall verify FAN_CUR_F is logic ‘0’ (fan current detected) when the fan is commanded on and the fan is running.
+[63] the production test shall verify the fan turns off when commanded off.
+[64] Acceptance Criteria The production test shall calibrate the maximum Day mode luminance within the range [324, 334] fL for the 987-8392-050 and [235, 245] fL for the 987-8392-054.
+[65] Acceptance Criteria The production test shall verify the display contrast ratio is at least 200:1.
+[66] Acceptance Criteria The production test shall load the 10 digit display head part number into memory.
+[67] Acceptance Criteria The production test shall verify there are no unexpected active faults indicated.
+[68] The production test shall clear the fault log.
+
+UNUSED SOURCE CLAUSES (REVIEW FOR MISSED REQUIREMENTS)
+------------------------------------------------------
+[1] Collins The contents of this document are proprietary to Rockwell Collins and shall not be disclosed, disseminated, copied, or used except for purposes expressly authorized in writing by Rockwell Collins.
+[2] all tests shall be performed under the conditions defined in the following subsections.
+[3] and atmospheric pressure will be normal factory ambient.
+[4] shall have a tolerance of ±2%.
+[5] the photometer shall be at the specified angle +/- 2.
+[6] discrete inputs should be in the following states by default: PWR_WARN_F = GND DHM_LOAD_F = GND HEATER_ENABLED = GND DHM_SHOP_F = GND NVIS_ENB_F = OPEN Unless otherwise indicated, 5 VAC keypanel dimming voltage should be off or 0 VAC.
+[7] should be off or 0 VDC.
+[8] should be powered up together.
+[9] should be powered up at the same time or before backlight input power.
+[10] Test equipment circuitry used to drive the TTL inputs of the control card should be powered up at the same time as the low voltage power is applied to the control card.
+[11] Heater input power should be powered up at the same time or after the low voltage power voltages.
+[12] PWR_WARN_F to OPEN Recommended Power Down Procedure Heater and backlight power should be powered down at the same time or before the low voltage power voltages.
+[13] should be powered down together.
+[14] Test equipment circuitry used to drive the TTL inputs of the control card should be powered down at the same time as the low voltage power is removed from the control card.
+[15] display head level tests should always set PWR_WARN_F to GND prior to removing low voltage power.
+[16] the default states Data Archive It is suggested that at least the following data should be recorded and stored in a retrievable and sortable format (Note: archiving is not required when the tests are performed manually): Pass/fail status and measurements for all tests performed.
+[17] the measurement is positive and should be converted to a voltage value using REF _Ref46489449 \h Equation 3 where x is the decimal equivalent of the converted 12 bits.
+[18] the measurement is negative and should be converted to a voltage value using REF _Ref46489628 \h \* MERGEFORMAT Equation 4 where x is the decimal equivalent of the 2’s complement of the converted 12 bits.
+[19] the measurement is positive and should be converted to a voltage value using REF _Ref82357491 \h Equation 11 where x is the decimal equivalent of the converted 8 bits.
+[20] the measurement is negative and should be converted to a voltage value using REF _Ref82357577 \h Equation 12 where x is the decimal equivalent of the 2’s complement of the converted 8 bits.
+[21] The display head will communicate on the half duplex RS485 interface at 460.
+[22] A DHM ID of Ah must be used to establish communication with the display head.
+[23] the full calibration text file should be used. This will load all of the memory settings needed for correct operation.
+[24] This includes data that will eventually be overwritten during calibration.
+[25] the no-cal text file should be used. This file will update most memory settings but will not overwrite the portions of memory which have the unit specific calibration data stored in them.
+[26] it will be indicated at an even address (ex.
+[27] should”. Most control card level tests can be run at the display head assembly level.
+[28] the Hera2 FPGA and microcontroller must be programmed and the default calibration data must be loaded to test a given function.
+[29] Acceptance Criteria The production test shall verify +3.3VDC is within the range [3.
+[30] The production test shall verify +2.5VDC is within the range [2.
+[31] The production test shall verify +1.0VDC is within the range [0.
+[32] The production test shall verify +12VDC is within the range [11.
+[33] The production test shall verify -12VDC is within the range [-13.
+[34] The production test shall verify +1.8VDC is within the range [1.
+[35] The production test shall verify +5VDC is within the range [4.
+[36] Acceptance Criteria The production test shall verify +5VREF is within the range [4.
+[37] The production test shall verify -5VREF is within the range [-5.
+[38] The production test shall verify +10VREF is within the range [9.
+[39] Acceptance Criteria The production test shall verify +4P5VDC_HLDUP is within the range [4.
+[40] The production test shall verify +25VDC_HLDUP is within the range [24.
+[41] The production test shall verify +3.3VDC is within the range [3.
+[42] Acceptance Criteria The production test shall program the microcontroller in accordance with the load procedure indicated on the control card assembly drawing.
+[43] Acceptance Criteria The production test shall program the Hera2 FPGA in accordance with the load procedure indicated on the control card assembly drawing.
+[44] The production test should verify WHT_VOLT_1 is within the range [13.
+[45] The production test should verify WHT_VOLT_2 is within the range [13.
+[46] The production test should verify WHT_VOLT_3 is within the range [13.
+[47] Acceptance Criteria The production test shall verify BRT_CMD_COARSE is within the range [-0.
+[48] The production test shall verify BRT_CMD_FINE is within the range [-1.
+[49] The production test shall verify RED_CHROM_CNTRL is within the range [-3.
+[50] The production test shall verify BLUE_CHROM_CNTRL is within the range [-3.
+[51] Acceptance Criteria The production test shall verify LCD_VCC_FILT is within the range [3.
+[52] The production test shall verify LCD_VCC_FILT is within the range [-0.
+[53] the LCD flex will likely need to be disconnected to get access to the gate feedback signals to test the monitor.
+[54] Acceptance Criteria The production test shall verify ITO_CURRENT measures within the range [-0.
+[55] The production test shall verify ITO_CURRENT measures within the range [2.
+[56] Acceptance Criteria The production test shall adjust the red drive to achieve the color targets in REF _Ref82426123 \h Table 41 within a radius of 0.
+[57] The production test shall adjust the blue drive to achieve the color targets in REF _Ref82426123 \h Table 41 within a radius of 0.
+[58] Chromaticity Targets The production test shall verify the chromaticity of white, red, green, and blue are within a Delta C*(≤26.
+[59] Chromaticity Targets The production test shall write the measured white chromaticity to the following addresses as indicated (e.
+[60] The production test shall write the measured red chromaticity to the following addresses as indicated (e.
+[61] The production test shall write the measured green chromaticity to the following addresses as indicated (e.
+[62] The production test shall write the measured blue chromaticity to the following addresses as indicated (e.
+[63] The production test shall calibrate the minimum Day mode luminance within the range [0.
+[64] The production test shall calibrate the maximum NVIS mode luminance within the range [2.
+[65] The production test shall calibrate the minimum NVIS mode luminance within the range [0.
+[66] The production test shall write the calibration date to the following addresses in ASCII format (e.
+[67] The production test shall write the Day maximum luminance in fL to the following addresses in ASCII format (e.
+[68] The production test shall write the Day minimum luminance in fL to the following addresses in ASCII format (e.
+[69] The production test shall write the NVIS maximum luminance in fL to the following addresses in ASCII format (e.
+[70] The production test shall write the NVIS minimum luminance in fL to the following addresses in ASCII format (e.
