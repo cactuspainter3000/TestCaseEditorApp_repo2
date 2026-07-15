@@ -5257,6 +5257,11 @@ Extract requirements now (JSON only):";
             var generatedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var seenBodies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var isAtpDocument = IsAtpDocument(attachment.FileName, string.Empty);
+            var rejectionReasons = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var rejectionSamples = new List<string>();
+            var usedCleanedCount = 0;
+            var usedRewriteCount = 0;
+            var duplicateBodyCount = 0;
 
             var selectedCandidates = extractionFoundation.Candidates
                 .Where(candidate => candidate != null &&
@@ -5266,7 +5271,8 @@ Extract requirements now (JSON only):";
                 .OrderBy(candidate => candidate.Status == ExtractionCandidateStatus.Accepted ? 0 : 1)
                 .ThenByDescending(candidate => candidate.Confidence)
                 .ThenBy(candidate => candidate.BlockIndex)
-                .Take(Math.Max(1, maxCount));
+                .Take(Math.Max(1, maxCount))
+                .ToList();
 
             foreach (var candidate in selectedCandidates)
             {
@@ -5274,24 +5280,46 @@ Extract requirements now (JSON only):";
                 var rewrittenText = NormalizeFoundationRecoveryText(SanitizeRequirementBodyText(candidate.SuggestedRewrite));
 
                 var requirementBody = string.Empty;
+                var selectedSource = string.Empty;
 
-                if (IsValidFoundationRequirementBody(cleanedText, isAtpDocument))
+                var isCleanedValid = IsValidFoundationRequirementBody(cleanedText, isAtpDocument, out var cleanedReason);
+                var isRewriteValid = IsValidFoundationRewriteBody(rewrittenText, isAtpDocument, out var rewriteReason);
+
+                if (isCleanedValid)
                 {
                     requirementBody = cleanedText;
+                    selectedSource = "cleaned";
                 }
-                else if (IsValidFoundationRewriteBody(rewrittenText, isAtpDocument))
+                else if (isRewriteValid)
                 {
                     requirementBody = rewrittenText;
+                    selectedSource = "rewrite";
                 }
 
                 if (string.IsNullOrWhiteSpace(requirementBody))
                 {
+                    var reasonKey = $"cleaned:{cleanedReason}|rewrite:{rewriteReason}";
+                    rejectionReasons[reasonKey] = rejectionReasons.TryGetValue(reasonKey, out var count) ? count + 1 : 1;
+                    if (rejectionSamples.Count < 12)
+                    {
+                        rejectionSamples.Add($"{candidate.CandidateId}:{reasonKey}");
+                    }
                     continue;
+                }
+
+                if (selectedSource == "cleaned")
+                {
+                    usedCleanedCount++;
+                }
+                else
+                {
+                    usedRewriteCount++;
                 }
 
                 var dedupeBody = Regex.Replace(requirementBody, @"\s+", " ").Trim();
                 if (!seenBodies.Add(dedupeBody))
                 {
+                    duplicateBodyCount++;
                     continue;
                 }
 
@@ -5328,64 +5356,88 @@ Extract requirements now (JSON only):";
                 });
             }
 
+            var rejectionSummary = rejectionReasons.Count == 0
+                ? "none"
+                : string.Join(" | ", rejectionReasons
+                    .OrderByDescending(kvp => kvp.Value)
+                    .Take(10)
+                    .Select(kvp => $"{kvp.Key}:{kvp.Value}"));
+
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[TemplateForm] Foundation recovery diagnostics: selected={selectedCandidates.Count}, produced={fallbackRequirements.Count}, used_cleaned={usedCleanedCount}, used_rewrite={usedRewriteCount}, duplicate_body={duplicateBodyCount}, reject_groups={rejectionReasons.Count}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[TemplateForm] Foundation recovery reject summary: {rejectionSummary}");
+            if (rejectionSamples.Count > 0)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info($"[TemplateForm] Foundation recovery reject samples: {string.Join(" | ", rejectionSamples)}");
+            }
+
             return fallbackRequirements;
         }
 
-        private bool IsValidFoundationRequirementBody(string? text, bool isAtpDocument)
+        private bool IsValidFoundationRequirementBody(string? text, bool isAtpDocument, out string reason)
         {
             if (isAtpDocument)
             {
-                return IsValidAtpFoundationCandidate(text);
+                return IsValidAtpFoundationCandidate(text, out reason);
             }
 
             if (!IsValidRequirement(text))
             {
+                reason = "generic-validator";
                 return false;
             }
 
             if (ContainsFoundationArtifactNoise(text))
             {
+                reason = "artifact-noise";
                 return false;
             }
 
+            reason = "ok";
             return true;
         }
 
-        private bool IsValidFoundationRewriteBody(string? text, bool isAtpDocument)
+        private bool IsValidFoundationRewriteBody(string? text, bool isAtpDocument, out string reason)
         {
             if (isAtpDocument)
             {
-                return IsValidAtpFoundationCandidate(text);
+                return IsValidAtpFoundationCandidate(text, out reason);
             }
 
             if (!IsValidRequirement(text))
             {
+                reason = "generic-validator";
                 return false;
             }
 
             if (ContainsFoundationArtifactNoise(text))
             {
+                reason = "artifact-noise";
                 return false;
             }
 
+            reason = "ok";
             return true;
         }
 
-        private static bool IsValidAtpFoundationCandidate(string? text)
+        private static bool IsValidAtpFoundationCandidate(string? text, out string reason)
         {
             if (string.IsNullOrWhiteSpace(text))
             {
+                reason = "empty";
                 return false;
             }
 
             var normalized = text.Trim();
             if (normalized.Length < 20)
             {
+                reason = "too-short";
                 return false;
             }
 
             if (ContainsFoundationArtifactNoise(normalized))
             {
+                reason = "artifact-noise";
                 return false;
             }
 
@@ -5400,12 +5452,14 @@ Extract requirements now (JSON only):";
                 lower.StartsWith("document:") ||
                 lower.StartsWith("section:"))
             {
+                reason = "boilerplate";
                 return false;
             }
 
             var words = lower.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (words.Length < 5)
             {
+                reason = "too-few-words";
                 return false;
             }
 
@@ -5421,7 +5475,14 @@ Extract requirements now (JSON only):";
                 lower.Contains("procedure") ||
                 lower.Contains("step");
 
-            return hasVerificationLanguage;
+            if (!hasVerificationLanguage)
+            {
+                reason = "no-verification-language";
+                return false;
+            }
+
+            reason = "ok";
+            return true;
         }
 
         private static string NormalizeFoundationRecoveryText(string? text)
