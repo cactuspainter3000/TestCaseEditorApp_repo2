@@ -1631,6 +1631,16 @@ But thoroughly scan all sections first before concluding.";
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn(
                         $"[DirectRag] Low context coverage detected ({(contextCoverage * 100):F1}%). Extraction may miss requirements unless recovery paths add coverage.");
+
+                    // When retrieval coverage is too low, augment with a focused excerpt from the source
+                    // so the LLM is not forced to rely on a sparse context window.
+                    var focusedRecovery = BuildRequirementFocusedExcerpt(documentContent, 8000);
+                    if (!string.IsNullOrWhiteSpace(focusedRecovery))
+                    {
+                        contextContent = string.IsNullOrWhiteSpace(contextContent)
+                            ? focusedRecovery
+                            : $"{contextContent}\n\n[Focused Recovery]\n{focusedRecovery}";
+                    }
                 }
 
                 // Step 5: Use Template Form Architecture (NO LEGACY FALLBACK)
@@ -4749,6 +4759,18 @@ Extract requirements now (JSON only):";
 
                 if (envelope == null || envelope.Requirements == null || envelope.Requirements.Count == 0)
                 {
+                    if (extractionFoundation != null)
+                    {
+                        var deterministicRecovery = BuildRequirementsFromExtractionFoundation(extractionFoundation, attachment);
+                        if (deterministicRecovery.Count > 0)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Warn(
+                                $"[TemplateForm] Structured output was empty; deterministic foundation recovery produced {deterministicRecovery.Count} requirement(s).");
+                            progressCallback?.Invoke($"⚠️ Structured output was empty - recovered {deterministicRecovery.Count} requirement(s) from document foundation.");
+                            return deterministicRecovery;
+                        }
+                    }
+
                     TestCaseEditorApp.Services.Logging.Log.Error($"[TemplateForm] Failed to parse structured output - NO FALLBACK (legacy parsing disabled)");
                     progressCallback?.Invoke("❌ Structured extraction failed - Template Form Architecture required");
                     
@@ -4931,6 +4953,63 @@ Extract requirements now (JSON only):";
                 progressCallback?.Invoke($"❌ Template form extraction error: {ex.Message}");
                 return new List<Requirement>();
             }
+        }
+
+        private List<Requirement> BuildRequirementsFromExtractionFoundation(
+            DocumentRequirementExtractionResult extractionFoundation,
+            JamaAttachment attachment,
+            int maxCount = 40)
+        {
+            var fallbackRequirements = new List<Requirement>();
+            if (extractionFoundation == null || extractionFoundation.Candidates.Count == 0)
+            {
+                return fallbackRequirements;
+            }
+
+            var selectedCandidates = extractionFoundation.Candidates
+                .Where(candidate => candidate != null &&
+                                    !string.IsNullOrWhiteSpace(candidate.NormalizedText) &&
+                                    (candidate.Status == ExtractionCandidateStatus.Accepted || candidate.Status == ExtractionCandidateStatus.NeedsReview))
+                .OrderBy(candidate => candidate.Status == ExtractionCandidateStatus.Accepted ? 0 : 1)
+                .ThenByDescending(candidate => candidate.Confidence)
+                .ThenBy(candidate => candidate.BlockIndex)
+                .Take(Math.Max(1, maxCount));
+
+            foreach (var candidate in selectedCandidates)
+            {
+                var cleanedText = SanitizeRequirementBodyText(candidate.NormalizedText);
+                if (string.IsNullOrWhiteSpace(cleanedText) || !IsValidRequirement(cleanedText))
+                {
+                    continue;
+                }
+
+                var sourcePrefix = ResolvePreferredSourcePrefix(candidate.SourcePrefix, candidate.SourcePrefixEvidence, null, null, null);
+                var fallbackId = !string.IsNullOrWhiteSpace(candidate.SourcePrefix)
+                    ? $"FND-{candidate.SourcePrefix}".Replace(" ", "-")
+                    : $"FND-{candidate.CandidateId}";
+
+                fallbackRequirements.Add(new Requirement
+                {
+                    GlobalId = fallbackId,
+                    Item = fallbackId,
+                    Name = BuildRequirementTitle(cleanedText, "System Requirement"),
+                    RequirementType = "System Requirement",
+                    Status = "Draft",
+                    Description = $"{cleanedText}\n\nSource: Foundation candidate {candidate.CandidateId}\nFrom: {attachment.FileName}\nConfidence: {candidate.Confidence:P0} (Deterministic foundation recovery)",
+                    SourcePrefix = sourcePrefix ?? string.Empty,
+                    SourcePrefixType = candidate.SourcePrefixType ?? string.Empty,
+                    SourcePrefixEvidence = candidate.SourcePrefixEvidence ?? string.Empty,
+                    SourcePrefixConfidence = candidate.Confidence,
+                    SourceSection = sourcePrefix ?? string.Empty,
+                    TraceReference = BuildRequirementTraceReference(attachment.Id, fallbackId, fallbackRequirements.Count + 1),
+                    SourceDocumentName = attachment.FileName,
+                    SourceAttachmentId = attachment.Id,
+                    SourceJamaItemId = attachment.Item > 0 ? attachment.Item : null,
+                    Tags = BuildExtractionTags("System Requirement", sourcePrefix, candidate.SourcePrefixType, false)
+                });
+            }
+
+            return fallbackRequirements;
         }
 
         /// <summary>
