@@ -5255,6 +5255,7 @@ Extract requirements now (JSON only):";
             }
 
             var generatedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var seenBodies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             var selectedCandidates = extractionFoundation.Candidates
                 .Where(candidate => candidate != null &&
@@ -5270,13 +5271,24 @@ Extract requirements now (JSON only):";
                 var cleanedText = SanitizeRequirementBodyText(candidate.NormalizedText);
                 var rewrittenText = SanitizeRequirementBodyText(candidate.SuggestedRewrite);
 
-                var requirementBody = IsValidRequirement(cleanedText)
-                    ? cleanedText
-                    : IsValidRequirement(rewrittenText)
-                        ? rewrittenText
-                        : string.Empty;
+                var requirementBody = string.Empty;
+
+                if (IsValidFoundationRequirementBody(cleanedText))
+                {
+                    requirementBody = cleanedText;
+                }
+                else if (IsValidFoundationRewriteBody(rewrittenText))
+                {
+                    requirementBody = rewrittenText;
+                }
 
                 if (string.IsNullOrWhiteSpace(requirementBody))
+                {
+                    continue;
+                }
+
+                var dedupeBody = Regex.Replace(requirementBody, @"\s+", " ").Trim();
+                if (!seenBodies.Add(dedupeBody))
                 {
                     continue;
                 }
@@ -5315,6 +5327,76 @@ Extract requirements now (JSON only):";
             }
 
             return fallbackRequirements;
+        }
+
+        private bool IsValidFoundationRequirementBody(string? text)
+        {
+            if (!IsValidRequirement(text))
+            {
+                return false;
+            }
+
+            if (ContainsFoundationArtifactNoise(text))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool IsValidFoundationRewriteBody(string? text)
+        {
+            if (!IsValidRequirement(text))
+            {
+                return false;
+            }
+
+            if (ContainsFoundationArtifactNoise(text))
+            {
+                return false;
+            }
+
+            var normalized = text?.Trim() ?? string.Empty;
+            if (normalized.StartsWith("The system shall satisfy the following requirement intent", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool ContainsFoundationArtifactNoise(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return true;
+            }
+
+            var normalized = text.Trim();
+            if (normalized.Length < 24)
+            {
+                return true;
+            }
+
+            if (normalized.IndexOf("_toc", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+
+            if (Regex.IsMatch(normalized, @"\\h\s+\d+", RegexOptions.IgnoreCase))
+            {
+                return true;
+            }
+
+            if (Regex.IsMatch(normalized, @"\b(section|table|figure)\s*:\s*\d+(\.\d+)*\b", RegexOptions.IgnoreCase) &&
+                normalized.IndexOf("shall", StringComparison.OrdinalIgnoreCase) < 0 &&
+                normalized.IndexOf("must", StringComparison.OrdinalIgnoreCase) < 0 &&
+                normalized.IndexOf("will", StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
