@@ -5550,6 +5550,21 @@ Extract requirements now (JSON only):";
 
             var lower = normalized.ToLowerInvariant();
 
+            // Reject ATP section/test headings such as "4.1.18 Test ..." or "4.1.18Test ...".
+            if (Regex.IsMatch(normalized, @"^\s*\d+(?:\.\d+)+\s*test\b", RegexOptions.IgnoreCase) ||
+                Regex.IsMatch(normalized, @"^\s*test\s+(?:procedure|condition|conditions|objective|setup|sequence)\b", RegexOptions.IgnoreCase))
+            {
+                reason = "atp-heading";
+                return false;
+            }
+
+            // Reject parameter assignment/setup lines that are not requirement statements.
+            if (Regex.IsMatch(normalized, @"^\s*[A-Z][A-Z0-9_]{2,}\s*=\s*", RegexOptions.IgnoreCase))
+            {
+                reason = "assignment-line";
+                return false;
+            }
+
             // Reject document boilerplate/header noise.
             if (lower.Contains("cage code") ||
                 lower.Contains("proprietary") ||
@@ -5563,26 +5578,37 @@ Extract requirements now (JSON only):";
                 return false;
             }
 
+            // Reject ATP setup/procedure boilerplate frequently mistaken for requirements.
+            if (lower.Contains("test condition and tolerances") ||
+                lower.Contains("recommended power supply settings") ||
+                lower.Contains("unless otherwise indicated") ||
+                lower.Contains("warm-up period") ||
+                lower.Contains("no warm-up period is required"))
+            {
+                reason = "setup-boilerplate";
+                return false;
+            }
+
             var words = lower.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (words.Length < 5)
+            if (words.Length < 6)
             {
                 reason = "too-few-words";
                 return false;
             }
 
-            // ATP often uses verification phrasing that may not look like pure system requirements.
-            var hasVerificationLanguage =
+            // ATP candidates still need normative/verification intent, not just procedural labels.
+            var hasNormativeLanguage =
                 lower.Contains("shall") ||
                 lower.Contains("must") ||
                 lower.Contains("will") ||
-                lower.Contains("should") ||
-                lower.Contains("verify") ||
-                lower.Contains("verification") ||
-                lower.Contains("test") ||
-                lower.Contains("procedure") ||
-                lower.Contains("step");
+                lower.Contains("should");
 
-            if (!hasVerificationLanguage)
+            var hasExplicitVerificationStatement =
+                lower.Contains("verify that") ||
+                lower.StartsWith("verify ") ||
+                lower.Contains("verification shall");
+
+            if (!hasNormativeLanguage && !hasExplicitVerificationStatement)
             {
                 reason = "no-verification-language";
                 return false;
