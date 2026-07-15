@@ -4970,13 +4970,15 @@ Extract requirements now (JSON only):";
         private List<Requirement> BuildRequirementsFromExtractionFoundation(
             DocumentRequirementExtractionResult extractionFoundation,
             JamaAttachment attachment,
-            int maxCount = 40)
+            int maxCount = 160)
         {
             var fallbackRequirements = new List<Requirement>();
             if (extractionFoundation == null || extractionFoundation.Candidates.Count == 0)
             {
                 return fallbackRequirements;
             }
+
+            var generatedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             var selectedCandidates = extractionFoundation.Candidates
                 .Where(candidate => candidate != null &&
@@ -4990,24 +4992,39 @@ Extract requirements now (JSON only):";
             foreach (var candidate in selectedCandidates)
             {
                 var cleanedText = SanitizeRequirementBodyText(candidate.NormalizedText);
-                if (string.IsNullOrWhiteSpace(cleanedText) || !IsValidRequirement(cleanedText))
+                var rewrittenText = SanitizeRequirementBodyText(candidate.SuggestedRewrite);
+
+                var requirementBody = IsValidRequirement(cleanedText)
+                    ? cleanedText
+                    : IsValidRequirement(rewrittenText)
+                        ? rewrittenText
+                        : string.Empty;
+
+                if (string.IsNullOrWhiteSpace(requirementBody))
                 {
                     continue;
                 }
 
                 var sourcePrefix = ResolvePreferredSourcePrefix(candidate.SourcePrefix, candidate.SourcePrefixEvidence, null, null, null);
-                var fallbackId = !string.IsNullOrWhiteSpace(candidate.SourcePrefix)
+                var fallbackIdBase = !string.IsNullOrWhiteSpace(candidate.SourcePrefix)
                     ? $"FND-{candidate.SourcePrefix}".Replace(" ", "-")
                     : $"FND-{candidate.CandidateId}";
+
+                var fallbackId = fallbackIdBase;
+                var duplicateIndex = 2;
+                while (!generatedIds.Add(fallbackId))
+                {
+                    fallbackId = $"{fallbackIdBase}-{duplicateIndex++}";
+                }
 
                 fallbackRequirements.Add(new Requirement
                 {
                     GlobalId = fallbackId,
                     Item = fallbackId,
-                    Name = BuildRequirementTitle(cleanedText, "System Requirement"),
+                    Name = BuildRequirementTitle(requirementBody, "System Requirement"),
                     RequirementType = "System Requirement",
                     Status = "Draft",
-                    Description = $"{cleanedText}\n\nSource: Foundation candidate {candidate.CandidateId}\nFrom: {attachment.FileName}\nConfidence: {candidate.Confidence:P0} (Deterministic foundation recovery)",
+                    Description = $"{requirementBody}\n\nSource: Foundation candidate {candidate.CandidateId}\nFrom: {attachment.FileName}\nConfidence: {candidate.Confidence:P0} (Deterministic foundation recovery)",
                     SourcePrefix = sourcePrefix ?? string.Empty,
                     SourcePrefixType = candidate.SourcePrefixType ?? string.Empty,
                     SourcePrefixEvidence = candidate.SourcePrefixEvidence ?? string.Empty,
