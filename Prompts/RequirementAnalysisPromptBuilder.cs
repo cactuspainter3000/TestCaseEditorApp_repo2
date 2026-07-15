@@ -330,9 +330,10 @@ namespace TestCaseEditorApp.Prompts
         /// <param name="tables">Tables associated with the requirement</param>
         /// <param name="looseContent">Supplemental paragraphs and tables</param>
         /// <param name="verificationAssumptions">Verification method context</param>
+        /// <param name="extractionTriageContext">Optional extraction triage context carried from document parsing</param>
         /// <returns>Context message with requirement data for analysis</returns>
         public string BuildContextPrompt(string requirementId, string requirementName, string requirementText, 
-            List<RequirementTable>? tables = null, RequirementLooseContent? looseContent = null, string? verificationAssumptions = null)
+            List<RequirementTable>? tables = null, RequirementLooseContent? looseContent = null, string? verificationAssumptions = null, string? extractionTriageContext = null)
         {
             var sb = new StringBuilder();
 
@@ -453,6 +454,16 @@ namespace TestCaseEditorApp.Prompts
                 sb.AppendLine(verificationAssumptions);
                 sb.AppendLine();
                 sb.AppendLine("Consider this verification approach when evaluating testability and providing recommendations.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(extractionTriageContext))
+            {
+                sb.AppendLine();
+                sb.AppendLine("EXTRACTION TRIAGE CONTEXT:");
+                sb.AppendLine();
+                sb.AppendLine(extractionTriageContext);
+                sb.AppendLine();
+                sb.AppendLine("Treat this triage context as analyst guidance and preserve requirement intent when proposing fixes.");
             }
             
             sb.AppendLine();

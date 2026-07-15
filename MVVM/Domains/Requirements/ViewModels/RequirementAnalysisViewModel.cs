@@ -208,6 +208,17 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public bool HasRecommendations => Recommendations?.Count > 0;
         public bool HasIssues => Issues?.Count > 0;
         public bool ShouldHideCopyButton => false; // Requirements domain doesn't have unsaved editing changes concept
+        public string ExtractionAnalysisPriority => CurrentRequirement?.AnalysisPriority ?? string.Empty;
+        public string ExtractionFixType => CurrentRequirement?.FixType ?? string.Empty;
+        public string ExtractionDispositionRecommendation => CurrentRequirement?.DispositionRecommendation ?? string.Empty;
+        public string ExtractionSuggestedRewrite => CurrentRequirement?.SuggestedRewrite ?? string.Empty;
+        public string ExtractionSourcePrefixEvidence => CurrentRequirement?.SourcePrefixEvidence ?? string.Empty;
+        public bool HasExtractionTriage =>
+            !string.IsNullOrWhiteSpace(ExtractionAnalysisPriority) ||
+            !string.IsNullOrWhiteSpace(ExtractionFixType) ||
+            !string.IsNullOrWhiteSpace(ExtractionDispositionRecommendation) ||
+            !string.IsNullOrWhiteSpace(ExtractionSuggestedRewrite) ||
+            !string.IsNullOrWhiteSpace(ExtractionSourcePrefixEvidence);
         
         // Override property change notifications to trigger HasNoAnalysis updates
         partial void OnHasAnalysisChanged(bool value)
@@ -248,6 +259,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                     OnPropertyChanged(nameof(IsAnalyzing)); // Update analyzing state for new requirement
                     ((AsyncRelayCommand)AnalyzeRequirementCommand).NotifyCanExecuteChanged();
                     OnPropertyChanged(nameof(CanEditItemTypeDuringReview));
+                    OnPropertyChanged(nameof(ExtractionAnalysisPriority));
+                    OnPropertyChanged(nameof(ExtractionFixType));
+                    OnPropertyChanged(nameof(ExtractionDispositionRecommendation));
+                    OnPropertyChanged(nameof(ExtractionSuggestedRewrite));
+                    OnPropertyChanged(nameof(ExtractionSourcePrefixEvidence));
+                    OnPropertyChanged(nameof(HasExtractionTriage));
                     
                     // Update UI state based on current requirement's analysis
                     RefreshAnalysisDisplay();
@@ -530,6 +547,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 UpdateUIFromAnalysis(analysis);
                 SyncSelectedRequirementItemTypeFromCurrentRequirement();
+                OnPropertyChanged(nameof(ExtractionAnalysisPriority));
+                OnPropertyChanged(nameof(ExtractionFixType));
+                OnPropertyChanged(nameof(ExtractionDispositionRecommendation));
+                OnPropertyChanged(nameof(ExtractionSuggestedRewrite));
+                OnPropertyChanged(nameof(ExtractionSourcePrefixEvidence));
+                OnPropertyChanged(nameof(HasExtractionTriage));
             }
             else
             {
@@ -546,6 +569,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 AnalysisTimestamp = string.Empty;
                 AnalysisStatusMessage = analysis?.ErrorMessage ?? string.Empty;
                 SyncSelectedRequirementItemTypeFromCurrentRequirement();
+                OnPropertyChanged(nameof(ExtractionAnalysisPriority));
+                OnPropertyChanged(nameof(ExtractionFixType));
+                OnPropertyChanged(nameof(ExtractionDispositionRecommendation));
+                OnPropertyChanged(nameof(ExtractionSuggestedRewrite));
+                OnPropertyChanged(nameof(ExtractionSourcePrefixEvidence));
+                OnPropertyChanged(nameof(HasExtractionTriage));
                 
                 _logger.LogDebug("[RequirementAnalysisVM] Cleared display state for {RequirementId}", CurrentRequirement?.Item);
             }

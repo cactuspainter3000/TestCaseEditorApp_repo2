@@ -1051,6 +1051,10 @@ For a technical ATP/SRS document, expect 15-50+ requirements minimum.";
                 var sourcePrefixEvidence = ExtractFieldValue(reqData, new[] { "Source Prefix Evidence", "Prefix Evidence" });
                 var sourcePrefixConfidence = ExtractNullableDouble(
                     ExtractFieldValue(reqData, new[] { "Source Prefix Confidence", "Prefix Confidence" }));
+                var analysisPriority = ExtractFieldValue(reqData, new[] { "Analysis Priority", "Priority" });
+                var fixType = ExtractFieldValue(reqData, new[] { "Fix Type" });
+                var suggestedRewrite = ExtractFieldValue(reqData, new[] { "Suggested Rewrite", "Suggested Rewrite Text" });
+                var dispositionRecommendation = ExtractFieldValue(reqData, new[] { "Disposition Recommendation", "Disposition" });
 
                 var descriptionSections = new List<string> { text };
                 if (!string.IsNullOrWhiteSpace(purpose))
@@ -1078,6 +1082,10 @@ For a technical ATP/SRS document, expect 15-50+ requirements minimum.";
                     SourcePrefixType = sourcePrefixType ?? string.Empty,
                     SourcePrefixEvidence = sourcePrefixEvidence ?? string.Empty,
                     SourcePrefixConfidence = sourcePrefixConfidence,
+                    AnalysisPriority = analysisPriority ?? string.Empty,
+                    FixType = fixType ?? string.Empty,
+                    SuggestedRewrite = suggestedRewrite ?? string.Empty,
+                    DispositionRecommendation = dispositionRecommendation ?? string.Empty,
                     SourceSection = sourcePrefix ?? string.Empty,
                     TraceReference = BuildRequirementTraceReference(attachment.Id, id, 0),
                     SourceDocumentName = attachment.FileName,
@@ -2714,6 +2722,7 @@ Extract all legitimate requirements:";
                     string? id = null, text = null, category = null, page = null, sectionRef = null;
                     string? sourcePrefix = null, sourcePrefixType = null, sourcePrefixEvidence = null;
                     double? sourcePrefixConfidence = null;
+                    string? analysisPriority = null, fixType = null, suggestedRewrite = null, dispositionRecommendation = null;
                     
                     foreach (var line in lines)
                     {
@@ -2736,6 +2745,14 @@ Extract all legitimate requirements:";
                             sourcePrefixEvidence = trimmedLine.Substring(23).Trim();
                         else if (trimmedLine.StartsWith("Source Prefix Confidence:", StringComparison.OrdinalIgnoreCase))
                             sourcePrefixConfidence = ExtractNullableDouble(trimmedLine.Substring(25).Trim());
+                        else if (trimmedLine.StartsWith("Analysis Priority:", StringComparison.OrdinalIgnoreCase))
+                            analysisPriority = trimmedLine.Substring(18).Trim();
+                        else if (trimmedLine.StartsWith("Fix Type:", StringComparison.OrdinalIgnoreCase))
+                            fixType = trimmedLine.Substring(9).Trim();
+                        else if (trimmedLine.StartsWith("Suggested Rewrite:", StringComparison.OrdinalIgnoreCase))
+                            suggestedRewrite = trimmedLine.Substring(18).Trim();
+                        else if (trimmedLine.StartsWith("Disposition Recommendation:", StringComparison.OrdinalIgnoreCase))
+                            dispositionRecommendation = trimmedLine.Substring(27).Trim();
                     }
                     
                     if (!string.IsNullOrEmpty(text) && IsValidRequirement(text))
@@ -2764,6 +2781,10 @@ Extract all legitimate requirements:";
                             SourcePrefixType = sourcePrefixType ?? string.Empty,
                             SourcePrefixEvidence = sourcePrefixEvidence ?? string.Empty,
                             SourcePrefixConfidence = sourcePrefixConfidence,
+                            AnalysisPriority = analysisPriority ?? string.Empty,
+                            FixType = fixType ?? string.Empty,
+                            SuggestedRewrite = suggestedRewrite ?? string.Empty,
+                            DispositionRecommendation = dispositionRecommendation ?? string.Empty,
                             SourceSection = resolvedSourcePrefix ?? string.Empty,
                             TraceReference = BuildRequirementTraceReference(attachment.Id, id, requirements.Count + 1),
                             SourceDocumentName = attachment.FileName,
@@ -2972,6 +2993,10 @@ Extract all legitimate requirements:";
                     SourcePrefixType = ExtractJsonStringValue(rawObject, "source_prefix_type"),
                     SourcePrefixEvidence = ExtractJsonStringValue(rawObject, "source_prefix_evidence"),
                     SourcePrefixConfidence = ExtractJsonDoubleValue(rawObject, "source_prefix_confidence"),
+                    AnalysisPriority = ExtractJsonStringValue(rawObject, "analysis_priority"),
+                    FixType = ExtractJsonStringValue(rawObject, "fix_type"),
+                    SuggestedRewrite = ExtractJsonStringValue(rawObject, "suggested_rewrite"),
+                    DispositionRecommendation = ExtractJsonStringValue(rawObject, "disposition_recommendation"),
                     Confidence = ExtractJsonDoubleValue(rawObject, "confidence") ?? 0.7
                 });
             }
@@ -4598,6 +4623,10 @@ Extract all legitimate requirements:";
                             source_prefix_type = "string (section|document_id|table|figure|step|heading|unknown)",
                             source_prefix_evidence = "string (exact text snippet proving the prefix choice)",
                             source_prefix_confidence = "number (0.0-1.0, confidence that the prefix is correct)",
+                            analysis_priority = "string (High|Medium|Low, triage urgency for human review)",
+                            fix_type = "string (short remediation category for analyst)",
+                            suggested_rewrite = "string (optional rewrite preserving source intent)",
+                            disposition_recommendation = "string (Accept|NeedsReview with rationale)",
                             confidence = "number (0.0-1.0, extraction confidence)"
                         }
                     },
@@ -4844,6 +4873,10 @@ Extract requirements now (JSON only):";
                         SourcePrefixType = req.SourcePrefixType ?? string.Empty,
                         SourcePrefixEvidence = req.SourcePrefixEvidence ?? string.Empty,
                         SourcePrefixConfidence = req.SourcePrefixConfidence,
+                        AnalysisPriority = req.AnalysisPriority ?? string.Empty,
+                        FixType = req.FixType ?? string.Empty,
+                        SuggestedRewrite = req.SuggestedRewrite ?? string.Empty,
+                        DispositionRecommendation = req.DispositionRecommendation ?? string.Empty,
                         SourceSection = resolvedSourcePrefix ?? string.Empty,
                         TraceReference = BuildRequirementTraceReference(attachment.Id, req.Id, extractedRequirements.Count + 1),
                         SourceDocumentName = attachment.FileName,
@@ -4990,10 +5023,22 @@ Extract requirements now (JSON only):";
             public string? Category { get; set; }
             public string? Page { get; set; }
             public string? Section { get; set; }
+            [System.Text.Json.Serialization.JsonPropertyName("source_prefix")]
             public string? SourcePrefix { get; set; }
+            [System.Text.Json.Serialization.JsonPropertyName("source_prefix_type")]
             public string? SourcePrefixType { get; set; }
+            [System.Text.Json.Serialization.JsonPropertyName("source_prefix_evidence")]
             public string? SourcePrefixEvidence { get; set; }
+            [System.Text.Json.Serialization.JsonPropertyName("source_prefix_confidence")]
             public double? SourcePrefixConfidence { get; set; }
+            [System.Text.Json.Serialization.JsonPropertyName("analysis_priority")]
+            public string? AnalysisPriority { get; set; }
+            [System.Text.Json.Serialization.JsonPropertyName("fix_type")]
+            public string? FixType { get; set; }
+            [System.Text.Json.Serialization.JsonPropertyName("suggested_rewrite")]
+            public string? SuggestedRewrite { get; set; }
+            [System.Text.Json.Serialization.JsonPropertyName("disposition_recommendation")]
+            public string? DispositionRecommendation { get; set; }
             public double Confidence { get; set; } = 0.8;
         }
 

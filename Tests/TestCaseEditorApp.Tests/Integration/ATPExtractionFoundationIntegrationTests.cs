@@ -136,6 +136,46 @@ namespace TestCaseEditorApp.Tests.Integration
                 "Extractor candidates should not contain TOC or page-reference artifacts.");
         }
 
+        [TestMethod]
+        public void Analyze_ATRExportDocument_ProducesCandidates_WithTriageMetadata()
+        {
+            var documentPath = ResolveRepoFilePath("exports", "document-artifacts", "20260714-193344", "ATR_Export.docx");
+            Assert.IsTrue(File.Exists(documentPath), $"Expected ATR export fixture at {documentPath}");
+
+            var extractedText = ExtractWordDocumentText(documentPath);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(extractedText), "ATR export should yield extractable document text.");
+
+            var loggerFactory = LoggerFactory.Create(builder => builder.SetMinimumLevel(LogLevel.Warning));
+            var logger = loggerFactory.CreateLogger<DocumentRequirementExtractionService>();
+            var service = new DocumentRequirementExtractionService(logger);
+
+            var result = service.AnalyzeAsync(extractedText, Path.GetFileName(documentPath)).GetAwaiter().GetResult();
+
+            TestContext.WriteLine($"ATR Blocks: {result.Blocks.Count}");
+            TestContext.WriteLine($"ATR Candidates: {result.Candidates.Count}");
+            TestContext.WriteLine($"ATR Accepted: {result.AcceptedCandidateCount}, Review: {result.ReviewCandidateCount}, Rejected: {result.RejectedCandidateCount}");
+            TestContext.WriteLine(result.BuildEvidenceLedger(8));
+
+            Assert.IsTrue(result.Blocks.Count > 0, "ATR export should segment into blocks.");
+            Assert.IsTrue(result.Candidates.Count > 0, "ATR export should produce at least one requirement candidate.");
+            Assert.IsTrue(result.RejectedCandidateCount == 0,
+                "ATR candidates should be retained for analysis/review instead of hard-rejected.");
+            Assert.IsTrue(
+                result.Candidates.Where(candidate => candidate.AnalysisFlags.Count > 0).All(candidate =>
+                    !string.IsNullOrWhiteSpace(candidate.AnalysisPriority)
+                    && !string.IsNullOrWhiteSpace(candidate.DispositionRecommendation)),
+                "Flagged ATR candidates should include triage priority and disposition metadata.");
+            Assert.IsFalse(
+                result.Candidates.Any(candidate => !string.IsNullOrWhiteSpace(candidate.SourcePrefix) && Regex.IsMatch(candidate.SourcePrefix, @"^DOC-\d{3}$", RegexOptions.IgnoreCase)),
+                "ATR extraction must not emit synthetic DOC-### source prefixes.");
+            Assert.IsFalse(
+                result.Candidates.Any(candidate =>
+                    (!string.IsNullOrWhiteSpace(candidate.RawText) && Regex.IsMatch(candidate.RawText, @"\b(TOC|PAGEREF)\b", RegexOptions.IgnoreCase)) ||
+                    (!string.IsNullOrWhiteSpace(candidate.NormalizedText) && Regex.IsMatch(candidate.NormalizedText, @"\b(TOC|PAGEREF)\b", RegexOptions.IgnoreCase)) ||
+                    candidate.EvidenceSnippets.Any(snippet => !string.IsNullOrWhiteSpace(snippet) && Regex.IsMatch(snippet, @"\b(TOC|PAGEREF)\b", RegexOptions.IgnoreCase))),
+                "ATR extraction should not surface TOC/PAGEREF artifacts.");
+        }
+
         private static string ExtractWordDocumentText(string documentPath)
         {
             using var stream = File.OpenRead(documentPath);

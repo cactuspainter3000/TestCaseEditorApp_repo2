@@ -269,6 +269,33 @@ namespace TestCaseEditorApp.Tests.Phase4Services
         }
 
         [TestMethod]
+        public void GeneratePromptForInspection_WithExtractionTriageFields_IncludesTriageContext()
+        {
+            var requirement = new Requirement
+            {
+                Item = "REQ-777",
+                Name = "Timing verification",
+                Description = "The test solution shall verify command response timing within 25 ms.",
+                AnalysisPriority = "High",
+                FixType = "Missing Explicit Identifier",
+                DispositionRecommendation = "NeedsReview - add exact identifier mapping",
+                SuggestedRewrite = "The test solution shall verify command response timing within 25 ms for requirement ID CMD-25.",
+                SourcePrefix = "4.1.2",
+                SourcePrefixEvidence = "Section 4.1.2 command timing",
+                SourcePrefixConfidence = 0.89
+            };
+
+            var prompt = _service.GeneratePromptForInspection(requirement);
+
+            Assert.IsTrue(prompt.Contains("EXTRACTION TRIAGE CONTEXT:", StringComparison.Ordinal), "Prompt should include extraction triage section.");
+            Assert.IsTrue(prompt.Contains("Analysis Priority: High", StringComparison.Ordinal), "Prompt should include extraction priority.");
+            Assert.IsTrue(prompt.Contains("Fix Type: Missing Explicit Identifier", StringComparison.Ordinal), "Prompt should include fix type guidance.");
+            Assert.IsTrue(prompt.Contains("Disposition Recommendation: NeedsReview", StringComparison.Ordinal), "Prompt should include disposition recommendation.");
+            Assert.IsTrue(prompt.Contains("Suggested Rewrite from Extraction:", StringComparison.Ordinal), "Prompt should include extraction rewrite guidance.");
+            Assert.IsTrue(prompt.Contains("Source Prefix Evidence: Section 4.1.2 command timing", StringComparison.Ordinal), "Prompt should include source evidence.");
+        }
+
+        [TestMethod]
         public void Constructor_WithNullLlmService_ThrowsArgumentNullException()
         {
             // Act & Assert

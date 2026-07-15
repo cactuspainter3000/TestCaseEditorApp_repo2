@@ -228,6 +228,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                 
                 // Get verification assumptions for context
                 var verificationAssumptions = GetVerificationAssumptionsText(requirement);
+                var extractionTriageContext = BuildExtractionTriageContext(requirement);
                 var prepTime = DateTime.UtcNow - prepStart;
                 System.Diagnostics.Debug.WriteLine($"[ANALYSIS DEBUG] Preparation completed in {prepTime.TotalMilliseconds}ms");
 
@@ -247,7 +248,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     requirement.Description ?? string.Empty,
                     requirement.Tables,
                     requirement.LooseContent,
-                    verificationAssumptions);
+                    verificationAssumptions,
+                    extractionTriageContext);
 
                 onProgressUpdate?.Invoke("Sending analysis request to AI...");
                 
@@ -435,6 +437,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                 // Fallback to direct LLM analysis
                 // Get verification assumptions for context
                 var verificationAssumptions = GetVerificationAssumptionsText(requirement);
+                var extractionTriageContext = BuildExtractionTriageContext(requirement);
 
                 // Build the prompt using optimized system+context approach for better performance
                 string response;
@@ -445,7 +448,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                     requirement.Description ?? string.Empty,
                     requirement.Tables,
                     requirement.LooseContent,
-                    verificationAssumptions);
+                    verificationAssumptions,
+                    extractionTriageContext);
 
                 // Use optimized system+context call - much faster for multiple requirements
                 response = await _llmService.GenerateWithSystemAsync(_cachedSystemMessage, contextPrompt, cancellationToken);
@@ -647,6 +651,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
 
             // Get verification assumptions for context
             var verificationAssumptions = GetVerificationAssumptionsText(requirement);
+            var extractionTriageContext = BuildExtractionTriageContext(requirement);
 
             var systemPrompt = _promptBuilder.GetSystemPrompt();
             var contextPrompt = _promptBuilder.BuildContextPrompt(
@@ -655,7 +660,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                 requirement.Description ?? string.Empty,
                 requirement.Tables,
                 requirement.LooseContent,
-                verificationAssumptions);
+                verificationAssumptions,
+                extractionTriageContext);
             
             var prompt = systemPrompt + "\n\n" + contextPrompt;
 
@@ -836,6 +842,55 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                 TestCaseEditorApp.Services.Logging.Log.Debug($"[RequirementAnalysis] Error getting assumptions: {ex.Message}");
                 return null;
             }
+        }
+
+        private static string? BuildExtractionTriageContext(Requirement requirement)
+        {
+            if (requirement == null)
+            {
+                return null;
+            }
+
+            var lines = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(requirement.AnalysisPriority))
+            {
+                lines.Add($"Analysis Priority: {requirement.AnalysisPriority}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(requirement.FixType))
+            {
+                lines.Add($"Fix Type: {requirement.FixType}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(requirement.DispositionRecommendation))
+            {
+                lines.Add($"Disposition Recommendation: {requirement.DispositionRecommendation}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(requirement.SuggestedRewrite))
+            {
+                lines.Add($"Suggested Rewrite from Extraction: {requirement.SuggestedRewrite}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(requirement.SourcePrefix) || !string.IsNullOrWhiteSpace(requirement.SourcePrefixEvidence))
+            {
+                lines.Add($"Source Prefix: {requirement.SourcePrefix}");
+                lines.Add($"Source Prefix Evidence: {requirement.SourcePrefixEvidence}");
+            }
+
+            if (requirement.SourcePrefixConfidence.HasValue)
+            {
+                lines.Add($"Source Prefix Confidence: {requirement.SourcePrefixConfidence.Value:F2}");
+            }
+
+            if (lines.Count == 0)
+            {
+                return null;
+            }
+
+            lines.Add("When these extraction triage hints conflict with your quality judgment, keep the requirement intent and explain tradeoffs in recommendations.");
+            return string.Join(Environment.NewLine, lines);
         }
 
         /// <summary>
@@ -1843,6 +1898,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
             prompt.AppendLine($"**Name:** {requirement.Name}");
             prompt.AppendLine($"**Description:** {requirement.Description}");
             prompt.AppendLine();
+
+            var extractionTriageContext = BuildExtractionTriageContext(requirement);
+            if (!string.IsNullOrWhiteSpace(extractionTriageContext))
+            {
+                prompt.AppendLine("**Extraction Triage Context:**");
+                prompt.AppendLine(extractionTriageContext);
+                prompt.AppendLine();
+            }
 
             // Include supplemental information directly in the prompt
             bool hasSupplementalInfo = false;

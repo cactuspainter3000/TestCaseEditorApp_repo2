@@ -63,6 +63,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     
                     <Grid Grid.Row="0" Margin="0,0,0,8">
@@ -129,6 +130,53 @@
                                   MinWidth="180"
                                   ToolTip="Editable only while reviewing analysis results."/>
                     </Grid>
+
+                    <Border Grid.Row="4"
+                            Margin="0,10,0,0"
+                            Padding="10"
+                            CornerRadius="4"
+                            Background="#22262C"
+                            Visibility="{Binding HasExtractionTriage, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0"
+                                       Text="Extraction Triage"
+                                       Style="{StaticResource Text.Caption}"
+                                       FontWeight="SemiBold"
+                                       Foreground="#D7E3F4"
+                                       Margin="0,0,0,4"/>
+
+                            <TextBlock Grid.Row="1"
+                                       Text="{Binding ExtractionAnalysisPriority, StringFormat=Priority: {0}}"
+                                       Style="{StaticResource Text.Caption}"
+                                       Visibility="{Binding ExtractionAnalysisPriority, Converter={StaticResource StringNotEmptyToVisibilityConverter}}"/>
+
+                            <TextBlock Grid.Row="2"
+                                       Text="{Binding ExtractionFixType, StringFormat=Fix Type: {0}}"
+                                       Style="{StaticResource Text.Caption}"
+                                       Visibility="{Binding ExtractionFixType, Converter={StaticResource StringNotEmptyToVisibilityConverter}}"/>
+
+                            <TextBlock Grid.Row="3"
+                                       Text="{Binding ExtractionDispositionRecommendation, StringFormat=Disposition: {0}}"
+                                       Style="{StaticResource Text.Caption}"
+                                       TextWrapping="Wrap"
+                                       Visibility="{Binding ExtractionDispositionRecommendation, Converter={StaticResource StringNotEmptyToVisibilityConverter}}"/>
+
+                            <TextBlock Grid.Row="4"
+                                       Text="{Binding ExtractionSuggestedRewrite, StringFormat=Suggested Rewrite: {0}}"
+                                       Style="{StaticResource Text.Caption}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,2,0,0"
+                                       Visibility="{Binding ExtractionSuggestedRewrite, Converter={StaticResource StringNotEmptyToVisibilityConverter}}"/>
+                        </Grid>
+                    </Border>
                 </Grid>
                 
                 <!-- AI Re-write Section -->

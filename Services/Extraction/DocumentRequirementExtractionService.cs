@@ -437,9 +437,11 @@ namespace TestCaseEditorApp.Services.Extraction
             var hasMissingIdentifier = analysisFlags.Any(flag => flag.Equals("Missing Explicit Identifier", StringComparison.OrdinalIgnoreCase));
             var hasFormulaDominant = analysisFlags.Any(flag => flag.Equals("Formula/Procedure-Dominant Text", StringComparison.OrdinalIgnoreCase));
 
+            var lowRiskIdentifierOnly = hasMissingIdentifier && !hasMissingModal && confidence >= 0.55;
+
             var priority = confidence < 0.25 || (hasMissingModal && hasMissingIdentifier)
                 ? "High"
-                : confidence < 0.50 || hasMissingModal || hasMissingIdentifier
+                : confidence < 0.40 || hasMissingModal || (hasMissingIdentifier && !lowRiskIdentifierOnly)
                     ? "Medium"
                     : "Low";
 
@@ -455,9 +457,11 @@ namespace TestCaseEditorApp.Services.Extraction
 
             var disposition = confidence < 0.25
                 ? "KeepForAnalysisOnly"
-                : confidence < AcceptedConfidenceThreshold
+                : confidence < 0.45
                     ? "KeepWithHumanReview"
-                    : "PromoteForUse";
+                    : lowRiskIdentifierOnly
+                        ? "PromoteForUseWithTracking"
+                        : "PromoteForUse";
 
             var suggestedRewrite = BuildSuggestedRewrite(block.NormalizedText, hasMissingModal, hasMissingIdentifier, hasFormulaDominant);
 

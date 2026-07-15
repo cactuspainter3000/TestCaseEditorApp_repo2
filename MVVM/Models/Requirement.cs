@@ -133,6 +133,10 @@ namespace TestCaseEditorApp.MVVM.Models
         [ObservableProperty] private string sourcePrefixType = string.Empty;
         [ObservableProperty] private string sourcePrefixEvidence = string.Empty;
         [ObservableProperty] private double? sourcePrefixConfidence;
+        [ObservableProperty] private string analysisPriority = string.Empty;
+        [ObservableProperty] private string fixType = string.Empty;
+        [ObservableProperty] private string suggestedRewrite = string.Empty;
+        [ObservableProperty] private string dispositionRecommendation = string.Empty;
         [ObservableProperty] private string sourceSection = string.Empty;
         [ObservableProperty] private string rationale = string.Empty;
         [ObservableProperty] private string complianceRationale = string.Empty;
