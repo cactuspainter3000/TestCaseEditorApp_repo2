@@ -51,6 +51,13 @@ namespace TestCaseEditorApp.Services
                     default:
                         var ollamaClient = new HttpClient { BaseAddress = new Uri("http://localhost:11434/") };
                         var model = Environment.GetEnvironmentVariable("OLLAMA_MODEL") ?? "phi4-mini:latest";
+                        var timeoutMinutesRaw = Environment.GetEnvironmentVariable("OLLAMA_HTTP_TIMEOUT_MINUTES");
+                        if (!double.TryParse(timeoutMinutesRaw, out var timeoutMinutes) || timeoutMinutes <= 0)
+                        {
+                            timeoutMinutes = 15;
+                        }
+                        ollamaClient.Timeout = TimeSpan.FromMinutes(timeoutMinutes);
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[LlmFactory] Ollama HttpClient timeout set to {ollamaClient.Timeout.TotalSeconds:F0}s");
                         
                         // DEVELOPMENT MODE: Check for dev override to skip validation
                         var skipValidation = Environment.GetEnvironmentVariable("SKIP_LLM_VALIDATION");

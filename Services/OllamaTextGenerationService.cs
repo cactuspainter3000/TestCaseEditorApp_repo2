@@ -22,9 +22,14 @@ public sealed class OllamaTextGenerationService : ITextGenerationService
         {
             _http.Timeout = System.TimeSpan.FromMinutes(15); // Increased timeout for large document processing
         }
+        else if (_http.Timeout <= System.TimeSpan.FromSeconds(100))
+        {
+            // Guard against default HttpClient timeout when an external client is injected.
+            _http.Timeout = System.TimeSpan.FromMinutes(15);
+        }
         
         // Log which model is configured
-        TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaTextGen] Initialized with model: {_model}");
+        TestCaseEditorApp.Services.Logging.Log.Info($"[OllamaTextGen] Initialized with model: {_model}, timeout={_http.Timeout.TotalSeconds:F0}s");
     }
 
     public async Task<string> GenerateAsync(string prompt, CancellationToken ct = default)

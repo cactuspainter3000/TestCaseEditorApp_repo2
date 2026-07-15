@@ -4735,6 +4735,18 @@ Extract requirements now (JSON only):";
                         }
                         throw; // Different error - don't retry
                     }
+                    catch (TaskCanceledException timeoutEx) when (!cancellationToken.IsCancellationRequested && attempt < maxRetries)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[TemplateForm] Request timeout on attempt {attempt + 1}/{maxRetries + 1}: {timeoutEx.Message}. Retrying in {retryDelayMs}ms...");
+                        progressCallback?.Invoke($"⏳ Extraction request timed out - retrying ({attempt + 1}/{maxRetries + 1})...");
+                        await Task.Delay(retryDelayMs, cancellationToken);
+                        retryDelayMs *= 2;
+
+                        if (attempt == maxRetries - 1)
+                        {
+                            shouldRestartOllama = true;
+                        }
+                    }
                 }
 
                 // If all retries failed with model loading timeout, try restarting Ollama
