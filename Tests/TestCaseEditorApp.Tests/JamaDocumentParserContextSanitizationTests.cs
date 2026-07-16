@@ -65,4 +65,17 @@ public class JamaDocumentParserContextSanitizationTests
 
         Assert.AreEqual(context, sanitized, "Technical 'should always' clauses without procedural setup cues should be preserved.");
     }
+
+    [TestMethod]
+    public void SanitizeRetrievedContextForTemplateExtraction_PreservesNormativeTechnicalClauseInsideRecommendedProcedureLine()
+    {
+        var context = "Recommended procedure: The system shall maintain coolant pressure between 40 and 55 psi during continuous operation.";
+
+        var sanitized = CallSanitizeRetrievedContext(context);
+
+        Assert.AreEqual(
+            context,
+            sanitized,
+            "Normative technical clauses should be preserved even when recommendation/procedure wording appears in the same line.");
+    }
 }

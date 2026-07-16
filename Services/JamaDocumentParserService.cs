@@ -4066,7 +4066,12 @@ Extract all legitimate requirements:";
                     lower.Contains("verify that") ||
                     lower.Contains("verification shall");
 
-                if (looksProceduralGuidance && !isExplicitVerificationClause)
+                var hasNormativeRequirementSignal = Regex.IsMatch(
+                    lower,
+                    @"\b(system|software|hardware|equipment|interface|module|unit|test\s+system|production\s+test)\b.{0,80}\b(shall|must|will)\b|\b(shall|must|will)\b.{0,100}\b(within|at\s+least|at\s+most|range|maintain|monitor|measure|detect|record|indicate|tolerance|psi|vdc|vac|ms|seconds|percent)\b",
+                    RegexOptions.IgnoreCase);
+
+                if (looksProceduralGuidance && !isExplicitVerificationClause && !hasNormativeRequirementSignal)
                 {
                     continue;
                 }
