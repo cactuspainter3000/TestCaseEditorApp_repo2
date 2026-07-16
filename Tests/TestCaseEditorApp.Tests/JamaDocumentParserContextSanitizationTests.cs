@@ -78,4 +78,47 @@ public class JamaDocumentParserContextSanitizationTests
             sanitized,
             "Normative technical clauses should be preserved even when recommendation/procedure wording appears in the same line.");
     }
+
+    [TestMethod]
+    public void SanitizeRetrievedContextForTemplateExtraction_PreservesMixedLineWithRecommendationAndNumericConstraint()
+    {
+        var context = "Recommended setup guidance: Interface module shall maintain +3.3VDC within the range [3.17, 3.43] VDC for at least 110 ms.";
+
+        var sanitized = CallSanitizeRetrievedContext(context);
+
+        Assert.AreEqual(
+            context,
+            sanitized,
+            "Lines containing recommendation wording should still be retained when they carry strong normative numeric constraints.");
+    }
+
+    [TestMethod]
+    public void SanitizeRetrievedContextForTemplateExtraction_RemovesPoisonLineButKeepsAdjacentValidRequirement()
+    {
+        var validRequirement = "The test system shall verify voltage regulation within tolerance limits.";
+        var poison = "Recommended setup guidance should always sequence bench supplies before enabling any functional test rail.";
+        var context = string.Join("\n", new[] { poison, validRequirement });
+
+        var sanitized = CallSanitizeRetrievedContext(context);
+
+        Assert.IsFalse(
+            sanitized.Contains(poison, System.StringComparison.OrdinalIgnoreCase),
+            "Procedural poison line should be removed.");
+        Assert.IsTrue(
+            sanitized.Contains(validRequirement, System.StringComparison.OrdinalIgnoreCase),
+            "Adjacent valid normative requirement should be retained.");
+    }
+
+    [TestMethod]
+    public void SanitizeRetrievedContextForTemplateExtraction_PreservesVerificationLineWithRecommendationWording()
+    {
+        var context = "Recommended procedure: The production test system shall verify startup status bits are reported within 2 seconds.";
+
+        var sanitized = CallSanitizeRetrievedContext(context);
+
+        Assert.AreEqual(
+            context,
+            sanitized,
+            "Explicit verification clauses should remain even when recommendation wording is present.");
+    }
 }
