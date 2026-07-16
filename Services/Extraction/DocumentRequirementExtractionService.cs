@@ -64,8 +64,12 @@ namespace TestCaseEditorApp.Services.Extraction
 
             stopwatch.Restart();
             var candidates = HarvestCandidates(blocks);
+            var candidateSourceBlockCount = candidates
+                .Select(candidate => candidate.BlockIndex)
+                .Distinct()
+                .Count();
             result.Candidates.AddRange(candidates);
-            result.StageMetrics.Add(CreateMetric("candidate_harvest", blocks.Count, candidates.Count, blocks.Count - candidates.Count, stopwatch.Elapsed, "Deterministic explicit-ID/modality harvest"));
+            result.StageMetrics.Add(CreateMetric("candidate_harvest", blocks.Count, candidates.Count, blocks.Count - candidateSourceBlockCount, stopwatch.Elapsed, "Deterministic explicit-ID/modality harvest"));
 
             stopwatch.Restart();
             var acceptedBlocks = blocks
@@ -361,6 +365,7 @@ namespace TestCaseEditorApp.Services.Extraction
         private List<DocumentRequirementCandidate> HarvestCandidates(List<DocumentBlock> blocks)
         {
             var candidates = new List<DocumentRequirementCandidate>();
+            var seenCandidateTexts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var block in blocks)
             {
@@ -384,61 +389,153 @@ namespace TestCaseEditorApp.Services.Extraction
                     continue;
                 }
 
-                var candidateId = $"cand-{block.BlockIndex + 1:D4}";
-                var confidence = Math.Clamp(block.EvidenceScore + (block.HasRequirementLanguage ? 0.05 : -0.05), 0.0, 1.0);
-                var status = confidence >= AcceptedConfidenceThreshold
-                    ? ExtractionCandidateStatus.Accepted
-                    : ExtractionCandidateStatus.NeedsReview;
-
-                // Keep non-modal technical tokens visible for review, but do not auto-accept them.
-                if (!block.HasRequirementLanguage && status == ExtractionCandidateStatus.Accepted)
+                var candidateTexts = ExpandCandidateTexts(block);
+                for (var candidateIndex = 0; candidateIndex < candidateTexts.Count; candidateIndex++)
                 {
-                    status = ExtractionCandidateStatus.NeedsReview;
-                }
-
-                // Calibration: promote identifier-backed, high-signal non-modal clauses that
-                // read like declarative requirements to reduce avoidable review noise.
-                if (status == ExtractionCandidateStatus.NeedsReview &&
-                    ShouldPromoteIdentifierBackedNonModal(block, confidence))
-                {
-                    status = ExtractionCandidateStatus.Accepted;
-                }
-
-                var analysisFlags = BuildAnalysisFlags(block, confidence, status);
-                var triage = BuildAnalysisTriage(block, confidence, analysisFlags);
-
-                var rejectionReason = status == ExtractionCandidateStatus.Rejected
-                    ? BuildLowEvidenceReason(block, confidence)
-                    : null;
-
-                candidates.Add(new DocumentRequirementCandidate
-                {
-                    CandidateId = candidateId,
-                    BlockIndex = block.BlockIndex,
-                    RawText = block.Text,
-                    NormalizedText = block.NormalizedText,
-                    SourcePrefix = block.SourcePrefix,
-                    SourcePrefixType = block.SourcePrefixType,
-                    SourcePrefixEvidence = block.SourcePrefixEvidence,
-                    Confidence = confidence,
-                    EvidenceScore = block.EvidenceScore,
-                    Status = status,
-                    RejectionReason = rejectionReason,
-                    AnalysisFlags = analysisFlags,
-                    AnalysisPriority = triage.Priority,
-                    FixType = triage.FixType,
-                    SuggestedRewrite = triage.SuggestedRewrite,
-                    DispositionRecommendation = triage.Disposition,
-                    StartLine = block.StartLine,
-                    EndLine = block.EndLine,
-                    EvidenceSnippets = new List<string>
+                    var candidateText = candidateTexts[candidateIndex];
+                    if (IsProcedureGuidanceClause(block, candidateText))
                     {
-                        block.SourcePrefixEvidence ?? block.NormalizedText
+                        continue;
                     }
-                });
+
+                    var normalizedCandidateText = Regex.Replace(candidateText, @"\s+", " ").Trim();
+                    if (string.IsNullOrWhiteSpace(normalizedCandidateText) || !seenCandidateTexts.Add(normalizedCandidateText))
+                    {
+                        continue;
+                    }
+
+                    var candidateBlock = CloneBlockForCandidate(block, candidateText);
+                    var candidateId = $"cand-{block.BlockIndex + 1:D4}-{candidateIndex + 1:D2}";
+                    var confidence = Math.Clamp(candidateBlock.EvidenceScore + (candidateBlock.HasRequirementLanguage ? 0.05 : -0.05), 0.0, 1.0);
+                    var status = confidence >= AcceptedConfidenceThreshold
+                        ? ExtractionCandidateStatus.Accepted
+                        : ExtractionCandidateStatus.NeedsReview;
+
+                    if (!candidateBlock.HasRequirementLanguage && status == ExtractionCandidateStatus.Accepted)
+                    {
+                        status = ExtractionCandidateStatus.NeedsReview;
+                    }
+
+                    if (status == ExtractionCandidateStatus.NeedsReview &&
+                        ShouldPromoteIdentifierBackedNonModal(candidateBlock, confidence))
+                    {
+                        status = ExtractionCandidateStatus.Accepted;
+                    }
+
+                    var analysisFlags = BuildAnalysisFlags(candidateBlock, confidence, status);
+                    var triage = BuildAnalysisTriage(candidateBlock, confidence, analysisFlags);
+                    var rejectionReason = status == ExtractionCandidateStatus.Rejected
+                        ? BuildLowEvidenceReason(candidateBlock, confidence)
+                        : null;
+
+                    candidates.Add(new DocumentRequirementCandidate
+                    {
+                        CandidateId = candidateId,
+                        BlockIndex = candidateBlock.BlockIndex,
+                        RawText = candidateBlock.Text,
+                        NormalizedText = candidateBlock.NormalizedText,
+                        SourcePrefix = candidateBlock.SourcePrefix,
+                        SourcePrefixType = candidateBlock.SourcePrefixType,
+                        SourcePrefixEvidence = candidateBlock.SourcePrefixEvidence,
+                        Confidence = confidence,
+                        EvidenceScore = candidateBlock.EvidenceScore,
+                        Status = status,
+                        RejectionReason = rejectionReason,
+                        AnalysisFlags = analysisFlags,
+                        AnalysisPriority = triage.Priority,
+                        FixType = triage.FixType,
+                        SuggestedRewrite = triage.SuggestedRewrite,
+                        DispositionRecommendation = triage.Disposition,
+                        StartLine = candidateBlock.StartLine,
+                        EndLine = candidateBlock.EndLine,
+                        EvidenceSnippets = new List<string>
+                        {
+                            candidateBlock.SourcePrefixEvidence ?? candidateBlock.NormalizedText
+                        }
+                    });
+                }
             }
 
             return candidates;
+        }
+
+        private static List<string> ExpandCandidateTexts(DocumentBlock block)
+        {
+            var normalized = Regex.Replace(block?.NormalizedText ?? string.Empty, @"\s+", " ").Trim();
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return new List<string>();
+            }
+
+            if (block!.Kind is DocumentBlockKind.TableRow or DocumentBlockKind.Heading)
+            {
+                return new List<string> { normalized };
+            }
+
+            var fragments = Regex.Split(normalized, @"(?<=[\.;:])\s+")
+                .Select(fragment => Regex.Replace(fragment, @"\s+", " ").Trim())
+                .Where(fragment => !string.IsNullOrWhiteSpace(fragment) && fragment.Length >= 20)
+                .ToList();
+
+            if (fragments.Count <= 1)
+            {
+                return new List<string> { normalized };
+            }
+
+            var clauseCandidates = fragments
+                .Where(fragment => ModalVerbRegex.IsMatch(fragment) || !string.IsNullOrWhiteSpace(ExtractPrefix(fragment).Prefix))
+                .ToList();
+
+            return clauseCandidates.Count > 0 ? clauseCandidates : new List<string> { normalized };
+        }
+
+        private static DocumentBlock CloneBlockForCandidate(DocumentBlock source, string candidateText)
+        {
+            var normalizedText = Regex.Replace(candidateText ?? string.Empty, @"\s+", " ").Trim();
+            var prefixMatch = ExtractPrefix(normalizedText);
+            var hasModal = ModalVerbRegex.IsMatch(normalizedText);
+            var hasExplicitIdentifier = !string.IsNullOrWhiteSpace(prefixMatch.Prefix);
+            var evidenceScore = CalculateEvidenceScore(normalizedText, hasModal, hasExplicitIdentifier, source.Kind);
+
+            return new DocumentBlock
+            {
+                BlockIndex = source.BlockIndex,
+                Kind = source.Kind,
+                StartLine = source.StartLine,
+                EndLine = source.EndLine,
+                Text = candidateText,
+                NormalizedText = normalizedText,
+                SourcePrefix = prefixMatch.Prefix ?? source.SourcePrefix,
+                SourcePrefixType = prefixMatch.Type ?? source.SourcePrefixType,
+                SourcePrefixEvidence = prefixMatch.Evidence ?? source.SourcePrefixEvidence,
+                EvidenceScore = evidenceScore,
+                HasRequirementLanguage = hasModal,
+                HasExplicitIdentifier = hasExplicitIdentifier || source.HasExplicitIdentifier,
+                NoiseReason = source.NoiseReason
+            };
+        }
+
+        private static bool IsProcedureGuidanceClause(DocumentBlock sourceBlock, string candidateText)
+        {
+            var source = sourceBlock?.NormalizedText ?? string.Empty;
+            var clause = Regex.Replace(candidateText ?? string.Empty, @"\s+", " ").Trim();
+            if (string.IsNullOrWhiteSpace(clause))
+            {
+                return false;
+            }
+
+            var insideRecommendedProcedureSection = source.Contains("Recommended Power Up Procedure", StringComparison.OrdinalIgnoreCase)
+                || source.Contains("Recommended Power Down Procedure", StringComparison.OrdinalIgnoreCase);
+
+            if (!insideRecommendedProcedureSection)
+            {
+                return false;
+            }
+
+            return Regex.IsMatch(
+                clause,
+                @"\b(should\s+be\s+powered|should\s+always\s+set|this\s+may\s+include|failure\s+to\s+do\s+so|the\s+following\s+procedure\s+is\s+recommended)\b",
+                RegexOptions.IgnoreCase | RegexOptions.Compiled);
         }
 
         private static bool ShouldPromoteIdentifierBackedNonModal(DocumentBlock block, double confidence)

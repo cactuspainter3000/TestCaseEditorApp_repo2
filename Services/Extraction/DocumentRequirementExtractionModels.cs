@@ -135,10 +135,24 @@ namespace TestCaseEditorApp.Services.Extraction
 
         public string BuildPromptContext(int maxChars = 12000)
         {
+            var prioritizedCandidateCorpus = string.Join(
+                "\n",
+                Candidates
+                    .Where(candidate => candidate != null && !string.IsNullOrWhiteSpace(candidate.NormalizedText))
+                    .OrderBy(GetPromptPriority)
+                    .ThenByDescending(candidate => candidate.Confidence)
+                    .ThenBy(candidate => candidate.BlockIndex)
+                    .Select(candidate => candidate.NormalizedText.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase));
+
             var evidenceLedger = BuildEvidenceLedger();
+            var primaryContext = !string.IsNullOrWhiteSpace(prioritizedCandidateCorpus)
+                ? prioritizedCandidateCorpus
+                : NormalizedContent;
+
             var promptContext = string.IsNullOrWhiteSpace(evidenceLedger)
-                ? NormalizedContent
-                : $"{NormalizedContent}\n\n[Evidence Ledger]\n{evidenceLedger}";
+                ? primaryContext
+                : $"{primaryContext}\n\n[Evidence Ledger]\n{evidenceLedger}";
 
             if (promptContext.Length <= maxChars)
             {
@@ -157,6 +171,62 @@ namespace TestCaseEditorApp.Services.Extraction
 
             var trimmed = value.Trim();
             return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength] + "...";
+        }
+
+        private static int GetPromptPriority(DocumentRequirementCandidate candidate)
+        {
+            var flags = candidate.AnalysisFlags ?? new List<string>();
+            var hasMissingModal = flags.Any(flag => flag.Equals("Missing Modal Verb", StringComparison.OrdinalIgnoreCase));
+            var hasFormulaProcedure = flags.Any(flag => flag.Equals("Formula/Procedure-Dominant Text", StringComparison.OrdinalIgnoreCase));
+            var looksLikeHeading = (candidate.NormalizedText ?? string.Empty).StartsWith("Section:", StringComparison.OrdinalIgnoreCase);
+            var hasQuantifiedNormativeSignal = LooksLikeQuantifiedNormativeCandidate(candidate.NormalizedText ?? string.Empty);
+
+            if (hasQuantifiedNormativeSignal && !hasFormulaProcedure)
+            {
+                return 0;
+            }
+
+            if (candidate.Status == ExtractionCandidateStatus.Accepted && !hasMissingModal && !hasFormulaProcedure && !looksLikeHeading)
+            {
+                return 1;
+            }
+
+            if (candidate.Status == ExtractionCandidateStatus.Accepted && !hasFormulaProcedure)
+            {
+                return 2;
+            }
+
+            if (candidate.Status == ExtractionCandidateStatus.NeedsReview && !hasMissingModal && !hasFormulaProcedure)
+            {
+                return 3;
+            }
+
+            if (candidate.Status == ExtractionCandidateStatus.Accepted)
+            {
+                return 4;
+            }
+
+            return 5;
+        }
+
+        private static bool LooksLikeQuantifiedNormativeCandidate(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var normalized = text.Trim();
+            var hasNormativeVerb = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"\b(shall|must|should|will)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var hasQuantifiedConstraint = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"(?:within\s+the\s+range|at\s+least|at\s+most|less\s+than|greater\s+than|minimum|maximum|\+/-|\b\d+(?:\.\d+)?\s*(?:%|ms|s|sec|seconds|minutes|degrees|vdc|vac|hz|khz|mhz|ghz|amps?|volts?|fl|kbps|mohm|kohm|ohms?)\b)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            return hasNormativeVerb && hasQuantifiedConstraint;
         }
     }
 
