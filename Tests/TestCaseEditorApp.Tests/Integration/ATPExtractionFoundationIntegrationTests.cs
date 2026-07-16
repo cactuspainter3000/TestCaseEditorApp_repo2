@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using TestCaseEditorApp.Services;
 using TestCaseEditorApp.Services.Extraction;
 
 namespace TestCaseEditorApp.Tests.Integration
@@ -253,6 +255,83 @@ namespace TestCaseEditorApp.Tests.Integration
                     (!string.IsNullOrWhiteSpace(candidate.NormalizedText) && Regex.IsMatch(candidate.NormalizedText, @"\b(TOC|PAGEREF)\b", RegexOptions.IgnoreCase)) ||
                     candidate.EvidenceSnippets.Any(snippet => !string.IsNullOrWhiteSpace(snippet) && Regex.IsMatch(snippet, @"\b(TOC|PAGEREF)\b", RegexOptions.IgnoreCase))),
                 "ATR extraction should not surface TOC/PAGEREF artifacts.");
+        }
+
+        [TestMethod]
+        public void Analyze_RealATPDocument_ExcludesRecommendedProcedureGuidance_ButKeepsTechnicalConstraints()
+        {
+            var documentPath = ResolveRepoFilePath("Tests", "Fixtures", "ATP", "946-4DC0-001_C4B_DHM_ATP_Rev-.docx");
+            Assert.IsTrue(File.Exists(documentPath), $"Expected ATP fixture at {documentPath}");
+
+            var extractedText = ExtractWordDocumentText(documentPath);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(extractedText), "ATP fixture should yield extractable document text.");
+
+            var loggerFactory = LoggerFactory.Create(builder => builder.SetMinimumLevel(LogLevel.Warning));
+            var logger = loggerFactory.CreateLogger<DocumentRequirementExtractionService>();
+            var service = new DocumentRequirementExtractionService(logger);
+
+            var result = service.AnalyzeAsync(extractedText, Path.GetFileName(documentPath)).GetAwaiter().GetResult();
+
+            var candidateTexts = result.Candidates
+                .Select(candidate => candidate.NormalizedText ?? string.Empty)
+                .ToList();
+
+            Assert.AreEqual(
+                1,
+                candidateTexts.Count(text => text.Contains("Minimum input impedance for equipment measuring voltages with test connector shall be 1 Mohm", StringComparison.OrdinalIgnoreCase)),
+                "The explicit impedance constraint should remain harvestable from the ATP fixture.");
+
+            Assert.IsFalse(
+                candidateTexts.Any(text => text.Contains("display head level tests should always set PWR_WARN_F to GND prior to removing low voltage power", StringComparison.OrdinalIgnoreCase)),
+                "Recommended power-down procedure guidance should not be promoted as a production extraction candidate.");
+
+            Assert.IsFalse(
+                candidateTexts.Any(text => text.Contains("Test equipment circuitry used to drive the TTL inputs of the control card should be powered up at the same time", StringComparison.OrdinalIgnoreCase)),
+                "Recommended power-up procedure guidance should not be promoted as a production extraction candidate.");
+        }
+
+        [TestMethod]
+        public void Analyze_ATRExportDocument_NumberedNonVerificationClause_IsNotOverNormalized()
+        {
+            var documentPath = ResolveRepoFilePath("exports", "document-artifacts", "20260714-193344", "ATR_Export.docx");
+            Assert.IsTrue(File.Exists(documentPath), $"Expected ATR export fixture at {documentPath}");
+
+            var extractedText = ExtractWordDocumentText(documentPath);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(extractedText), "ATR export should yield extractable document text.");
+
+            var loggerFactory = LoggerFactory.Create(builder => builder.SetMinimumLevel(LogLevel.Warning));
+            var logger = loggerFactory.CreateLogger<DocumentRequirementExtractionService>();
+            var service = new DocumentRequirementExtractionService(logger);
+
+            var result = service.AnalyzeAsync(extractedText, Path.GetFileName(documentPath)).GetAwaiter().GetResult();
+            var nonVerificationClause = result.Candidates
+                .Select(candidate => candidate.NormalizedText ?? string.Empty)
+                .FirstOrDefault(text =>
+                    Regex.IsMatch(text, @"\b(shall|must|should|will)\b", RegexOptions.IgnoreCase) &&
+                    !Regex.IsMatch(text, @"\bshall\s+verify\b", RegexOptions.IgnoreCase));
+
+            Assert.IsFalse(
+                string.IsNullOrWhiteSpace(nonVerificationClause),
+                "ATR fixture should provide at least one non-verification normative clause for normalization validation.");
+
+            var normalizeMethod = typeof(JamaDocumentParserService).GetMethod(
+                "NormalizeCandidateKey",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.IsNotNull(normalizeMethod, "Expected private NormalizeCandidateKey helper.");
+
+            var numberedClause = $"7.4.2 {nonVerificationClause}";
+            var numberedArgs = new object[] { numberedClause, false };
+            var plainArgs = new object[] { nonVerificationClause!, false };
+
+            var numberedKey = (string)normalizeMethod!.Invoke(null, numberedArgs)!;
+            var plainKey = (string)normalizeMethod.Invoke(null, plainArgs)!;
+
+            Assert.AreNotEqual(
+                plainKey,
+                numberedKey,
+                "Numbered ATR non-verification clauses should not be collapsed by verification-prefix normalization.");
+            Assert.AreEqual(false, (bool)numberedArgs[1], "Expected numbered ATR non-verification clause to remain unstripped.");
+            Assert.AreEqual(false, (bool)plainArgs[1], "Expected unnumbered ATR non-verification clause to remain unflagged.");
         }
 
         private static string ExtractWordDocumentText(string documentPath)

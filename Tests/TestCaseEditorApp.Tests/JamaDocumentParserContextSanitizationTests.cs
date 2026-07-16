@@ -1,0 +1,58 @@
+using System.Reflection;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using TestCaseEditorApp.Services;
+
+namespace TestCaseEditorApp.Tests;
+
+[TestClass]
+public class JamaDocumentParserContextSanitizationTests
+{
+    private static string CallSanitizeRetrievedContext(string? context)
+    {
+        var method = typeof(JamaDocumentParserService).GetMethod(
+            "SanitizeRetrievedContextForTemplateExtraction",
+            BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.IsNotNull(method, "SanitizeRetrievedContextForTemplateExtraction method not found");
+        return (string)method.Invoke(null, new object?[] { context })!;
+    }
+
+    [TestMethod]
+    public void SanitizeRetrievedContextForTemplateExtraction_RemovesProceduralPoison()
+    {
+        var context = string.Join("\n", new[]
+        {
+            "The system shall monitor mission power rails within specified limits.",
+            "Recommended setup guidance should always sequence bench supplies before enabling any functional test rail.",
+            "The interface shall verify startup timing within 5 seconds."
+        });
+
+        var sanitized = CallSanitizeRetrievedContext(context);
+
+        Assert.IsFalse(
+            sanitized.Contains("Recommended setup guidance should always sequence bench supplies", System.StringComparison.OrdinalIgnoreCase),
+            "Procedural poison guidance should be removed from retrieval context.");
+    }
+
+    [TestMethod]
+    public void SanitizeRetrievedContextForTemplateExtraction_KeepsExplicitVerificationClause()
+    {
+        var context = "Recommended procedure: The test system shall verify output regulation within tolerance under nominal load.";
+
+        var sanitized = CallSanitizeRetrievedContext(context);
+
+        Assert.IsTrue(
+            sanitized.Contains("shall verify output regulation within tolerance", System.StringComparison.OrdinalIgnoreCase),
+            "Explicit verification clauses should be preserved even when procedural terms appear.");
+    }
+
+    [TestMethod]
+    public void SanitizeRetrievedContextForTemplateExtraction_PreservesNeutralTechnicalContent()
+    {
+        var context = "The system shall maintain +3.3VDC within the range [3.17, 3.43] VDC for at least 110 ms.";
+
+        var sanitized = CallSanitizeRetrievedContext(context);
+
+        Assert.AreEqual(context, sanitized, "Neutral technical content should remain unchanged.");
+    }
+}

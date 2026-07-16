@@ -44,6 +44,7 @@ namespace TestCaseEditorApp.Services
         private readonly IABTestingFramework? _abTestingFramework;
         private readonly ITelemetryDashboardService? _telemetryService;
         private readonly IDocumentRequirementExtractionService? _documentExtractionService;
+        private readonly ATPStepParser? _atpStepParser;
         private bool _ollamaStatusMonitoringStarted;
 
         // Policy: ATP parsing should only extract requirements explicitly present in the source document.
@@ -72,7 +73,8 @@ namespace TestCaseEditorApp.Services
             ITelemetryDashboardService? telemetryService = null,
             IOllamaProcessManager? ollamaProcessManager = null,
             IOllamaStatusMonitor? ollamaStatusMonitor = null,
-            IDocumentRequirementExtractionService? documentExtractionService = null)
+            IDocumentRequirementExtractionService? documentExtractionService = null,
+            ATPStepParser? atpStepParser = null)
         {
             _jamaService = jamaService ?? throw new ArgumentNullException(nameof(jamaService));
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
@@ -87,6 +89,7 @@ namespace TestCaseEditorApp.Services
             _abTestingFramework = abTestingFramework;
             _telemetryService = telemetryService;
             _documentExtractionService = documentExtractionService;
+            _atpStepParser = atpStepParser;
             
             TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Initialized with Template Form Architecture: Envelope={envelopeService != null}, Quality={qualityService != null}, Compliance={complianceWrapper != null}, ABTest={abTestingFramework != null}, Telemetry={telemetryService != null}, OllamaManager={ollamaProcessManager != null}, OllamaMonitor={ollamaStatusMonitor != null}");
         }
@@ -199,12 +202,6 @@ namespace TestCaseEditorApp.Services
                     return new List<Requirement>();
                 }
 
-                if (_directRagService?.IsConfigured != true || _textGenerationService == null)
-                {
-                    progressCallback?.Invoke("❌ Direct extraction services are unavailable.");
-                    return new List<Requirement>();
-                }
-
                 progressCallback?.Invoke($"📄 Loading local document '{localAttachment.FileName}'...");
                 var fileBytes = await File.ReadAllBytesAsync(filePath, cancellationToken);
                 if (fileBytes == null || fileBytes.Length == 0)
@@ -213,19 +210,40 @@ namespace TestCaseEditorApp.Services
                     return new List<Requirement>();
                 }
 
-                // Use a dedicated local project bucket to isolate troubleshooting indexes from Jama projects.
+                progressCallback?.Invoke("🔎 Extracting raw text from local document...");
+                var documentContent = await ExtractAttachmentTextForIndexingAsync(localAttachment, fileBytes);
+                if (string.IsNullOrWhiteSpace(documentContent))
+                {
+                    documentContent = mimeType.StartsWith("text/", StringComparison.OrdinalIgnoreCase)
+                        ? System.Text.Encoding.UTF8.GetString(fileBytes)
+                        : string.Empty;
+                }
+
+                if (string.IsNullOrWhiteSpace(documentContent))
+                {
+                    progressCallback?.Invoke("❌ No extractable text found in the local document.");
+                    return new List<Requirement>();
+                }
+
+                progressCallback?.Invoke("🧭 Scraping requirement clauses from raw text...");
+
+                // Use a dedicated local project bucket to isolate troubleshooting output from Jama projects.
                 const int localProjectId = -1;
-                var requirements = await ExtractRequirementsWithDirectRagAsync(
+                var requirements = await BuildLocalRequirementsFromDocumentAsync(
+                    documentContent,
                     localAttachment,
-                    fileBytes,
                     localProjectId,
                     progressCallback,
                     onRequirementDiscovered,
                     cancellationToken);
 
-                EnrichRequirementsWithAttachmentMetadata(requirements, localAttachment);
-                EnrichRequirementsWithValidationMethod(requirements);
-                await EnrichRequirementsWithRuntimeBudgetAsync(requirements, progressCallback, cancellationToken);
+                if (requirements.Count == 0)
+                {
+                    progressCallback?.Invoke("⚠️ No requirement-like clauses were found in the local document.");
+                    return requirements;
+                }
+
+                progressCallback?.Invoke($"✅ Scratch-built local scrape produced {requirements.Count} requirements.");
                 return requirements;
             }
             catch (Exception ex)
@@ -234,6 +252,730 @@ namespace TestCaseEditorApp.Services
                 progressCallback?.Invoke($"❌ Local extraction failed: {ex.Message}");
                 return new List<Requirement>();
             }
+        }
+
+        private sealed record LocalExtractionCandidate(string Text, string StageName);
+
+        private async Task<List<Requirement>> BuildLocalRequirementsFromDocumentAsync(
+            string documentContent,
+            JamaAttachment attachment,
+            int projectId,
+            System.Action<string>? progressCallback,
+            System.Action<Requirement>? onRequirementDiscovered,
+            CancellationToken cancellationToken)
+        {
+            var candidates = new List<LocalExtractionCandidate>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var numericPrefixedCandidateKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var deterministicFilteredOut = 0;
+            var numericPrefixDedupeCollisions = 0;
+            var filteredPotentialRequirements = 0;
+            var filteredDerivedCandidates = 0;
+            var filteredRejectedCandidates = 0;
+            var filteredHeadingStructure = 0;
+            var filteredInformationalText = 0;
+            var filteredOther = 0;
+
+            AddStageCandidates(candidates, seen, "Stage 1 raw clause scrape", ExtractLocalRequirementClauses(documentContent), progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
+            AddStageCandidates(candidates, seen, "Stage 2 ATP step parsing", await ExtractAtpStepClausesAsync(documentContent, cancellationToken), progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
+            AddStageCandidates(candidates, seen, "Stage 3 structured line recovery", ExtractStructuredRequirementClauses(documentContent), progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
+            AddStageCandidates(candidates, seen, "Stage 4 numbered step fallback", ExtractNumberedStepClauses(documentContent), progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
+
+            var requirements = new List<Requirement>();
+            var isAtpDocument = IsAtpDocument(attachment.FileName, documentContent);
+
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                var candidate = candidates[i];
+                var clause = candidate.Text;
+                if (!ShouldPromoteLocalCandidate(clause, candidate.StageName))
+                {
+                    continue;
+                }
+
+                var qualification = QualifyDeterministicRequirementCandidate(clause);
+                if (!ShouldPassLegacyDeterministicPostFilter(qualification, clause, candidate.StageName))
+                {
+                    deterministicFilteredOut++;
+
+                    switch (qualification.Classification)
+                    {
+                        case "Potential Requirement":
+                            filteredPotentialRequirements++;
+                            break;
+                        case "Derived Requirement Candidate":
+                            filteredDerivedCandidates++;
+                            break;
+                        case "Rejected Candidate":
+                            filteredRejectedCandidates++;
+                            break;
+                        case "Heading/Structure":
+                            filteredHeadingStructure++;
+                            break;
+                        case "Informational Text":
+                            filteredInformationalText++;
+                            break;
+                        default:
+                            filteredOther++;
+                            break;
+                    }
+
+                    continue;
+                }
+
+                var requirement = BuildLocalRequirementFromClause(clause, attachment, projectId, i + 1, isAtpDocument, candidate.StageName);
+                requirements.Add(requirement);
+                onRequirementDiscovered?.Invoke(requirement);
+            }
+
+            TestCaseEditorApp.Services.Logging.Log.Info(
+                $"[LocalScrape] Extracted {requirements.Count} requirements from {attachment.FileName} using {candidates.Count} staged candidates; deterministic post-filter removed {deterministicFilteredOut} (potential {filteredPotentialRequirements}, derived {filteredDerivedCandidates}, rejected {filteredRejectedCandidates}, heading {filteredHeadingStructure}, informational {filteredInformationalText}, other {filteredOther}); numeric-prefix dedupe collisions {numericPrefixDedupeCollisions}");
+            progressCallback?.Invoke($"📊 Local extraction summary: kept {requirements.Count}, deterministic-filtered {deterministicFilteredOut} [potential {filteredPotentialRequirements}, derived {filteredDerivedCandidates}, rejected {filteredRejectedCandidates}, heading {filteredHeadingStructure}, informational {filteredInformationalText}, other {filteredOther}], numeric-prefix-deduped {numericPrefixDedupeCollisions}");
+
+            return requirements;
+        }
+
+        private static bool ShouldPassLegacyDeterministicPostFilter(DeterministicQualificationResult qualification, string text, string sourceStage)
+        {
+            if (qualification.IsPromoted)
+            {
+                return true;
+            }
+
+            if (qualification.Classification == "Test/Measurement Requirement" &&
+                LooksLikeVerificationStyleClause(text))
+            {
+                return true;
+            }
+
+            if (qualification.Score >= 10 &&
+                qualification.Classification is "True System Requirement" or "Test/Measurement Requirement" &&
+                LooksLikeHighConfidenceTechnicalClause(text))
+            {
+                return true;
+            }
+
+            if (qualification.Score >= 9 &&
+                qualification.Classification == "Potential Requirement" &&
+                LooksLikeExplicitEquipmentConstraintClause(text))
+            {
+                return true;
+            }
+
+            if (sourceStage.Contains("structured", StringComparison.OrdinalIgnoreCase) &&
+                qualification.Score >= 9 &&
+                qualification.Classification is "Test/Measurement Requirement" or "True System Requirement")
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool LooksLikeVerificationStyleClause(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var normalized = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
+
+            var hasVerificationVerb = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"\b(verify|verifies|verification|test|tests|testing|measure|measures|measured|calibrate|calibrates|load|loads|confirm|confirms|check|checks)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            var hasQuantifiedConstraint = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"(?:within\s+the\s+range|at\s+least|at\s+most|less\s+than|greater\s+than|between|\+/-|\b\d+(?:\.\d+)?\s*(?:%|ms|s|sec|seconds|minutes|degrees|vdc|vac|hz|khz|mhz|ghz|amps?|volts?|fl|kbps)\b)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            var hasOutcomeBasedAcceptanceSignal = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"\b(without\s+error|correctly|no\s+active|no\s+fault|fault|logic\s+[‘'""“”]?[01][’'""“”]?|logic\s+low|logic\s+high|received\s+correctly|transmitted\s+correctly|loaded\s+into\s+memory|indicate\w*\s+a\s+fault)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            return hasVerificationVerb && (hasQuantifiedConstraint || hasOutcomeBasedAcceptanceSignal);
+        }
+
+        private static bool LooksLikeHighConfidenceTechnicalClause(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var normalized = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
+
+            var hasTechnicalBehaviorSignal = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"\b(communicate|interface|protocol|data\s+rate|parity|stop\s+bit|monitor|latch|fault|received|transmitted)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            var hasExplicitTechnicalConstraint = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"(?:\b\d+(?:\.\d+)?\s*(?:kbps|ms|vdc|vac|%)\b|at\s+least|odd\s+parity|logic\s+[‘'""“”]?[01][’'""“”]?|logic\s+low|logic\s+high)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            return hasTechnicalBehaviorSignal && hasExplicitTechnicalConstraint;
+        }
+
+        private static bool LooksLikeExplicitEquipmentConstraintClause(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var normalized = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
+
+            var hasNormativeConstraintLead = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"\b(minimum|maximum)\b.*\bshall\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            var hasEquipmentConstraintSignal = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"\b(input\s+impedance|equipment\s+measuring|test\s+connector|mohm|kohm|ohms?)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            return hasNormativeConstraintLead && hasEquipmentConstraintSignal;
+        }
+
+        private static bool ShouldPromoteLocalCandidate(string text, string sourceStage)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var normalized = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
+            var lowerText = normalized.ToLowerInvariant();
+
+            if (normalized.Length < 12)
+            {
+                return false;
+            }
+
+            if (lowerText.Contains("table of contents") ||
+                lowerText.Contains("revision history") ||
+                lowerText.Contains("proprietary") ||
+                lowerText.Contains("all rights reserved") ||
+                lowerText.StartsWith("note:") ||
+                lowerText.StartsWith("example:"))
+            {
+                return false;
+            }
+
+            var weakShouldClause = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"\bshould\s+be\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase) && normalized.Length < 55;
+
+            if (weakShouldClause)
+            {
+                return false;
+            }
+
+            var hasModalVerb = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(shall|must|required\s+to|is\s+to|will|should)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var hasSystemIndicator = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(system|software|hardware|equipment|interface|controller|module|unit|display|signal|voltage|current|temperature|performance|accuracy|latency|throughput|protocol|connection|communication)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var hasConstraintIndicator = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(within\s+the\s+range|at\s+least|at\s+most|less\s+than|greater\s+than|between|\+/-|\b\d+\s*(?:%|ms|s|sec|seconds|minutes|degrees|vdc|vac|hz|khz|mhz|ghz|amps?|volts?)\b)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var hasActionVerb = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(verify|measure|detect|indicate|display|calibrate|configure|apply|set|adjust|monitor|record|test|check|confirm|enable|disable|protect|provide|maintain|prevent|limit|ensure|transmit|receive|process|analyze|operate|function)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var wordCount = Regex.Matches(normalized, @"\b\w+\b").Count;
+
+            var score = 0;
+            if (hasModalVerb) score += 2;
+            if (hasSystemIndicator) score += 1;
+            if (hasActionVerb) score += 1;
+            if (hasConstraintIndicator) score += 1;
+            if (wordCount >= 10) score += 1;
+
+            if (normalized.Length >= 80) score += 1;
+
+            if (System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(step|procedure|test\s+step)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            {
+                score -= 1;
+            }
+
+            if (sourceStage.Contains("structured", StringComparison.OrdinalIgnoreCase))
+            {
+                return score >= 2 && (hasModalVerb || hasConstraintIndicator || hasSystemIndicator);
+            }
+
+            if (sourceStage.Contains("ATP", StringComparison.OrdinalIgnoreCase))
+            {
+                return score >= 3 && (hasModalVerb || hasConstraintIndicator || hasActionVerb);
+            }
+
+            if (sourceStage.Contains("numbered", StringComparison.OrdinalIgnoreCase))
+            {
+                return score >= 3 && (hasModalVerb || hasConstraintIndicator || hasActionVerb || hasSystemIndicator);
+            }
+
+            var technicalSignalCount = 0;
+            if (hasSystemIndicator) technicalSignalCount++;
+            if (hasConstraintIndicator) technicalSignalCount++;
+            if (hasActionVerb) technicalSignalCount++;
+
+            return score >= 6 && hasModalVerb && technicalSignalCount >= 2;
+        }
+
+        private static void AddStageCandidates(
+            List<LocalExtractionCandidate> candidates,
+            HashSet<string> seen,
+            string stageName,
+            IEnumerable<string> stageClauses,
+            System.Action<string>? progressCallback,
+            ref int numericPrefixDedupeCollisions,
+            HashSet<string> numericPrefixedCandidateKeys)
+        {
+            var before = candidates.Count;
+
+            foreach (var clause in stageClauses)
+            {
+                var normalized = NormalizeCandidateKey(clause, out var strippedNumericPrefix);
+                var hasNumericVerificationPrefix = HasNumericVerificationPrefix(clause);
+                if (normalized.Length < 12)
+                {
+                    continue;
+                }
+
+                if (!seen.Add(normalized))
+                {
+                    if (strippedNumericPrefix || hasNumericVerificationPrefix || numericPrefixedCandidateKeys.Contains(normalized))
+                    {
+                        numericPrefixDedupeCollisions++;
+                    }
+
+                    continue;
+                }
+
+                if (strippedNumericPrefix || hasNumericVerificationPrefix)
+                {
+                    numericPrefixedCandidateKeys.Add(normalized);
+                }
+
+                candidates.Add(new LocalExtractionCandidate(clause, stageName));
+            }
+
+            var added = candidates.Count - before;
+            var message = $"{stageName}: +{added} candidates (total {candidates.Count})";
+            TestCaseEditorApp.Services.Logging.Log.Info($"[LocalScrape] {message}");
+            progressCallback?.Invoke($"🧩 {message}");
+        }
+
+        private static string NormalizeCandidateKey(string? value, out bool strippedNumericPrefix)
+        {
+            strippedNumericPrefix = false;
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var lower = value.ToLowerInvariant();
+            lower = StripLeadingClauseNumber(lower, out strippedNumericPrefix);
+            lower = System.Text.RegularExpressions.Regex.Replace(lower, @"[^a-z0-9\s]", " ");
+            lower = System.Text.RegularExpressions.Regex.Replace(lower, @"\s+", " ").Trim();
+            return lower;
+        }
+
+        private static bool HasNumericVerificationPrefix(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            _ = StripLeadingClauseNumber(text, out var stripped);
+            return stripped;
+        }
+
+        private static string StripLeadingClauseNumber(string input, out bool stripped)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                stripped = false;
+                return string.Empty;
+            }
+
+            var before = input;
+            var match = System.Text.RegularExpressions.Regex.Match(
+                before,
+                @"^\s*(?:(?:clause|section|step|req(?:uirement)?)\s+)?(?:\(?\d+(?:\.\d+){0,4}\)?[\)\.]?)\s*(?:[:\-–])?\s+(?<rest>.+)$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (!match.Success)
+            {
+                stripped = false;
+                return before;
+            }
+
+            var rest = match.Groups["rest"].Value;
+            var startsLikeVerificationRequirement = System.Text.RegularExpressions.Regex.IsMatch(
+                rest,
+                @"^(?:(?:the|a|an|this|that)\s+)?(?:production\s+test|test\s+station|test\s+system|test\s+solution|system|software|hardware|equipment|controller|unit|module|interface|device|component)\s+shall\s+verify\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (!startsLikeVerificationRequirement)
+            {
+                stripped = false;
+                return before;
+            }
+
+            stripped = true;
+            return rest;
+        }
+
+        private Requirement BuildLocalRequirementFromClause(
+            string clause,
+            JamaAttachment attachment,
+            int projectId,
+            int ordinal,
+            bool isAtpDocument,
+            string sourceStage)
+        {
+            var structuredMetadata = TryExtractStructuredRequirementMetadata(clause);
+            var normalizedClause = structuredMetadata.RequirementStatement ?? clause;
+            var requirementText = LooksLikeUutRequirementForFallback(normalizedClause)
+                ? RewriteUutRequirementAsTestSolutionVerificationForFallback(normalizedClause)
+                : normalizedClause;
+
+            var requirementId = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId)
+                ? structuredMetadata.RequirementId
+                : $"LOC-{attachment.Id}-{ordinal:D3}";
+
+            var category = InferLocalRequirementCategory(requirementText);
+            var qualification = QualifyDeterministicRequirementCandidate(requirementText);
+            var traceReference = BuildRequirementTraceReference(attachment.Id, requirementId, ordinal);
+            var parsedVerificationMethod = !string.IsNullOrWhiteSpace(structuredMetadata.TestType)
+                ? ParseVerificationMethodFromResponse(structuredMetadata.TestType)
+                : null;
+            var selectedVerificationMethod = parsedVerificationMethod
+                ?? (isAtpDocument ? VerificationMethod.Test : InferVerificationMethod(requirementText.ToLowerInvariant()));
+            var verificationMethodText = !string.IsNullOrWhiteSpace(structuredMetadata.TestType)
+                ? structuredMetadata.TestType
+                : (isAtpDocument ? "Test" : string.Empty);
+            var sourcePrefixType = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId) ? "document_id" : "unknown";
+            var sourcePrefixEvidence = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId)
+                ? structuredMetadata.RequirementId
+                : requirementText;
+
+            var requirement = new Requirement
+            {
+                GlobalId = requirementId,
+                Item = requirementId,
+                Project = projectId.ToString(),
+                TraceReference = traceReference,
+                Name = GenerateRequirementNameFromCapability(requirementText, category),
+                Description = requirementText,
+                RequirementType = $"{category} - Local Scrape - {qualification.Classification}",
+                Status = "Draft",
+                Heading = "Derived",
+                ItemType = "System Requirement",
+                CreatedDate = DateTime.Now,
+                ModifiedDate = DateTime.Now,
+                SourceDocumentName = attachment.FileName,
+                SourceAttachmentId = attachment.Id,
+                SourceJamaItemId = attachment.Item > 0 ? attachment.Item : null,
+                SourcePrefix = requirementId,
+                SourcePrefixType = sourcePrefixType,
+                SourcePrefixEvidence = sourcePrefixEvidence,
+                SourcePrefixConfidence = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId) ? 0.8 : 0.0,
+                SourceSection = requirementId,
+                VerificationMethodText = verificationMethodText,
+                ValidationMethodText = verificationMethodText,
+                Method = selectedVerificationMethod,
+                Rationale = $"Recovered from a scratch-built local scrape of {attachment.FileName}.\n\n**Stage:** {sourceStage}\n\n**Trace Reference:** {traceReference}\n\n**Source Clause:** {requirementText}",
+                TagList = new List<string>
+                {
+                    "Derived",
+                    "LocalScrape",
+                    sourceStage,
+                    $"TraceRef:{traceReference}",
+                    $"Category:{category}",
+                    $"Classification:{qualification.Classification}",
+                    $"QualificationScore:{qualification.Score}",
+                    $"TestIntent:{selectedVerificationMethod}"
+                }
+            };
+
+            ApplyCategoryFieldInference(requirement, category, requirementText);
+
+            if (qualification.Classification == "Test/Measurement Requirement")
+            {
+                requirement.ValidationMethodText = string.IsNullOrWhiteSpace(requirement.ValidationMethodText)
+                    ? "Test"
+                    : requirement.ValidationMethodText;
+            }
+
+            if (structuredMetadata.HasStructuredMetadata)
+            {
+                var metadataNotes = new List<string>();
+                if (!string.IsNullOrWhiteSpace(structuredMetadata.RequirementId))
+                {
+                    metadataNotes.Add($"**Parsed ID:** {structuredMetadata.RequirementId}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(structuredMetadata.TestType))
+                {
+                    metadataNotes.Add($"**Parsed Test Type:** {structuredMetadata.TestType}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(structuredMetadata.TestVenue))
+                {
+                    metadataNotes.Add($"**Parsed Test Venue:** {structuredMetadata.TestVenue}");
+                }
+
+                if (metadataNotes.Count > 0)
+                {
+                    requirement.Rationale = string.Concat(requirement.Rationale, "\n\n", string.Join("\n\n", metadataNotes));
+                }
+            }
+
+            return requirement;
+        }
+
+        private static List<string> ExtractLocalRequirementClauses(string documentContent)
+        {
+            var clauses = new List<string>();
+            if (string.IsNullOrWhiteSpace(documentContent))
+            {
+                return clauses;
+            }
+
+            var normalizedLines = documentContent
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Select(line => System.Text.RegularExpressions.Regex.Replace(line ?? string.Empty, @"\s+", " ").Trim())
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .ToList();
+
+            var modalRegex = new System.Text.RegularExpressions.Regex(@"\b(shall|must|will|should)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var sentenceSplitRegex = new System.Text.RegularExpressions.Regex(@"(?<=[\.;:])\s+");
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var line in normalizedLines)
+            {
+                if (IsRawBoilerplateLine(line))
+                {
+                    continue;
+                }
+
+                var fragments = sentenceSplitRegex.Split(line);
+                foreach (var fragment in fragments)
+                {
+                    var candidate = System.Text.RegularExpressions.Regex.Replace(fragment, @"\s+", " ").Trim();
+                    if (candidate.Length < 20)
+                    {
+                        continue;
+                    }
+
+                    if (IsRawBoilerplateLine(candidate))
+                    {
+                        continue;
+                    }
+
+                    if (!modalRegex.IsMatch(candidate))
+                    {
+                        continue;
+                    }
+
+                    if (candidate.StartsWith("note:", StringComparison.OrdinalIgnoreCase) ||
+                        candidate.StartsWith("example:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (!candidate.EndsWith(".", StringComparison.Ordinal) && !candidate.EndsWith(";", StringComparison.Ordinal))
+                    {
+                        candidate += ".";
+                    }
+
+                    if (seen.Add(candidate))
+                    {
+                        clauses.Add(candidate);
+                    }
+                }
+            }
+
+            return clauses;
+        }
+
+        private static bool IsRawBoilerplateLine(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return true;
+            }
+
+            var lowerText = text.ToLowerInvariant();
+
+            if (lowerText.Contains("table of contents") ||
+                lowerText.Contains("revision history") ||
+                lowerText.Contains("proprietary") ||
+                lowerText.Contains("all rights reserved") ||
+                lowerText.Contains("end of procedure") ||
+                lowerText.Contains("acceptance test procedure") ||
+                lowerText.Contains("test procedure") ||
+                lowerText.Contains("procedure") ||
+                lowerText.Contains("step ") ||
+                lowerText.Contains("page ") ||
+                lowerText.Contains("figure ") ||
+                lowerText.Contains("table ") ||
+                lowerText.Contains("note:") ||
+                lowerText.StartsWith("rev ") ||
+                lowerText.StartsWith("document ") ||
+                lowerText.StartsWith("example:") )
+            {
+                return true;
+            }
+
+            if (System.Text.RegularExpressions.Regex.IsMatch(text, @"^\s*page\s+\d+\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase) ||
+                System.Text.RegularExpressions.Regex.IsMatch(text, @"^\s*(?:\d+\.){2,}\s*(?:page|table|figure)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private async Task<List<string>> ExtractAtpStepClausesAsync(string documentContent, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(documentContent))
+            {
+                return new List<string>();
+            }
+
+            if (_atpStepParser == null)
+            {
+                return ExtractNumberedStepClauses(documentContent);
+            }
+
+            try
+            {
+                var parsedSteps = await _atpStepParser.ParseATPDocumentAsync(documentContent, new ATPParsingOptions
+                {
+                    MinimumStepLength = 8,
+                    IncludeSubsteps = true,
+                    ParseMetadata = true,
+                    SkipBoilerplate = true,
+                    MaxStepsToAnalyze = 180,
+                    DocumentFormat = "PlainText"
+                });
+
+                return parsedSteps
+                    .Where(step => step != null && !string.IsNullOrWhiteSpace(step.StepText))
+                    .Select(step => System.Text.RegularExpressions.Regex.Replace(step.StepText, @"\s+", " ").Trim())
+                    .Where(stepText => !string.IsNullOrWhiteSpace(stepText))
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[LocalScrape] ATP step parser failed, falling back to numbered lines: {ex.Message}");
+                return ExtractNumberedStepClauses(documentContent);
+            }
+        }
+
+        private static List<string> ExtractStructuredRequirementClauses(string documentContent)
+        {
+            var lines = documentContent
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Select(line => System.Text.RegularExpressions.Regex.Replace(line ?? string.Empty, @"\s+", " ").Trim())
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .ToList();
+
+            var clauses = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var line in lines)
+            {
+                var structured = TryExtractStructuredRequirementMetadata(line);
+                if (string.IsNullOrWhiteSpace(structured.RequirementStatement))
+                {
+                    continue;
+                }
+
+                var clause = structured.RequirementStatement.Trim();
+                if (clause.Length < 15)
+                {
+                    continue;
+                }
+
+                if (seen.Add(clause))
+                {
+                    clauses.Add(clause);
+                }
+            }
+
+            return clauses;
+        }
+
+        private static List<string> ExtractNumberedStepClauses(string documentContent)
+        {
+            var clauses = new List<string>();
+            if (string.IsNullOrWhiteSpace(documentContent))
+            {
+                return clauses;
+            }
+
+            var numberedLineRegex = new System.Text.RegularExpressions.Regex(
+                @"^(?:Step\s+)?\d+(?:\.\d+)*(?:\.[a-zA-Z])?[\).:-]?\s+.+$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var rawLine in documentContent.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))
+            {
+                var line = System.Text.RegularExpressions.Regex.Replace(rawLine ?? string.Empty, @"\s+", " ").Trim();
+                if (!numberedLineRegex.IsMatch(line) || line.Length < 20)
+                {
+                    continue;
+                }
+
+                if (line.StartsWith("Step", StringComparison.OrdinalIgnoreCase) ||
+                    line.Any(char.IsDigit))
+                {
+                    if (seen.Add(line))
+                    {
+                        clauses.Add(line);
+                    }
+                }
+            }
+
+            return clauses;
+        }
+
+        private static string InferLocalRequirementCategory(string requirementText)
+        {
+            var lowerText = requirementText.ToLowerInvariant();
+
+            if (lowerText.Contains("safety") || lowerText.Contains("hazard") || lowerText.Contains("safe"))
+                return "Safety";
+
+            if (lowerText.Contains("security") || lowerText.Contains("authentication") || lowerText.Contains("encryption") || lowerText.Contains("access control"))
+                return "Security";
+
+            if (lowerText.Contains("interface") || lowerText.Contains("protocol") || lowerText.Contains("connect") || lowerText.Contains("communication"))
+                return "Interface";
+
+            if (lowerText.Contains("performance") || lowerText.Contains("throughput") || lowerText.Contains("latency") || lowerText.Contains("rate") || lowerText.Contains("speed"))
+                return "Performance";
+
+            if (lowerText.Contains("temperature") || lowerText.Contains("environment") || lowerText.Contains("humidity") || lowerText.Contains("vibration") || lowerText.Contains("altitude"))
+                return "Environmental";
+
+            if (lowerText.Contains("power") || lowerText.Contains("voltage") || lowerText.Contains("current") || lowerText.Contains("electrical"))
+                return "Electrical";
+
+            if (lowerText.Contains("documentation") || lowerText.Contains("document") || lowerText.Contains("record"))
+                return "Documentation";
+
+            return "Functional";
         }
 
         /// <summary>
@@ -1705,6 +2447,8 @@ But thoroughly scan all sections first before concluding.";
                 TestCaseEditorApp.Services.Logging.Log.Info(
                     $"[DirectRag] Context coverage: {(contextCoverage * 100):F1}% ({contextContent?.Length ?? 0}/{documentContent.Length} chars)");
 
+                var focusedRecoveryApplied = false;
+
                 // Validate we have meaningful content to analyze
                 if (string.IsNullOrWhiteSpace(contextContent) || contextContent.Length < 50)
                 {
@@ -1729,6 +2473,7 @@ But thoroughly scan all sections first before concluding.";
                     var focusedRecovery = BuildRequirementFocusedExcerpt(documentContent, 8000);
                     if (!string.IsNullOrWhiteSpace(focusedRecovery))
                     {
+                        focusedRecoveryApplied = true;
                         contextContent = string.IsNullOrWhiteSpace(contextContent)
                             ? focusedRecovery
                             : $"{contextContent}\n\n[Focused Recovery]\n{focusedRecovery}";
@@ -1742,6 +2487,15 @@ But thoroughly scan all sections first before concluding.";
                 {
                     // Use Template Form Architecture for structured extraction with quality validation
                     TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Using Template Form Architecture for structured extraction");
+                    var rawContextLength = contextContent?.Length ?? 0;
+                    var rawContextLineCount = CountNonEmptyLines(contextContent);
+                    contextContent = SanitizeRetrievedContextForTemplateExtraction(contextContent);
+                    var sanitizedContextLength = contextContent.Length;
+                    var sanitizedContextLineCount = CountNonEmptyLines(contextContent);
+                    var removedContextLines = Math.Max(0, rawContextLineCount - sanitizedContextLineCount);
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[DirectRag] Context sanitization: focusedRecoveryApplied={focusedRecoveryApplied}, linesRemoved={removedContextLines}, length={rawContextLength}->{sanitizedContextLength}, nonEmptyLines={rawContextLineCount}->{sanitizedContextLineCount}");
+
                     var templateInputContent = BuildTemplateExtractionInput(documentContent, contextContent);
                     extractedRequirements = await ExtractRequirementsWithTemplateFormAsync(templateInputContent, attachment, projectId, progressCallback, cancellationToken);
                 }
@@ -2703,10 +3457,10 @@ Extract all legitimate requirements:";
                 >= 11 => strongSystemSignal
                     ? "True System Requirement"
                     : strongVerificationSignal
-                        ? "Verification/Test Requirement"
+                        ? "Test/Measurement Requirement"
                         : "Potential Requirement",
                 >= 9 => strongVerificationSignal
-                    ? "Verification/Test Requirement"
+                    ? "Test/Measurement Requirement"
                     : strongSystemSignal
                         ? "True System Requirement"
                         : "Potential Requirement",
@@ -2717,7 +3471,7 @@ Extract all legitimate requirements:";
 
             if (isVerificationLedClause && !hasExplicitSystemObligation)
             {
-                classification = score >= 9 ? "Verification/Test Requirement" : "Potential Requirement";
+                classification = score >= 9 ? "Test/Measurement Requirement" : "Potential Requirement";
             }
 
             var isPromoted = !looksFragmented && !proceduralNoise &&
@@ -3232,19 +3986,86 @@ Extract all legitimate requirements:";
 
         private static string BuildTemplateExtractionInput(string documentContent, string contextContent)
         {
+            if (!string.IsNullOrWhiteSpace(contextContent))
+            {
+                return contextContent;
+            }
+
             var structuralExcerpt = BuildRequirementFocusedExcerpt(documentContent, 10000);
 
             if (string.IsNullOrWhiteSpace(structuralExcerpt))
             {
-                return string.IsNullOrWhiteSpace(contextContent) ? documentContent : contextContent;
+                return documentContent;
             }
 
+            return structuralExcerpt;
+        }
+
+        private static int CountNonEmptyLines(string? content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return 0;
+            }
+
+            return content
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Count(line => !string.IsNullOrWhiteSpace(line));
+        }
+
+        private static string SanitizeRetrievedContextForTemplateExtraction(string? contextContent)
+        {
             if (string.IsNullOrWhiteSpace(contextContent))
             {
-                return structuralExcerpt;
+                return string.Empty;
             }
 
-            return $"{structuralExcerpt}\n\n[Context]\n{contextContent}";
+            var lines = contextContent
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Select(line => line.Trim())
+                .ToList();
+
+            if (lines.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            var filtered = new List<string>(lines.Count);
+            foreach (var line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    continue;
+                }
+
+                var lower = line.ToLowerInvariant();
+                var looksProceduralGuidance =
+                    lower.Contains("recommended power") ||
+                    lower.Contains("recommended setup guidance") ||
+                    lower.Contains("recommended procedure") ||
+                    lower.Contains("should always") ||
+                    (lower.Contains("guidance") && lower.Contains("sequence") && lower.Contains("test rail"));
+
+                // Keep explicit verification clauses even if they mention procedure-related words.
+                var isExplicitVerificationClause =
+                    lower.Contains("shall verify") ||
+                    lower.Contains("verify that") ||
+                    lower.Contains("verification shall");
+
+                if (looksProceduralGuidance && !isExplicitVerificationClause)
+                {
+                    continue;
+                }
+
+                filtered.Add(line);
+            }
+
+            if (filtered.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            return string.Join(Environment.NewLine, filtered);
         }
 
         private static EnvelopeSchema BuildRequirementExtractionEnvelopeSchema()
@@ -3389,7 +4210,7 @@ Extract all legitimate requirements:";
         /// Validates that extracted text represents a genuine requirement (system, functional, or interface level)
         /// Updated to be less restrictive while maintaining quality
         /// </summary>
-        private bool IsValidRequirement(string text)
+        private static bool IsValidRequirement(string text)
         {
             if (string.IsNullOrWhiteSpace(text) || text.Length < 15) // Reduced from 30
                 return false;
@@ -4533,7 +5354,7 @@ Extract all legitimate requirements:";
                 !string.IsNullOrWhiteSpace(TestVenue);
         }
 
-        private StructuredRequirementMetadata TryExtractStructuredRequirementMetadata(string rawText)
+        private static StructuredRequirementMetadata TryExtractStructuredRequirementMetadata(string rawText)
         {
             var result = new StructuredRequirementMetadata();
             if (string.IsNullOrWhiteSpace(rawText))
