@@ -13,6 +13,28 @@ Use this exact order:
 5. `70116e0` - Preserve normative clauses when recommendation wording appears
 6. `b0755ac` - Add sanitizer edge-case regressions for mixed recommendation lines
 
+## 1b) Minimal Low-Risk Cherry-Pick Set (Recommended First)
+
+If you want extractor hardening without workshop/troubleshooter plumbing, use this set first:
+
+1. `8ac7c0b`
+2. `af78273`
+3. `8d949f7`
+4. `70116e0`
+5. `b0755ac`
+6. `ee0a94b` (playbook/doc only)
+
+```powershell
+git cherry-pick 8ac7c0b
+git cherry-pick af78273
+git cherry-pick 8d949f7
+git cherry-pick 70116e0
+git cherry-pick b0755ac
+git cherry-pick ee0a94b
+```
+
+Apply `67a3beb` only if you explicitly need its interface/workshop wiring.
+
 ## 2) Commit Scope Notes
 
 ### `67a3beb`
@@ -75,6 +97,31 @@ git cherry-pick b0755ac
 ```powershell
 dotnet test Tests/TestCaseEditorApp.Tests/TestCaseEditorApp.Tests.csproj --filter "JamaDocumentParserContextSanitizationTests|JamaDocumentParserIntegrationTests|ATPExtractionFoundationIntegrationTests"
 ```
+
+### Conflict Fallback
+
+If a cherry-pick fails:
+
+1. Inspect conflicted files:
+
+```powershell
+git status
+```
+
+2. Keep extractor behavior from this branch in parser/test files, then stage resolved files.
+3. Continue:
+
+```powershell
+git cherry-pick --continue
+```
+
+4. If conflict scope is too broad, abort that single pick and continue with later commits:
+
+```powershell
+git cherry-pick --abort
+```
+
+5. Re-apply only necessary hunks from the skipped commit manually, then run the confidence suite.
 
 ## 4) LLM Integration Gate Sequence
 
