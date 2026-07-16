@@ -4039,12 +4039,26 @@ Extract all legitimate requirements:";
                 }
 
                 var lower = line.ToLowerInvariant();
-                var looksProceduralGuidance =
+                var hasRecommendedCue =
                     lower.Contains("recommended power") ||
                     lower.Contains("recommended setup guidance") ||
                     lower.Contains("recommended procedure") ||
-                    lower.Contains("should always") ||
-                    (lower.Contains("guidance") && lower.Contains("sequence") && lower.Contains("test rail"));
+                    lower.Contains("procedure guidance");
+
+                var hasProceduralSequencingCue =
+                    (lower.Contains("guidance") && lower.Contains("sequence") && lower.Contains("test rail")) ||
+                    (lower.Contains("should always") &&
+                     (lower.Contains("set ") ||
+                      lower.Contains("sequence") ||
+                      lower.Contains("prior to") ||
+                      lower.Contains("before") ||
+                      lower.Contains("after") ||
+                      lower.Contains("power up") ||
+                      lower.Contains("power down") ||
+                      lower.Contains("bench supplies") ||
+                      lower.Contains("test rail")));
+
+                var looksProceduralGuidance = hasRecommendedCue || hasProceduralSequencingCue;
 
                 // Keep explicit verification clauses even if they mention procedure-related words.
                 var isExplicitVerificationClause =

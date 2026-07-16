@@ -55,4 +55,14 @@ public class JamaDocumentParserContextSanitizationTests
 
         Assert.AreEqual(context, sanitized, "Neutral technical content should remain unchanged.");
     }
+
+    [TestMethod]
+    public void SanitizeRetrievedContextForTemplateExtraction_PreservesTechnicalShouldAlwaysClause()
+    {
+        var context = "The system should always maintain coolant pressure between 40 and 55 psi during continuous operation.";
+
+        var sanitized = CallSanitizeRetrievedContext(context);
+
+        Assert.AreEqual(context, sanitized, "Technical 'should always' clauses without procedural setup cues should be preserved.");
+    }
 }
