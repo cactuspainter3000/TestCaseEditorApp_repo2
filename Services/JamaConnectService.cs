@@ -13,6 +13,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
+using TestCaseEditorApp.MVVM.Domains.Requirements.Services;
 using TestCaseEditorApp.MVVM.Models;
 
 namespace TestCaseEditorApp.Services
@@ -642,6 +643,20 @@ namespace TestCaseEditorApp.Services
                 }
 
                 report.AppendLine();
+                report.AppendLine("Field Coverage Check");
+                JamaFieldCoverageHealth? contractHealth = null;
+                if (fieldsArray.HasValue && fieldsArray.Value.ValueKind == JsonValueKind.Array)
+                {
+                    var coverage = JamaRequirementFieldCoverage.AnalyzeFieldDictionary(fieldsArray.Value);
+                    contractHealth = JamaRequirementFieldCoverage.EvaluateCoverageHealth(coverage);
+                    report.AppendLine(JamaRequirementFieldCoverage.FormatCoverageResultForReport(coverage));
+                }
+                else
+                {
+                    report.AppendLine("- Field coverage check unavailable (field array not parsed).");
+                }
+
+                report.AppendLine();
                 report.AppendLine("Extended Mapping Diagnostics");
 
                 report.AppendLine("- Requirement create contract map (item type 193):");
@@ -822,6 +837,17 @@ namespace TestCaseEditorApp.Services
                 }
 
                 await File.WriteAllTextAsync(outputPath, report.ToString(), Encoding.UTF8, cancellationToken);
+
+                if (contractHealth is { IsContractHealthy: false })
+                {
+                    var missingCore = contractHealth.MissingCoreFields.Count == 0
+                        ? "unknown"
+                        : string.Join(", ", contractHealth.MissingCoreFields);
+                    var failMessage = $"Export completed, but Jama item type 193 core contract validation FAILED. Missing core fields: {missingCore}.";
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] {failMessage}");
+                    return (false, failMessage, outputPath);
+                }
+
                 return (true, "Requirement item type 193 field dictionary exported successfully.", outputPath);
             }
             catch (Exception ex)

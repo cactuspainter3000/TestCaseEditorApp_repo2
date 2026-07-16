@@ -33,8 +33,24 @@ namespace TestCaseEditorApp.Services
             try
             {
                 EnsureDocx(path);
+                var requirements = JamaAllDataDocxParser.Parse(path, debugDump: false);
+                var diagnostics = JamaAllDataDocxParser.LastParseDiagnostics;
+                if (diagnostics is { IsContractHealthy: false })
+                {
+                    var impactedSample = string.Join(", ", diagnostics.MissingCoreFieldsByRequirement
+                        .Take(10)
+                        .Select(kvp => $"{kvp.Key}: {string.Join("|", kvp.Value)}"));
 
-                return JamaAllDataDocxParser.Parse(path, debugDump: false);
+                    var message = "Jama import blocked because required core contract fields are missing in the DOCX export. " +
+                                  $"Affected requirements: {diagnostics.MissingCoreFieldsByRequirement.Count}. " +
+                                  $"Sample: {impactedSample}";
+
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[RequirementService] {message}");
+                    MessageBox.Show(message, "Jama Contract Validation Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return new List<Requirement>();
+                }
+
+                return requirements;
             }
             catch (NotSupportedException nse)
             {

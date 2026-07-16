@@ -15,6 +15,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
     /// </summary>
     public static class JamaAllDataDocxParser
     {
+        public sealed record JamaDocxParseDiagnostics(
+            int TotalRequirements,
+            bool IsContractHealthy,
+            IReadOnlyDictionary<string, IReadOnlyList<string>> MissingCoreFieldsByRequirement);
+
+        public static JamaDocxParseDiagnostics? LastParseDiagnostics { get; private set; }
+
         private static readonly Regex HeaderRx = new(
     @"^(?:(?<lead>\d+(?:\.\d+)*?)\s+)?(?<item>[A-Z0-9_-]+-REQ_RC-\d+)\s+(?:(?<heading>\d+(?:\.\d+)*?)\s+)?(?<name>.+?)$",
     RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -107,6 +114,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
             bool suppressPostSection = false;
 
             var results = new List<Requirement>();
+            var fieldCoverageResults = new List<JamaFieldCoverageResult>();
+            var missingCoreFieldsByRequirement = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
 
             using var doc = WordprocessingDocument.Open(path, false);
             var body = doc.MainDocumentPart?.Document?.Body;
@@ -283,7 +292,35 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                                 };
 
                                 JamaRequirementMapper.MapFromKv(req, kv);
-                                
+
+                                var coverage = JamaRequirementFieldCoverage.AnalyzeExportKeys(kv.Keys);
+                                fieldCoverageResults.Add(coverage);
+                                var health = JamaRequirementFieldCoverage.EvaluateCoverageHealth(coverage);
+                                if (!health.IsContractHealthy)
+                                {
+                                    missingCoreFieldsByRequirement[req.Item] = health.MissingCoreFields;
+                                }
+
+                                if (!coverage.IsComplete || coverage.UnexpectedActualFields.Count > 0)
+                                {
+                                    var missing = coverage.MissingExpectedFields.Count == 0
+                                        ? "none"
+                                        : string.Join(", ", coverage.MissingExpectedFields.Take(10));
+                                    var unexpected = coverage.UnexpectedActualFields.Count == 0
+                                        ? "none"
+                                        : string.Join(", ", coverage.UnexpectedActualFields.Take(10));
+
+                                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                                        $"[JamaAllDataDocxParser] Field coverage warning for requirement {req.Item}: missing={missing}; unexpected={unexpected}");
+                                }
+
+                                if (!health.IsContractHealthy)
+                                {
+                                    var missingCore = string.Join(", ", health.MissingCoreFields);
+                                    TestCaseEditorApp.Services.Logging.Log.Error(
+                                        $"[JamaAllDataDocxParser] Contract health failure for requirement {req.Item}: missingCore={missingCore}");
+                                }
+
                                 // Check for ATP content in this requirement
                                 DetectAndMarkATPContent(req);
                                 
@@ -338,6 +375,44 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
                         // flattened in EnumerateBlocks
                         break;
                 }
+            }
+
+            var coverageSummary = JamaRequirementFieldCoverage.Summarize(fieldCoverageResults);
+            if (coverageSummary.TotalRequirements > 0)
+            {
+                if (coverageSummary.HasIssues)
+                {
+                    var topMissing = coverageSummary.MissingFieldCounts.Count == 0
+                        ? "none"
+                        : string.Join(", ", coverageSummary.MissingFieldCounts.Take(10).Select(kvp => $"{kvp.Key} ({kvp.Value})"));
+                    var topUnexpected = coverageSummary.UnexpectedFieldCounts.Count == 0
+                        ? "none"
+                        : string.Join(", ", coverageSummary.UnexpectedFieldCounts.Take(10).Select(kvp => $"{kvp.Key} ({kvp.Value})"));
+
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[JamaAllDataDocxParser] Field coverage summary: total={coverageSummary.TotalRequirements}, complete={coverageSummary.CompleteRequirements}, incomplete={coverageSummary.IncompleteRequirements}, unexpected={coverageSummary.RequirementsWithUnexpectedFields}, topMissing={topMissing}, topUnexpected={topUnexpected}");
+                }
+                else
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[JamaAllDataDocxParser] Field coverage summary: total={coverageSummary.TotalRequirements}, complete={coverageSummary.CompleteRequirements}, incomplete=0, unexpected=0");
+                }
+            }
+
+            LastParseDiagnostics = new JamaDocxParseDiagnostics(
+                TotalRequirements: results.Count,
+                IsContractHealthy: missingCoreFieldsByRequirement.Count == 0,
+                MissingCoreFieldsByRequirement: missingCoreFieldsByRequirement);
+
+            if (missingCoreFieldsByRequirement.Count > 0)
+            {
+                var impacted = string.Join(", ", missingCoreFieldsByRequirement
+                    .OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase)
+                    .Take(10)
+                    .Select(kvp => $"{kvp.Key}[{string.Join("|", kvp.Value)}]"));
+
+                TestCaseEditorApp.Services.Logging.Log.Error(
+                    $"[JamaAllDataDocxParser] Contract health summary: status=FAIL, affectedRequirements={missingCoreFieldsByRequirement.Count}, sample={impacted}");
             }
 
             return results;
