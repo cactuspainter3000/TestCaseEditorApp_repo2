@@ -10,6 +10,7 @@ using TestCaseEditorApp.Services.Prompts;
 public sealed class OllamaTextGenerationService : ITextGenerationService
 {
     private const string OllamaBaseUrl = "http://localhost:11434/";
+    private static readonly System.TimeSpan DefaultGenerationTimeout = System.TimeSpan.FromMinutes(3);
     private readonly HttpClient _http;
     private readonly string _model;
 
@@ -20,12 +21,11 @@ public sealed class OllamaTextGenerationService : ITextGenerationService
         _model = model;
         if (ownsHttpClient)
         {
-            _http.Timeout = System.TimeSpan.FromMinutes(15); // Increased timeout for large document processing
+            _http.Timeout = DefaultGenerationTimeout;
         }
-        else if (_http.Timeout <= System.TimeSpan.FromSeconds(100))
+        else if (_http.Timeout == System.Threading.Timeout.InfiniteTimeSpan)
         {
-            // Guard against default HttpClient timeout when an external client is injected.
-            _http.Timeout = System.TimeSpan.FromMinutes(15);
+            _http.Timeout = DefaultGenerationTimeout;
         }
         
         // Log which model is configured
