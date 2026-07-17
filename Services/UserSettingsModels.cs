@@ -17,6 +17,13 @@
         public bool EnableRequirementsAnalysisSnapshot { get; set; } = false;
         public bool EnableAnythingLlmFallback { get; set; } = true;
 
+        /// <summary>
+        /// Enable the AnythingLLM fallback path in Jama attachment extraction.
+        /// When false, DirectRAG/template extraction remains enabled, but the parser will not
+        /// fall back to AnythingLLM for unsupported or unsuitable document types.
+        /// </summary>
+        public bool EnableAnythingLlmFallback { get; set; } = true;
+
         public bool HasRequiredConfiguration()
         {
             return !string.IsNullOrWhiteSpace(JamaBaseUrl)
