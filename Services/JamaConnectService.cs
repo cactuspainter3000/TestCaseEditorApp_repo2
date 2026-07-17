@@ -6376,15 +6376,27 @@ namespace TestCaseEditorApp.Services
                         .ToList();
 
                     var hasSystemsInPath = ancestry.Any(a => a.Contains("systems"));
-                    var hasRequirementsInPath = ancestry.Any(a => a.Contains("requirements"));
+                    var hasRequirementsInPath = ancestry.Any(a => a.Contains("requirements") || a.Contains("requirement"));
                     var hasSoftwareInPath = ancestry.Any(a => a.Contains("software"));
                     var hasHardwareInPath = ancestry.Any(a => a.Contains("hardware"));
+                    var hasDhaInPath = ancestry.Any(a => a.Contains("dha"));
+                    var hasDhaRevisedInPath = ancestry.Any(a => a.Contains("dha revised"));
+
+                    var hasPreferredDhaPath = hasSystemsInPath
+                        && hasRequirementsInPath
+                        && hasDhaInPath
+                        && hasDhaRevisedInPath;
 
                     var score = 0;
                     if (hasSystemsInPath) score += 180;
                     if (hasRequirementsInPath) score += 180;
+                    if (hasDhaInPath) score += 120;
+                    if (hasDhaRevisedInPath) score += 200;
+                    if (hasPreferredDhaPath) score += 600;
                     if (lower.Contains("requirement")) score += 120;
                     if (lower.Equals("requirements")) score += 160;
+                    if (lower.Contains("dha revised")) score += 220;
+                    if (lower.Equals("dha")) score += 80;
                     if (lower.Contains("system")) score += 20;
                     if (lower.Contains("spec")) score += 20;
                     if (lower.Contains("test") || lower.Contains("verification") || lower.Contains("procedure") || lower.Contains("case")) score -= 140;
