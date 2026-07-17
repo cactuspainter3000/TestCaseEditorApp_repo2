@@ -1,6 +1,4 @@
-using System;
-
-namespace TestCaseEditorApp.Services
+﻿namespace TestCaseEditorApp.Services
 {
     public sealed class AppUserSettings
     {
@@ -16,12 +14,8 @@ namespace TestCaseEditorApp.Services
         public string OllamaEmbeddingModel { get; set; } = "nomic-embed-text:latest";
         public string ThemeName { get; set; } = "Dark Orange";
 
-        /// <summary>
-        /// Enable requirements analysis snapshot logging for diagnostics.
-        /// When true, all snapshot capture calls will execute; when false, they are skipped.
-        /// Default is false for production; set to true during development/debugging.
-        /// </summary>
         public bool EnableRequirementsAnalysisSnapshot { get; set; } = false;
+        public bool EnableAnythingLlmFallback { get; set; } = true;
 
         public bool HasRequiredConfiguration()
         {
@@ -29,6 +23,17 @@ namespace TestCaseEditorApp.Services
                 && !string.IsNullOrWhiteSpace(JamaClientId)
                 && !string.IsNullOrWhiteSpace(JamaClientSecret)
                 && !string.IsNullOrWhiteSpace(AnythingLlmBaseUrl)
+
+
+
+
+
+
+
+
+
+
+
                 && !string.IsNullOrWhiteSpace(AnythingLlmApiKey)
                 && !string.IsNullOrWhiteSpace(OllamaChatModel)
                 && !string.IsNullOrWhiteSpace(OllamaEmbeddingModel);
