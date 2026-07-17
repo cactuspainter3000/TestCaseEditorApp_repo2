@@ -32,3 +32,18 @@ project.nuget.cache
 # Local export artifacts
 exports/analysis-logs/**/*.log
 Copilot-TesetCaseEditorApp/
+
+# Local dev / tooling folders
+artifacts/
+anything-llm/
+node_modules/
+
+# Lockfiles not part of this project
+package-lock.json
+yarn.lock
+
+# Temp diff files
+.tmp_*.diff
+
+# Local diagnostic scripts not tracked
+test-embedding-endpoint.ps1
