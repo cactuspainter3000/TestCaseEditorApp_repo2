@@ -1643,21 +1643,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                         progressCallback?.Invoke($"✅ Saved {savedCount} extracted requirements to Jama");
                     }
 
+                    // Capture in Jama is a primary requirement. Any remaining failures should halt the workflow.
                     if (failedCount > 0)
                     {
-                        var incompleteMessage =
-                            $"⚠️ Jama save incomplete: {savedCount}/{extractedRequirements.Count} saved, {failedCount} failed. " +
-                            "Continuing with successfully saved requirements; review logs for failed items.";
-
-                        _logger.LogWarning("[ATTACHMENT_DIAG] Jama save incomplete after retry. Saved={SavedCount} Total={TotalCount} Failed={FailedCount} AttachmentId={AttachmentId} ProjectId={ProjectId}",
+                        _logger.LogError("[ATTACHMENT_DIAG] Jama save incomplete after retry. Saved={SavedCount} Total={TotalCount} Failed={FailedCount} AttachmentId={AttachmentId} ProjectId={ProjectId}",
                             savedCount, extractedRequirements.Count, failedCount, attachment.Id, projectId);
-                        progressCallback?.Invoke(incompleteMessage);
-
-                        // Only fail the workflow when no requirements were persisted at all.
-                        if (savedCount == 0)
-                        {
-                            throw new InvalidOperationException($"Failed to persist extracted requirements to Jama. Saved 0/{extractedRequirements.Count}.");
-                        }
+                        progressCallback?.Invoke($"❌ Jama save incomplete: {savedCount}/{extractedRequirements.Count} saved. Import halted to avoid data loss.");
+                        throw new InvalidOperationException($"Failed to persist all extracted requirements to Jama. Saved {savedCount}/{extractedRequirements.Count}.");
                     }
                 }
 
