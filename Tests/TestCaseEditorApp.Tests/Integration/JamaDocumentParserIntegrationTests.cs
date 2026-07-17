@@ -856,10 +856,12 @@ namespace TestCaseEditorApp.Tests.Integration
             "}";
 
             var textGenerationService = new Mock<ITextGenerationService>();
+            var generationCallCount = 0;
             textGenerationService
                 .Setup(s => s.GenerateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync((string prompt, CancellationToken _) =>
                 {
+                    generationCallCount++;
                     if (prompt.StartsWith("Test", StringComparison.OrdinalIgnoreCase))
                     {
                         return "ok";
@@ -897,6 +899,7 @@ namespace TestCaseEditorApp.Tests.Integration
             Assert.IsFalse(
                 result.Any(req => string.Equals(req.GlobalId, "REQ-MFD-268C4B", StringComparison.OrdinalIgnoreCase)),
                 "Expected suspicious tiny template output IDs to be discarded in favor of the deterministic ATP baseline.");
+            Assert.AreEqual(0, generationCallCount, "Expected low-coverage ATP extraction to skip template LLM generation and use the deterministic baseline directly.");
         }
 
         [TestMethod]

@@ -3098,6 +3098,8 @@ But thoroughly scan all sections first before concluding.";
                     contextContent = contextContent.Substring(0, 12000) + "...";
                 }
 
+                List<Requirement> extractedRequirements;
+
                 if (contextCoverage < 0.15)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn(
@@ -3115,9 +3117,19 @@ But thoroughly scan all sections first before concluding.";
                     }
                 }
 
+                if (ShouldUseDeterministicAtpBaselineImmediately(deterministicAtpBaseline, contextCoverage))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[DirectRag] Skipping template extraction for {attachment.FileName} because ATP baseline has {deterministicAtpBaseline!.Count} requirements and retrieval coverage is only {(contextCoverage * 100):F1}%.");
+                    progressCallback?.Invoke(
+                        $"⚠️ Retrieval coverage is low ({(contextCoverage * 100):F1}%). Using deterministic ATP baseline with {deterministicAtpBaseline!.Count} requirements.");
+
+                    extractedRequirements = deterministicAtpBaseline!;
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Extracted {extractedRequirements.Count} requirements");
+                    goto DerivedRequirementsStage;
+                }
+
                 // Step 5: Use Template Form Architecture (NO LEGACY FALLBACK)
-                List<Requirement> extractedRequirements;
-                
                 if (_envelopeService != null && _textGenerationService != null)
                 {
                     // Use Template Form Architecture for structured extraction with quality validation
@@ -3153,6 +3165,7 @@ But thoroughly scan all sections first before concluding.";
                     extractedRequirements = deterministicAtpBaseline!;
                 }
                 
+DerivedRequirementsStage:
                 // Step 6: Optional ATP derivation (manual/advisory policy)
                 List<Requirement> derivedRequirements = new List<Requirement>();
                 if (ENABLE_AUTOMATIC_DERIVED_REQUIREMENTS && _derivationService != null)
@@ -7824,6 +7837,15 @@ Extract requirements now (JSON only):";
             }
 
             return deterministicAtpBaseline.Count >= templateRequirements.Count + 10;
+        }
+
+        private static bool ShouldUseDeterministicAtpBaselineImmediately(
+            IReadOnlyCollection<Requirement>? deterministicAtpBaseline,
+            double contextCoverage)
+        {
+            return deterministicAtpBaseline != null
+                && deterministicAtpBaseline.Count >= 20
+                && contextCoverage < 0.15d;
         }
 
         private static void ApplyCategoryFieldInference(Requirement requirement, string? category, string requirementText)
