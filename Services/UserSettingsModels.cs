@@ -1,4 +1,4 @@
-﻿namespace TestCaseEditorApp.Services
+namespace TestCaseEditorApp.Services
 {
     public sealed class AppUserSettings
     {
@@ -15,7 +15,6 @@
         public string ThemeName { get; set; } = "Dark Orange";
 
         public bool EnableRequirementsAnalysisSnapshot { get; set; } = false;
-        public bool EnableAnythingLlmFallback { get; set; } = true;
 
         /// <summary>
         /// Enable the AnythingLLM fallback path in Jama attachment extraction.
@@ -30,17 +29,6 @@
                 && !string.IsNullOrWhiteSpace(JamaClientId)
                 && !string.IsNullOrWhiteSpace(JamaClientSecret)
                 && !string.IsNullOrWhiteSpace(AnythingLlmBaseUrl)
-
-
-
-
-
-
-
-
-
-
-
                 && !string.IsNullOrWhiteSpace(AnythingLlmApiKey)
                 && !string.IsNullOrWhiteSpace(OllamaChatModel)
                 && !string.IsNullOrWhiteSpace(OllamaEmbeddingModel);
