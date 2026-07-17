@@ -3144,7 +3144,7 @@ But thoroughly scan all sections first before concluding.";
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Extracted {extractedRequirements.Count} requirements");
 
-                if (ShouldPreferDeterministicAtpBaseline(deterministicAtpBaseline, extractedRequirements))
+                if (ShouldPreferDeterministicAtpBaseline(deterministicAtpBaseline, extractedRequirements, contextCoverage < 0.15d))
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn(
                         $"[DirectRag] Replacing degraded template/foundation recovery output ({extractedRequirements.Count}) with deterministic ATP baseline ({deterministicAtpBaseline!.Count}) for {attachment.FileName}.");
@@ -7792,7 +7792,8 @@ Extract requirements now (JSON only):";
 
         private static bool ShouldPreferDeterministicAtpBaseline(
             IReadOnlyCollection<Requirement>? deterministicAtpBaseline,
-            IReadOnlyCollection<Requirement> templateRequirements)
+            IReadOnlyCollection<Requirement> templateRequirements,
+            bool lowContextCoverage)
         {
             if (deterministicAtpBaseline == null || deterministicAtpBaseline.Count == 0)
             {
@@ -7810,7 +7811,16 @@ Extract requirements now (JSON only):";
 
             if (!allFoundationRecovery)
             {
-                return false;
+                if (!lowContextCoverage)
+                {
+                    return false;
+                }
+
+                var severeCountCollapse = deterministicAtpBaseline.Count >= 15
+                    && templateRequirements.Count <= Math.Max(5, deterministicAtpBaseline.Count / 4)
+                    && deterministicAtpBaseline.Count >= templateRequirements.Count + 10;
+
+                return severeCountCollapse;
             }
 
             return deterministicAtpBaseline.Count >= templateRequirements.Count + 10;

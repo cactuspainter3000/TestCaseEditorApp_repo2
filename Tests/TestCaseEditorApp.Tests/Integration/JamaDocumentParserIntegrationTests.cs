@@ -770,6 +770,136 @@ namespace TestCaseEditorApp.Tests.Integration
         }
 
         [TestMethod]
+        public async Task ParseAttachmentAsync_RealAtpFixture_LowCoverageTinyEnvelope_PrefersDeterministicBaseline()
+        {
+            var documentPath = CreateTempTestCopy(ResolveRepoFilePath("Tests", "Fixtures", "ATP", "946-4DC0-001_C4B_DHM_ATP_Rev-.docx"));
+            Assert.IsTrue(File.Exists(documentPath), $"Expected ATP fixture at {documentPath}");
+
+            var attachment = new JamaAttachment
+            {
+                Id = 946003,
+                FileName = Path.GetFileName(documentPath),
+                Name = Path.GetFileName(documentPath),
+                MimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                FileSize = new FileInfo(documentPath).Length,
+                Item = 0
+            };
+
+            var attachmentBytes = await File.ReadAllBytesAsync(documentPath);
+
+            var jamaService = new Mock<IJamaConnectService>();
+            jamaService.SetupGet(s => s.IsConfigured).Returns(true);
+            jamaService
+                .Setup(s => s.DownloadAttachmentAsync(attachment.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(attachmentBytes);
+
+            var anythingLlmService = new Mock<IAnythingLLMService>();
+            var directRagService = new Mock<IDirectRagService>();
+            directRagService.SetupGet(s => s.IsConfigured).Returns(true);
+            directRagService
+                .Setup(s => s.ValidateAttachmentIndexesAsync(
+                    It.IsAny<int>(),
+                    It.IsAny<IReadOnlyCollection<JamaAttachment>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Dictionary<int, AttachmentIndexValidationResult>
+                {
+                    [attachment.Id] = new AttachmentIndexValidationResult
+                    {
+                        AttachmentId = attachment.Id,
+                        State = AttachmentIndexValidationState.NotIndexed,
+                        ScrapeBlocked = false,
+                        Message = "Not indexed"
+                    }
+                });
+            directRagService
+                .Setup(s => s.GetProjectIndexStatsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DocumentIndexStats { ProjectId = 77, TotalDocuments = 0, TotalChunks = 0 });
+            directRagService
+                .Setup(s => s.ClearProjectIndexAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            directRagService
+                .Setup(s => s.IndexDocumentAsync(It.IsAny<JamaAttachment>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            directRagService
+                .Setup(s => s.GetRequirementAnalysisContextAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(string.Join(Environment.NewLine, new[]
+                {
+                    "Acceptance Test Procedure excerpt",
+                    "Acceptance Criteria",
+                    "+3.3VDC is within range during hold-up timing.",
+                    "BRT_CMD_COARSE measurement guidance remains in the ATP."
+                }));
+
+            var tinyEnvelopeJson = "{" +
+                "\"requirements\":[{" +
+                    "\"id\":\"REQ-MFD-268C4B\"," +
+                    "\"text\":\"The system shall meet the requirement statement: MFD-268C4B Display Control Card Hardware.\"," +
+                    "\"category\":\"Functional\"," +
+                    "\"page\":\"Page 1\"," +
+                    "\"section\":\"UNK 1\"," +
+                    "\"source_prefix\":\"UNK 1\"," +
+                    "\"source_prefix_type\":\"section\"," +
+                    "\"suggested_rewrite\":\"The system shall meet the requirement statement: MFD-268C4B Display Control Card Hardware.\"," +
+                    "\"confidence\":0.41" +
+                "},{" +
+                    "\"id\":\"REQ-NVIS_ENB_F\"," +
+                    "\"text\":\"NVIS_ENB_F = OPEN Unless otherwise indicated, 5 VAC keypanel dimming voltage should be off.\"," +
+                    "\"category\":\"Functional\"," +
+                    "\"page\":\"Page 2\"," +
+                    "\"section\":\"UNK 2\"," +
+                    "\"source_prefix\":\"UNK 2\"," +
+                    "\"source_prefix_type\":\"section\"," +
+                    "\"suggested_rewrite\":\"NVIS_ENB_F = OPEN Unless otherwise indicated, 5 VAC keypanel dimming voltage should be off.\"," +
+                    "\"confidence\":0.39" +
+                "}]," +
+                "\"metadata\":{\"total_requirements\":2,\"document_name\":\"946-4DC0-001_C4B_DHM_ATP_Rev-.docx\",\"extraction_method\":\"template_form\"}" +
+            "}";
+
+            var textGenerationService = new Mock<ITextGenerationService>();
+            textGenerationService
+                .Setup(s => s.GenerateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((string prompt, CancellationToken _) =>
+                {
+                    if (prompt.StartsWith("Test", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return "ok";
+                    }
+
+                    return tinyEnvelopeJson;
+                });
+
+            var envelopeService = new OutputEnvelopeService(new EnvelopeSchemaService());
+            var loggerFactory = LoggerFactory.Create(builder => builder.SetMinimumLevel(LogLevel.Warning));
+            var extractionLogger = loggerFactory.CreateLogger<DocumentRequirementExtractionService>();
+            var extractionService = new DocumentRequirementExtractionService(extractionLogger);
+
+            var parser = new JamaDocumentParserService(
+                jamaService.Object,
+                anythingLlmService.Object,
+                directRagService.Object,
+                textGenerationService.Object,
+                derivationService: null,
+                envelopeService: envelopeService,
+                qualityService: null,
+                complianceWrapper: null,
+                abTestingFramework: null,
+                telemetryService: null,
+                ollamaProcessManager: null,
+                ollamaStatusMonitor: null,
+                documentExtractionService: extractionService);
+
+            var result = await parser.ParseAttachmentAsync(attachment, 77);
+
+            Assert.AreEqual(73, result.Count, "Low-coverage ATP runs should reject tiny template outputs and keep the deterministic baseline.");
+            Assert.IsTrue(
+                result.Any(req => string.Equals(req.SourcePrefix, "4.1.2.1", StringComparison.OrdinalIgnoreCase)),
+                "Expected the deterministic ATP baseline to preserve hierarchical clause numbering after tiny-template fallback.");
+            Assert.IsFalse(
+                result.Any(req => string.Equals(req.GlobalId, "REQ-MFD-268C4B", StringComparison.OrdinalIgnoreCase)),
+                "Expected suspicious tiny template output IDs to be discarded in favor of the deterministic ATP baseline.");
+        }
+
+        [TestMethod]
         public async Task ParseAttachmentAsync_RealAtrFixture_RagContextStageMatrix_PreservesTechnicalCanary_WithoutProcedureReintroduction()
         {
             var documentPath = ResolveRepoFilePath("exports", "document-artifacts", "20260714-193344", "ATR_Export.docx");
