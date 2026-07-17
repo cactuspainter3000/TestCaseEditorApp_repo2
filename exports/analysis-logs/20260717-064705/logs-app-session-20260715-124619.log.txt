@@ -1,0 +1,96 @@
+﻿2026-07-15T12:46:19.1548659Z	Information	Microsoft.Hosting.Lifetime	Application started. Press Ctrl+C to shut down.
+2026-07-15T12:46:19.1589770Z	Information	Microsoft.Hosting.Lifetime	Hosting environment: Production
+2026-07-15T12:46:19.1592737Z	Information	Microsoft.Hosting.Lifetime	Content root path: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp
+2026-07-15T12:46:19.1619162Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-15T12:46:19.1692258Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-15T12:46:19.1880072Z	Information	TestCaseEditorApp.App	Ensuring Ollama service is running...
+2026-07-15T12:46:19.1885747Z	Information	TestCaseEditorApp.App	Runtime session log file: C:\Users\e10653214\TestCaseEditorApp\logs\app-session-20260715-124619.log
+2026-07-15T12:46:19.1901731Z	Information	App	[OllamaProcessManager] Environment variables configured: LOAD_TIMEOUT=10m, KEEP_ALIVE=20m
+2026-07-15T12:46:19.7322588Z	Information	App	[OllamaProcessManager] ✅ Ollama is running and healthy
+2026-07-15T12:46:19.7330312Z	Information	TestCaseEditorApp.App	? Ollama service is ready
+2026-07-15T12:46:19.7354889Z	Information	TestCaseEditorApp.App	Initializing extension system...
+2026-07-15T12:46:19.7387414Z	Information	TestCaseEditorApp.App	Extension discovery completed. Loaded: 0, Errors: 0
+2026-07-15T12:46:19.7432328Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-15T12:46:19.7454870Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-15T12:46:19.7476301Z	Information	App	[OllamaEmbedding] Initialized with model: mxbai-embed-large:335m-v1-fp16, dimensions: 1024
+2026-07-15T12:46:19.7492714Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Service initialized with storage path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\DocumentIndexes
+2026-07-15T12:46:19.7525136Z	Information	TestCaseEditorApp.Services.RequirementAnalysisCache	[AnalysisCache] Initialized with maxSize=500, maxAge=08:00:00
+2026-07-15T12:46:19.7576407Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-15T12:46:19.7586494Z	Information	TestCaseEditorApp.Services.Templates.ServiceComplianceWrapper	ServiceComplianceWrapper initialized with Full Template Form Architecture
+2026-07-15T12:46:19.7656970Z	Information	TestCaseEditorApp.Services.DerivationQualityScorer	DerivationQualityScorer initialized with evaluation framework
+2026-07-15T12:46:19.7667657Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-15T12:46:19.7679209Z	Information	TestCaseEditorApp.Services.SystemCapabilityDerivationService	SystemCapabilityDerivationService initialized with Template Form Architecture with taxonomy containing 14 categories
+2026-07-15T12:46:19.7741147Z	Information	App	[JamaConnect] FromConfiguration called
+2026-07-15T12:46:19.7743770Z	Information	App	[JamaConnect] Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-15T12:46:19.7745869Z	Information	App	[JamaConnect] API Token: NOT SET
+2026-07-15T12:46:19.7748025Z	Information	App	[JamaConnect] Client ID: hpytk1ocbt0p01u
+2026-07-15T12:46:19.7749969Z	Information	App	[JamaConnect] Client Secret: SET
+2026-07-15T12:46:19.7751944Z	Information	App	[JamaConnect] Creating service with OAuth
+2026-07-15T12:46:19.7759851Z	Information	App	[JamaConnect] OAuth constructor - Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-15T12:46:19.7762320Z	Information	App	[JamaConnect] OAuth constructor - Client ID: hpytk1ocbt0p01u
+2026-07-15T12:46:19.7764554Z	Information	App	[JamaConnect] OAuth constructor - Client Secret: SET
+2026-07-15T12:46:19.7768786Z	Information	App	[JamaConnect] OCR service configured for image text extraction
+2026-07-15T12:46:19.7794108Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-15T12:46:19.7798207Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-15T12:46:19.7803329Z	Information	TestCaseEditorApp.Services.Templates.ABTestingFramework	ABTestingFramework initialized. ComplianceWrapper: True, QualityService: True
+2026-07-15T12:46:19.7807377Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-15T12:46:19.7814633Z	Information	TestCaseEditorApp.Services.Templates.TelemetryDashboardService	📊 TelemetryDashboardService initialized. Integration: QualityService+ABTesting+Compliance
+2026-07-15T12:46:19.7824659Z	Information	App	[OllamaStatusMonitor] HTTP timeout configured: 8s
+2026-07-15T12:46:19.7827242Z	Information	App	[OllamaStatusMonitor] Max supported Ollama version: 0.5.13
+2026-07-15T12:46:19.7831261Z	Information	App	[JamaDocumentParser] Initialized with Template Form Architecture: Envelope=True, Quality=True, Compliance=True, ABTest=True, Telemetry=True, OllamaManager=True, OllamaMonitor=True
+2026-07-15T12:46:19.7852316Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Navigation (NavigationMediator)
+2026-07-15T12:46:19.7855285Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: TestCaseGeneration (TestCaseGenerationMediator)
+2026-07-15T12:46:19.7858655Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: TestFlow (TestFlowMediator)
+2026-07-15T12:46:19.7863157Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: NewProject (NewProjectMediator)
+2026-07-15T12:46:19.7867091Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: OpenProject (OpenProjectMediator)
+2026-07-15T12:46:19.7871025Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Requirements (RequirementsMediator)
+2026-07-15T12:46:19.7924558Z	Information	TestCaseEditorApp.App	Service monitoring started for AnythingLLM
+2026-07-15T12:46:19.7936767Z	Information	TestCaseEditorApp.App	Attempting to auto-start AnythingLLM service...
+2026-07-15T12:46:19.7962069Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-07-15T12:46:19.7963076Z	Information	App	[ServiceMonitor] MEDIATOR DEBUG: NotifyStatusChange for AnythingLLM - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-15T12:46:19.7970897Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-15T12:46:19.7973628Z	Information	App	[ServiceMonitor] AnythingLLM status changed - Available: True, Message: AnythingLLM service is available
+2026-07-15T12:46:19.8014850Z	Information	App	[AnythingLLMMediator] Broadcasting last known status via NotifyStatusUpdated: Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-15T12:46:19.8021286Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-15T12:46:19.8027650Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-15T12:46:19.8045883Z	Information	TestCaseEditorApp.Services.NavigationService	NavigationService created with initial title: 'Systems ATE APP'
+2026-07-15T12:46:19.8050769Z	Information	TestCaseEditorApp.Services.NavigationService	NavigationService initial TitleChanged event fired with 'Systems ATE APP'
+2026-07-15T12:46:19.8101651Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-07-15T12:46:19.8115567Z	Information	App	[AnythingLLM] Availability check result: True
+2026-07-15T12:46:19.8120829Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=True, Message=Checking AnythingLLM status...
+2026-07-15T12:46:19.8124454Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: True, Starting: True
+2026-07-15T12:46:19.8133522Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-07-15T12:46:19.8140742Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
+2026-07-15T12:46:19.8143646Z	Information	App	[AnythingLLM] Availability check result: True
+2026-07-15T12:46:19.8146034Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-15T12:46:19.8148239Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-15T12:46:19.8152939Z	Information	TestCaseEditorApp.App	AnythingLLM auto-start completed successfully
+2026-07-15T12:46:19.8118983Z	Information	App	[RecentFiles] Load() called, path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\recent-files.json
+2026-07-15T12:46:19.8327029Z	Information	App	[RecentFiles] Loaded JSON: [
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B Test workshop.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B sandbox.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B TL Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Top Level C4B Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD-268C4B.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\CMP-6000.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Decagon.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\RTU-42XX.tcex.json"
+]
+2026-07-15T12:46:20.0905630Z	Information	App	[TesseractOCR] Initializing with tessdata path: C:\Users\e10653214\AppData\Local\Programs\Tesseract-OCR\tessdata
+2026-07-15T12:46:20.1097686Z	Information	App	[RecentFiles] Deserialized 10 files
+2026-07-15T12:46:20.1118324Z	Information	App	[RecentFiles] After filtering non-existent: 10 files
+2026-07-15T12:46:20.1235355Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-07-15T12:46:20.1241196Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel initialized as simple 5-workspace container
+2026-07-15T12:46:20.1854937Z	Information	App	[TesseractOCR] Tesseract OCR engine initialized successfully
+2026-07-15T12:46:20.1860650Z	Information	App	[JamaConnect] OCR engine availability: Available
+2026-07-15T12:46:20.5595365Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-07-15T12:46:20.5602012Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel initialized as simple 5-workspace container
+2026-07-15T12:46:21.2483446Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-15T12:46:21.2495403Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-15T12:46:50.6523922Z	Information	Microsoft.Hosting.Lifetime	Application is shutting down...
+2026-07-15T12:46:50.6546707Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-15T12:46:50.6550776Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-15T12:46:50.6553348Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-15T12:46:50.6579105Z	Information	TestCaseEditorApp.Services.RequirementAnalysisCache	[AnalysisCache] Disposed cache with 0 hits, 0 misses, 0ms saved
