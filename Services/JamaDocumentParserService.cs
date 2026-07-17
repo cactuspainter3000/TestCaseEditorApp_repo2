@@ -45,6 +45,7 @@ namespace TestCaseEditorApp.Services
         private readonly ITelemetryDashboardService? _telemetryService;
         private readonly IDocumentRequirementExtractionService? _documentExtractionService;
         private readonly ATPStepParser? _atpStepParser;
+        private readonly IUserSettingsService? _userSettingsService;
         private bool _ollamaStatusMonitoringStarted;
 
         // Policy: ATP parsing should only extract requirements explicitly present in the source document.
@@ -74,7 +75,8 @@ namespace TestCaseEditorApp.Services
             IOllamaProcessManager? ollamaProcessManager = null,
             IOllamaStatusMonitor? ollamaStatusMonitor = null,
             IDocumentRequirementExtractionService? documentExtractionService = null,
-            ATPStepParser? atpStepParser = null)
+            ATPStepParser? atpStepParser = null,
+            IUserSettingsService? userSettingsService = null)
         {
             _jamaService = jamaService ?? throw new ArgumentNullException(nameof(jamaService));
             _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
@@ -90,6 +92,7 @@ namespace TestCaseEditorApp.Services
             _telemetryService = telemetryService;
             _documentExtractionService = documentExtractionService;
             _atpStepParser = atpStepParser;
+            _userSettingsService = userSettingsService;
             
             TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Initialized with Template Form Architecture: Envelope={envelopeService != null}, Quality={qualityService != null}, Compliance={complianceWrapper != null}, ABTest={abTestingFramework != null}, Telemetry={telemetryService != null}, OllamaManager={ollamaProcessManager != null}, OllamaMonitor={ollamaStatusMonitor != null}");
         }
@@ -154,14 +157,21 @@ namespace TestCaseEditorApp.Services
                     }
                 }
 
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] DirectRagService unavailable or not suitable for {attachment.MimeType}; using AnythingLLM fallback");
-                progressCallback?.Invoke($"🔁 Using fallback requirement extraction...");
-                var anythingLlmRequirements = await ExtractRequirementsWithAnythingLLMAsync(attachment, projectId, progressCallback, cancellationToken);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] ParserReturn AttachmentId={attachment.Id} FileName={attachment.FileName} Source=AnythingLLM Count={anythingLlmRequirements.Count} Sample={BuildRequirementTraceSample(anythingLlmRequirements)}");
-                EnrichRequirementsWithAttachmentMetadata(anythingLlmRequirements, attachment);
-                EnrichRequirementsWithValidationMethod(anythingLlmRequirements);
-                await EnrichRequirementsWithRuntimeBudgetAsync(anythingLlmRequirements, progressCallback, cancellationToken);
-                return anythingLlmRequirements;
+                if (IsAnythingLlmFallbackEnabled())
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] DirectRagService unavailable or not suitable for {attachment.MimeType}; using AnythingLLM fallback");
+                    progressCallback?.Invoke($"🔁 Using fallback requirement extraction...");
+                    var anythingLlmRequirements = await ExtractRequirementsWithAnythingLLMAsync(attachment, projectId, progressCallback, cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] ParserReturn AttachmentId={attachment.Id} FileName={attachment.FileName} Source=AnythingLLM Count={anythingLlmRequirements.Count} Sample={BuildRequirementTraceSample(anythingLlmRequirements)}");
+                    EnrichRequirementsWithAttachmentMetadata(anythingLlmRequirements, attachment);
+                    EnrichRequirementsWithValidationMethod(anythingLlmRequirements);
+                    await EnrichRequirementsWithRuntimeBudgetAsync(anythingLlmRequirements, progressCallback, cancellationToken);
+                    return anythingLlmRequirements;
+                }
+
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] DirectRagService unavailable or not suitable for {attachment.MimeType}; AnythingLLM fallback is disabled by user setting");
+                progressCallback?.Invoke("⚠️ LLM fallback is disabled - skipping AnythingLLM extraction.");
+                return new List<Requirement>();
             }
             catch (Exception ex)
             {
@@ -212,6 +222,19 @@ namespace TestCaseEditorApp.Services
 
                 progressCallback?.Invoke("🔎 Extracting raw text from local document...");
                 var documentContent = await ExtractAttachmentTextForIndexingAsync(localAttachment, fileBytes);
+                IReadOnlyDictionary<string, string>? structuralSectionHints = null;
+                if (localAttachment.IsWord)
+                {
+                    try
+                    {
+                        structuralSectionHints = await BuildWordClauseSectionHintMapAsync(fileBytes);
+                    }
+                    catch (Exception ex)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[LocalExtraction] Failed to build structural Word section hints: {ex.Message}");
+                    }
+                }
+
                 if (string.IsNullOrWhiteSpace(documentContent))
                 {
                     documentContent = mimeType.StartsWith("text/", StringComparison.OrdinalIgnoreCase)
@@ -225,7 +248,14 @@ namespace TestCaseEditorApp.Services
                     return new List<Requirement>();
                 }
 
-                progressCallback?.Invoke("🧭 Scraping requirement clauses from raw text...");
+                progressCallback?.Invoke("🧱 Standardizing ATP content for deterministic extraction...");
+                documentContent = await StandardizeLocalExtractionContentAsync(
+                    documentContent,
+                    localAttachment,
+                    progressCallback,
+                    cancellationToken);
+
+                progressCallback?.Invoke("🧭 Extracting requirement clauses from raw text...");
 
                 // Use a dedicated local project bucket to isolate troubleshooting output from Jama projects.
                 const int localProjectId = -1;
@@ -235,7 +265,8 @@ namespace TestCaseEditorApp.Services
                     localProjectId,
                     progressCallback,
                     onRequirementDiscovered,
-                    cancellationToken);
+                    cancellationToken,
+                    structuralSectionHints);
 
                 if (requirements.Count == 0)
                 {
@@ -243,7 +274,7 @@ namespace TestCaseEditorApp.Services
                     return requirements;
                 }
 
-                progressCallback?.Invoke($"✅ Scratch-built local scrape produced {requirements.Count} requirements.");
+                progressCallback?.Invoke($"✅ Scratch-built local extraction produced {requirements.Count} requirements.");
                 return requirements;
             }
             catch (Exception ex)
@@ -254,6 +285,78 @@ namespace TestCaseEditorApp.Services
             }
         }
 
+        private async Task<string> StandardizeLocalExtractionContentAsync(
+            string documentContent,
+            JamaAttachment attachment,
+            System.Action<string>? progressCallback,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(documentContent))
+            {
+                return string.Empty;
+            }
+
+            if (!IsAtpDocument(attachment.FileName, documentContent))
+            {
+                return documentContent;
+            }
+
+            var rawLineCount = CountNonEmptyLines(documentContent);
+
+            static bool ShouldUseStandardizedText(string rawText, int rawLines, string standardizedText)
+            {
+                if (string.IsNullOrWhiteSpace(standardizedText))
+                {
+                    return false;
+                }
+
+                if (standardizedText.Length < Math.Max(2000, rawText.Length / 3))
+                {
+                    return false;
+                }
+
+                var standardizedLines = CountNonEmptyLines(standardizedText);
+                if (standardizedLines < Math.Max(120, rawLines / 3))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            // Prefer the extraction foundation when available because it preserves
+            // structural ATP context and drops obvious formatting noise.
+            if (_documentExtractionService != null)
+            {
+                try
+                {
+                    var foundation = await _documentExtractionService.AnalyzeAsync(documentContent, attachment.FileName);
+                    var standardized = foundation.BuildPromptContext(20000);
+                    if (ShouldUseStandardizedText(documentContent, rawLineCount, standardized))
+                    {
+                        progressCallback?.Invoke($"🧱 ATP standardized via extraction foundation ({documentContent.Length} -> {standardized.Length} chars).");
+                        return standardized;
+                    }
+
+                    progressCallback?.Invoke("🧱 ATP standardization via extraction foundation was too narrow; keeping raw extracted text.");
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[LocalExtraction] ATP standardization via extraction foundation failed for {attachment.FileName}: {ex.Message}");
+                }
+            }
+
+            var fallbackStandardized = BuildRequirementFocusedExcerpt(documentContent, 20000);
+            if (ShouldUseStandardizedText(documentContent, rawLineCount, fallbackStandardized))
+            {
+                progressCallback?.Invoke($"🧱 ATP standardized via structural excerpt ({documentContent.Length} -> {fallbackStandardized.Length} chars).");
+                return fallbackStandardized;
+            }
+
+            progressCallback?.Invoke("🧱 ATP standardization fallback kept raw extracted text.");
+            return documentContent;
+        }
+
         private sealed record LocalExtractionCandidate(string Text, string StageName);
 
         private async Task<List<Requirement>> BuildLocalRequirementsFromDocumentAsync(
@@ -262,7 +365,8 @@ namespace TestCaseEditorApp.Services
             int projectId,
             System.Action<string>? progressCallback,
             System.Action<Requirement>? onRequirementDiscovered,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IReadOnlyDictionary<string, string>? structuralSectionHints = null)
         {
             var candidates = new List<LocalExtractionCandidate>();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -276,13 +380,25 @@ namespace TestCaseEditorApp.Services
             var filteredInformationalText = 0;
             var filteredOther = 0;
 
-            AddStageCandidates(candidates, seen, "Stage 1 raw clause scrape", ExtractLocalRequirementClauses(documentContent), progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
+            AddStageCandidates(candidates, seen, "Stage 1 raw clause extract", ExtractLocalRequirementClauses(documentContent), progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
             AddStageCandidates(candidates, seen, "Stage 2 ATP step parsing", await ExtractAtpStepClausesAsync(documentContent, cancellationToken), progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
             AddStageCandidates(candidates, seen, "Stage 3 structured line recovery", ExtractStructuredRequirementClauses(documentContent), progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
             AddStageCandidates(candidates, seen, "Stage 4 numbered step fallback", ExtractNumberedStepClauses(documentContent), progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
 
             var requirements = new List<Requirement>();
             var isAtpDocument = IsAtpDocument(attachment.FileName, documentContent);
+            var clauseSectionHints = structuralSectionHints != null && structuralSectionHints.Count > 0
+                ? new Dictionary<string, string>(structuralSectionHints, StringComparer.OrdinalIgnoreCase)
+                : BuildClauseSectionHintMap(documentContent);
+            var sectionTitleByPrefix = BuildSectionPrefixTitleMap(documentContent);
+
+            if (structuralSectionHints != null && structuralSectionHints.Count > 0)
+            {
+                foreach (var kvp in structuralSectionHints)
+                {
+                    clauseSectionHints[kvp.Key] = kvp.Value;
+                }
+            }
 
             for (var i = 0; i < candidates.Count; i++)
             {
@@ -328,16 +444,108 @@ namespace TestCaseEditorApp.Services
                     continue;
                 }
 
-                var requirement = BuildLocalRequirementFromClause(clause, attachment, projectId, i + 1, isAtpDocument, candidate.StageName);
+                var clauseKey = NormalizeCandidateKey(clause, out _);
+                clauseSectionHints.TryGetValue(clauseKey, out var contextualSourcePrefix);
+                if (!IsNumericSectionPrefix(contextualSourcePrefix))
+                {
+                    contextualSourcePrefix = null;
+                }
+
+                if (string.IsNullOrWhiteSpace(contextualSourcePrefix) && !attachment.IsWord)
+                {
+                    contextualSourcePrefix = TryResolveSectionPrefixForClause(documentContent, clause);
+                    if (!IsNumericSectionPrefix(contextualSourcePrefix))
+                    {
+                        contextualSourcePrefix = null;
+                    }
+                }
+
+                var contextualSectionTitle = ResolveSectionTitleForPrefix(contextualSourcePrefix, sectionTitleByPrefix);
+
+                var requirement = BuildLocalRequirementFromClause(
+                    clause,
+                    attachment,
+                    projectId,
+                    i + 1,
+                    isAtpDocument,
+                    candidate.StageName,
+                    contextualSourcePrefix,
+                    contextualSectionTitle);
                 requirements.Add(requirement);
                 onRequirementDiscovered?.Invoke(requirement);
             }
 
             TestCaseEditorApp.Services.Logging.Log.Info(
-                $"[LocalScrape] Extracted {requirements.Count} requirements from {attachment.FileName} using {candidates.Count} staged candidates; deterministic post-filter removed {deterministicFilteredOut} (potential {filteredPotentialRequirements}, derived {filteredDerivedCandidates}, rejected {filteredRejectedCandidates}, heading {filteredHeadingStructure}, informational {filteredInformationalText}, other {filteredOther}); numeric-prefix dedupe collisions {numericPrefixDedupeCollisions}");
+                $"[LocalExtraction] Extracted {requirements.Count} requirements from {attachment.FileName} using {candidates.Count} staged candidates; deterministic post-filter removed {deterministicFilteredOut} (potential {filteredPotentialRequirements}, derived {filteredDerivedCandidates}, rejected {filteredRejectedCandidates}, heading {filteredHeadingStructure}, informational {filteredInformationalText}, other {filteredOther}); numeric-prefix dedupe collisions {numericPrefixDedupeCollisions}");
             progressCallback?.Invoke($"📊 Local extraction summary: kept {requirements.Count}, deterministic-filtered {deterministicFilteredOut} [potential {filteredPotentialRequirements}, derived {filteredDerivedCandidates}, rejected {filteredRejectedCandidates}, heading {filteredHeadingStructure}, informational {filteredInformationalText}, other {filteredOther}], numeric-prefix-deduped {numericPrefixDedupeCollisions}");
 
             return requirements;
+        }
+
+        private static Dictionary<string, string> BuildClauseSectionHintMap(string documentContent)
+        {
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(documentContent))
+            {
+                return map;
+            }
+
+            var lines = documentContent
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Select(line => System.Text.RegularExpressions.Regex.Replace(line ?? string.Empty, @"\s+", " ").Trim())
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .ToList();
+
+            if (lines.Count == 0)
+            {
+                return map;
+            }
+
+            var tocTitleToPrefix = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var line in lines)
+            {
+                TryIndexHeadingPrefixFromLine(line, tocTitleToPrefix);
+            }
+
+            string? currentPrefix = null;
+            foreach (var line in lines)
+            {
+                if (TryResolveSectionPrefixFromLine(line, tocTitleToPrefix, out var resolvedSectionPrefix))
+                {
+                    currentPrefix = resolvedSectionPrefix;
+                    continue;
+                }
+
+                var normalizedHeading = NormalizeSectionHeadingText(line);
+                if (!string.IsNullOrWhiteSpace(normalizedHeading) && tocTitleToPrefix.TryGetValue(normalizedHeading, out var mappedPrefix))
+                {
+                    currentPrefix = mappedPrefix;
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(currentPrefix))
+                {
+                    continue;
+                }
+
+                if (!System.Text.RegularExpressions.Regex.IsMatch(line, @"\b(shall|must|will|should)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                {
+                    continue;
+                }
+
+                var key = NormalizeCandidateKey(line, out _);
+                if (string.IsNullOrWhiteSpace(key))
+                {
+                    continue;
+                }
+
+                if (!map.ContainsKey(key))
+                {
+                    map[key] = currentPrefix;
+                }
+            }
+
+            return map;
         }
 
         private static bool ShouldPassLegacyDeterministicPostFilter(DeterministicQualificationResult qualification, string text, string sourceStage)
@@ -574,7 +782,7 @@ namespace TestCaseEditorApp.Services
 
             var added = candidates.Count - before;
             var message = $"{stageName}: +{added} candidates (total {candidates.Count})";
-            TestCaseEditorApp.Services.Logging.Log.Info($"[LocalScrape] {message}");
+            TestCaseEditorApp.Services.Logging.Log.Info($"[LocalExtraction] {message}");
             progressCallback?.Invoke($"🧩 {message}");
         }
 
@@ -641,19 +849,310 @@ namespace TestCaseEditorApp.Services
             return rest;
         }
 
+        private static string? ExtractLeadingClausePrefix(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            var match = System.Text.RegularExpressions.Regex.Match(
+                text,
+                @"^\s*(?:(?:clause|section|step|req(?:uirement)?)\s+)?(?<prefix>\d+(?:\.\d+){1,4})\s*(?:[:\-–\)\.]\s*|\s+)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            return match.Groups["prefix"].Value.Trim().Trim('.');
+        }
+
+        private static string? TryResolveSectionPrefixForClause(string documentContent, string clause)
+        {
+            if (string.IsNullOrWhiteSpace(documentContent) || string.IsNullOrWhiteSpace(clause))
+            {
+                return null;
+            }
+
+            var lines = documentContent
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Select(line => System.Text.RegularExpressions.Regex.Replace(line ?? string.Empty, @"\s+", " ").Trim())
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .ToList();
+
+            if (lines.Count == 0)
+            {
+                return null;
+            }
+
+            var tocTitleToPrefix = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var line in lines)
+            {
+                TryIndexHeadingPrefixFromLine(line, tocTitleToPrefix);
+            }
+
+            var normalizedClause = System.Text.RegularExpressions.Regex.Replace(clause, @"\s+", " ").Trim();
+            var clauseWithoutPrefix = StripLeadingClauseNumber(normalizedClause, out _);
+            var probe = !string.IsNullOrWhiteSpace(clauseWithoutPrefix) ? clauseWithoutPrefix : normalizedClause;
+            if (probe.Length > 56)
+            {
+                probe = probe.Substring(0, 56).TrimEnd();
+            }
+
+            string? currentPrefix = null;
+            for (var i = 0; i < lines.Count; i++)
+            {
+                var line = lines[i];
+
+                if (TryResolveSectionPrefixFromLine(line, tocTitleToPrefix, out var resolvedSectionPrefix))
+                {
+                    currentPrefix = resolvedSectionPrefix;
+                }
+
+                // Resolve body headings like "Test Local Power Supply Operation"
+                // back to their TOC section numbers (e.g. 4.1.1).
+                var normalizedHeading = NormalizeSectionHeadingText(line);
+                if (!string.IsNullOrWhiteSpace(normalizedHeading) && tocTitleToPrefix.TryGetValue(normalizedHeading, out var mappedPrefix))
+                {
+                    currentPrefix = mappedPrefix;
+                }
+
+                if (!string.IsNullOrWhiteSpace(probe) && line.IndexOf(probe, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return currentPrefix;
+                }
+            }
+
+            return null;
+        }
+
+        private static string NormalizeSectionHeadingText(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var text = value.Trim();
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"_Toc\d+.*$", string.Empty, System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+PAGEREF\b.*$", string.Empty, System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"\.{2,}\s*\d+\s*$", string.Empty).Trim();
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"^Section:\s*\d+(?:\.\d+)+\s*", string.Empty, System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"^\d+(?:\.\d+)+\s+", string.Empty).Trim();
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
+            return text;
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex HeadingLineRegex = new(
+            @"^\s*(?<prefix>\d+(?:\.\d+){1,6})\s*(?<title>[A-Za-z].+?)\s*(?:\.{2,}\s*\d+)?(?:\s*_Toc\d+.*)?$",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        private static readonly System.Text.RegularExpressions.Regex SectionLineRegex = new(
+            @"^Section:\s*(?<prefix>\d+(?:\.\d+){1,6})\s+(?<title>.+)$",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        private static void TryIndexHeadingPrefixFromLine(string line, Dictionary<string, string> tocTitleToPrefix)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                return;
+            }
+
+            var headingMatch = HeadingLineRegex.Match(line);
+            if (!headingMatch.Success)
+            {
+                return;
+            }
+
+            var prefix = headingMatch.Groups["prefix"].Value.Trim().Trim('.');
+            var title = NormalizeSectionHeadingText(headingMatch.Groups["title"].Value);
+            if (string.IsNullOrWhiteSpace(prefix) || string.IsNullOrWhiteSpace(title) || !IsHeadingLikeSectionTitle(title))
+            {
+                return;
+            }
+
+            if (tocTitleToPrefix.TryGetValue(title, out var existingPrefix))
+            {
+                if (GetSectionDepth(prefix) > GetSectionDepth(existingPrefix))
+                {
+                    tocTitleToPrefix[title] = prefix;
+                }
+
+                return;
+            }
+
+            tocTitleToPrefix[title] = prefix;
+        }
+
+        private static bool TryResolveSectionPrefixFromLine(
+            string line,
+            IReadOnlyDictionary<string, string> tocTitleToPrefix,
+            out string prefix)
+        {
+            prefix = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                return false;
+            }
+
+            var sectionMatch = SectionLineRegex.Match(line);
+            if (sectionMatch.Success)
+            {
+                var sectionPrefix = sectionMatch.Groups["prefix"].Value.Trim().Trim('.');
+                var sectionTitle = NormalizeSectionHeadingText(sectionMatch.Groups["title"].Value);
+
+                if (!string.IsNullOrWhiteSpace(sectionTitle) &&
+                    tocTitleToPrefix.TryGetValue(sectionTitle, out var mappedPrefix) &&
+                    IsNumericSectionPrefix(mappedPrefix))
+                {
+                    prefix = mappedPrefix;
+                    return true;
+                }
+
+                if (IsHeadingLikeSectionTitle(sectionTitle) && IsNumericSectionPrefix(sectionPrefix))
+                {
+                    prefix = sectionPrefix;
+                    return true;
+                }
+
+                return false;
+            }
+
+            var headingMatch = HeadingLineRegex.Match(line);
+            if (!headingMatch.Success)
+            {
+                return false;
+            }
+
+            var headingPrefix = headingMatch.Groups["prefix"].Value.Trim().Trim('.');
+            var headingTitle = NormalizeSectionHeadingText(headingMatch.Groups["title"].Value);
+            if (!IsNumericSectionPrefix(headingPrefix) || !IsHeadingLikeSectionTitle(headingTitle))
+            {
+                return false;
+            }
+
+            prefix = headingPrefix;
+            return true;
+        }
+
+        private static bool IsHeadingLikeSectionTitle(string? title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return false;
+            }
+
+            return !System.Text.RegularExpressions.Regex.IsMatch(
+                title,
+                @"\b(shall|must|will|should)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        }
+
+        private static int GetSectionDepth(string? prefix)
+        {
+            if (string.IsNullOrWhiteSpace(prefix))
+            {
+                return 0;
+            }
+
+            return prefix.Split('.', StringSplitOptions.RemoveEmptyEntries).Length;
+        }
+
+        private static Dictionary<string, string> BuildSectionPrefixTitleMap(string documentContent)
+        {
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (string.IsNullOrWhiteSpace(documentContent))
+            {
+                return map;
+            }
+
+            var lines = documentContent
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                .Select(line => System.Text.RegularExpressions.Regex.Replace(line ?? string.Empty, @"\s+", " ").Trim())
+                .Where(line => !string.IsNullOrWhiteSpace(line))
+                .ToList();
+
+            foreach (var line in lines)
+            {
+                var sectionMatch = SectionLineRegex.Match(line);
+                if (sectionMatch.Success)
+                {
+                    var sectionPrefix = sectionMatch.Groups["prefix"].Value.Trim().Trim('.');
+                    var sectionTitle = NormalizeSectionHeadingText(sectionMatch.Groups["title"].Value);
+                    if (IsNumericSectionPrefix(sectionPrefix) && IsHeadingLikeSectionTitle(sectionTitle) && !map.ContainsKey(sectionPrefix))
+                    {
+                        map[sectionPrefix] = sectionTitle;
+                    }
+
+                    continue;
+                }
+
+                var headingMatch = HeadingLineRegex.Match(line);
+                if (!headingMatch.Success)
+                {
+                    continue;
+                }
+
+                var headingPrefix = headingMatch.Groups["prefix"].Value.Trim().Trim('.');
+                var headingTitle = NormalizeSectionHeadingText(headingMatch.Groups["title"].Value);
+                if (IsNumericSectionPrefix(headingPrefix) && IsHeadingLikeSectionTitle(headingTitle) && !map.ContainsKey(headingPrefix))
+                {
+                    map[headingPrefix] = headingTitle;
+                }
+            }
+
+            return map;
+        }
+
+        private static string? ResolveSectionTitleForPrefix(string? prefix, IReadOnlyDictionary<string, string> sectionTitleByPrefix)
+        {
+            if (!IsNumericSectionPrefix(prefix) || sectionTitleByPrefix == null || sectionTitleByPrefix.Count == 0)
+            {
+                return null;
+            }
+
+            var probe = prefix!.Trim().Trim('.');
+            while (!string.IsNullOrWhiteSpace(probe))
+            {
+                if (sectionTitleByPrefix.TryGetValue(probe, out var title) && IsHeadingLikeSectionTitle(title))
+                {
+                    return title;
+                }
+
+                var lastDot = probe.LastIndexOf('.');
+                if (lastDot <= 0)
+                {
+                    break;
+                }
+
+                probe = probe.Substring(0, lastDot);
+            }
+
+            return null;
+        }
+
         private Requirement BuildLocalRequirementFromClause(
             string clause,
             JamaAttachment attachment,
             int projectId,
             int ordinal,
             bool isAtpDocument,
-            string sourceStage)
+            string sourceStage,
+            string? contextualSourcePrefix,
+            string? contextualSectionTitle)
         {
             var structuredMetadata = TryExtractStructuredRequirementMetadata(clause);
-            var normalizedClause = structuredMetadata.RequirementStatement ?? clause;
+            var normalizedClause = NormalizeAtpVerificationClausePrefix(structuredMetadata.RequirementStatement ?? clause);
             var requirementText = LooksLikeUutRequirementForFallback(normalizedClause)
                 ? RewriteUutRequirementAsTestSolutionVerificationForFallback(normalizedClause)
                 : normalizedClause;
+
+            var resolvedSourcePrefix = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId)
+                ? (ExtractSourcePrefix(structuredMetadata.RequirementId) ?? structuredMetadata.RequirementId)
+                : contextualSourcePrefix;
 
             var requirementId = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId)
                 ? structuredMetadata.RequirementId
@@ -670,9 +1169,15 @@ namespace TestCaseEditorApp.Services
             var verificationMethodText = !string.IsNullOrWhiteSpace(structuredMetadata.TestType)
                 ? structuredMetadata.TestType
                 : (isAtpDocument ? "Test" : string.Empty);
-            var sourcePrefixType = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId) ? "document_id" : "unknown";
+            var sourcePrefixType = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId)
+                ? "document_id"
+                : (!string.IsNullOrWhiteSpace(resolvedSourcePrefix) ? "section" : "unknown");
             var sourcePrefixEvidence = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId)
                 ? structuredMetadata.RequirementId
+                : requirementText;
+            var nameSourcePrefix = !string.IsNullOrWhiteSpace(resolvedSourcePrefix) ? resolvedSourcePrefix : structuredMetadata.RequirementId;
+            var nameText = !string.IsNullOrWhiteSpace(contextualSectionTitle)
+                ? contextualSectionTitle
                 : requirementText;
 
             var requirement = new Requirement
@@ -681,9 +1186,9 @@ namespace TestCaseEditorApp.Services
                 Item = requirementId,
                 Project = projectId.ToString(),
                 TraceReference = traceReference,
-                Name = GenerateRequirementNameFromCapability(requirementText, category),
+                Name = GenerateRequirementNameFromCapability(nameText, category, nameSourcePrefix),
                 Description = requirementText,
-                RequirementType = $"{category} - Local Scrape - {qualification.Classification}",
+                RequirementType = $"{category} - Local Extraction - {qualification.Classification}",
                 Status = "Draft",
                 Heading = "Derived",
                 ItemType = "System Requirement",
@@ -692,19 +1197,22 @@ namespace TestCaseEditorApp.Services
                 SourceDocumentName = attachment.FileName,
                 SourceAttachmentId = attachment.Id,
                 SourceJamaItemId = attachment.Item > 0 ? attachment.Item : null,
-                SourcePrefix = requirementId,
+                SourcePrefix = !string.IsNullOrWhiteSpace(resolvedSourcePrefix) ? resolvedSourcePrefix : "UNK",
                 SourcePrefixType = sourcePrefixType,
                 SourcePrefixEvidence = sourcePrefixEvidence,
-                SourcePrefixConfidence = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId) ? 0.8 : 0.0,
-                SourceSection = requirementId,
+                SourcePrefixConfidence = !string.IsNullOrWhiteSpace(structuredMetadata.RequirementId) || !string.IsNullOrWhiteSpace(resolvedSourcePrefix) ? 0.8 : 0.0,
+                SourceSection = !string.IsNullOrWhiteSpace(resolvedSourcePrefix) ? resolvedSourcePrefix : "UNK",
+                StatementOfCompliance = "Locally extracted from source document; pending human review/approval.",
                 VerificationMethodText = verificationMethodText,
+                VerificationMethodRaw = verificationMethodText,
                 ValidationMethodText = verificationMethodText,
+                ValidationMethodRaw = verificationMethodText,
                 Method = selectedVerificationMethod,
-                Rationale = $"Recovered from a scratch-built local scrape of {attachment.FileName}.\n\n**Stage:** {sourceStage}\n\n**Trace Reference:** {traceReference}\n\n**Source Clause:** {requirementText}",
+                Rationale = $"Recovered from a scratch-built local extraction of {attachment.FileName}.\n\n**Stage:** {sourceStage}\n\n**Trace Reference:** {traceReference}\n\n**Source Clause:** {requirementText}",
                 TagList = new List<string>
                 {
                     "Derived",
-                    "LocalScrape",
+                    "LocalExtraction",
                     sourceStage,
                     $"TraceRef:{traceReference}",
                     $"Category:{category}",
@@ -885,7 +1393,7 @@ namespace TestCaseEditorApp.Services
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[LocalScrape] ATP step parser failed, falling back to numbered lines: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[LocalExtraction] ATP step parser failed, falling back to numbered lines: {ex.Message}");
                 return ExtractNumberedStepClauses(documentContent);
             }
         }
@@ -1114,6 +1622,26 @@ namespace TestCaseEditorApp.Services
 
                 progressCallback?.Invoke($"✅ Downloaded {fileBytes.Length / 1024}KB - Processing with AnythingLLM...");
 
+                string? documentContent = null;
+                string? extractedRequirementsSupplemental = null;
+                try
+                {
+                    documentContent = await ExtractAttachmentTextForIndexingAsync(attachment, fileBytes);
+                    if (!string.IsNullOrWhiteSpace(documentContent))
+                    {
+                        extractedRequirementsSupplemental = await BuildExtractedRequirementsSupplementalContentAsync(
+                            attachment,
+                            fileBytes,
+                            projectId,
+                            documentContent,
+                            cancellationToken);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed to prepare extraction-aware supplemental AnythingLLM content for {attachment.FileName}: {ex.Message}");
+                }
+
                 // Step 3: Create temporary AnythingLLM workspace for parsing
                 progressCallback?.Invoke($"🔧 Creating AI workspace for '{attachment.FileName}'...");
                 var workspaceName = $"Jama Document Parse: {attachment.FileName}";
@@ -1134,6 +1662,22 @@ namespace TestCaseEditorApp.Services
                 try
                 {
                     await File.WriteAllBytesAsync(tempFilePath, fileBytes, cancellationToken);
+
+                    if (!string.IsNullOrWhiteSpace(extractedRequirementsSupplemental))
+                    {
+                        var supplementalName = $"{Path.GetFileNameWithoutExtension(attachment.FileName)}-extracted-requirements.txt";
+                        progressCallback?.Invoke("🧩 Uploading extracted requirement summary to AnythingLLM workspace...");
+                        var supplementalUploadSuccess = await _llmService.UploadDocumentAsync(
+                            workspaceSlug,
+                            supplementalName,
+                            extractedRequirementsSupplemental,
+                            cancellationToken);
+
+                        if (!supplementalUploadSuccess)
+                        {
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed to upload extracted requirement summary to AnythingLLM workspace for {attachment.FileName}");
+                        }
+                    }
                     
                     // Upload to AnythingLLM using the file-based upload
                     var uploadSuccess = await UploadFileToWorkspaceAsync(workspaceSlug, tempFilePath, cancellationToken, progressCallback);
@@ -1186,6 +1730,30 @@ namespace TestCaseEditorApp.Services
                     _llmService.StatusUpdated -= statusUpdateHandler;
                 }
             }
+        }
+
+        private bool IsAnythingLlmFallbackEnabled()
+        {
+            try
+            {
+                var settings = _userSettingsService?.LoadSettings();
+                if (settings != null)
+                {
+                    return settings.EnableAnythingLlmFallback;
+                }
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Could not read user settings for LLM fallback toggle: {ex.Message}");
+            }
+
+            var envValue = Environment.GetEnvironmentVariable("ENABLE_ANYTHINGLLM_FALLBACK");
+            if (bool.TryParse(envValue, out var enabled))
+            {
+                return enabled;
+            }
+
+            return true;
         }
 
         private async Task<string> ExtractAttachmentTextForIndexingAsync(JamaAttachment attachment, byte[] fileBytes)
@@ -2390,7 +2958,22 @@ But thoroughly scan all sections first before concluding.";
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Text extraction failed for {attachment.FileName}: {ex.Message}");
                 }
 
-                progressCallback?.Invoke($"🔍 Indexing document content for analysis...");
+                progressCallback?.Invoke($"🔍 Preparing extraction-aware document index for analysis...");
+
+                var ragIndexContent = documentContent;
+                try
+                {
+                    ragIndexContent = await BuildExtractionAwareRagIndexContentAsync(
+                        attachment,
+                        fileBytes,
+                        projectId,
+                        documentContent,
+                        cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Failed to build extraction-aware RAG index content for {attachment.FileName}: {ex.Message}");
+                }
 
                 // Reuse unchanged single-document indexes to avoid unnecessary re-indexing.
                 // We only reuse when the attachment key matches and project index is already isolated.
@@ -2433,7 +3016,7 @@ But thoroughly scan all sections first before concluding.";
                     }
 
                     // Step 3: Index document with DirectRagService
-                    var indexSuccess = await _directRagService!.IndexDocumentAsync(attachment, documentContent, projectId, cancellationToken);
+                    var indexSuccess = await _directRagService!.IndexDocumentAsync(attachment, ragIndexContent, projectId, cancellationToken);
                     if (!indexSuccess)
                     {
                         TestCaseEditorApp.Services.Logging.Log.Error($"[DirectRag] Failed to index document {attachment.FileName}");
@@ -2584,6 +3167,103 @@ But thoroughly scan all sections first before concluding.";
                 progressCallback?.Invoke($"❌ Error processing document: {ex.Message}");
                 return new List<Requirement>();
             }
+        }
+
+        private async Task<string> BuildExtractionAwareRagIndexContentAsync(
+            JamaAttachment attachment,
+            byte[] fileBytes,
+            int projectId,
+            string documentContent,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(documentContent))
+            {
+                return string.Empty;
+            }
+
+            var extractedRequirementsContent = await BuildExtractedRequirementsSupplementalContentAsync(
+                attachment,
+                fileBytes,
+                projectId,
+                documentContent,
+                cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(extractedRequirementsContent))
+            {
+                return documentContent;
+            }
+
+            return string.Concat(documentContent.Trim(), Environment.NewLine, Environment.NewLine, extractedRequirementsContent);
+        }
+
+        private async Task<string> BuildExtractedRequirementsSupplementalContentAsync(
+            JamaAttachment attachment,
+            byte[] fileBytes,
+            int projectId,
+            string documentContent,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(documentContent))
+            {
+                return string.Empty;
+            }
+
+            var standardizedContent = documentContent;
+            try
+            {
+                standardizedContent = await StandardizeLocalExtractionContentAsync(
+                    documentContent,
+                    attachment,
+                    progressCallback: null,
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Failed to standardize content for extraction-aware index build on {attachment.FileName}: {ex.Message}");
+            }
+
+            IReadOnlyDictionary<string, string>? structuralSectionHints = null;
+            if (attachment.IsWord)
+            {
+                try
+                {
+                    structuralSectionHints = await BuildWordClauseSectionHintMapAsync(fileBytes);
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Failed to build structural Word hints for extraction-aware index build on {attachment.FileName}: {ex.Message}");
+                }
+            }
+
+            var extractedRequirements = await BuildLocalRequirementsFromDocumentAsync(
+                standardizedContent,
+                attachment,
+                projectId,
+                progressCallback: null,
+                onRequirementDiscovered: null,
+                cancellationToken,
+                structuralSectionHints);
+
+            if (extractedRequirements.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            var sb = new StringBuilder();
+            sb.AppendLine("[Extracted Requirements]");
+            sb.AppendLine($"Count={extractedRequirements.Count}");
+
+            foreach (var requirement in extractedRequirements)
+            {
+                sb.AppendLine();
+                sb.AppendLine($"- ID={requirement.GlobalId}");
+                sb.AppendLine($"  Name={requirement.Name}");
+                sb.AppendLine($"  SourcePrefix={requirement.SourcePrefix}");
+                sb.AppendLine($"  RequirementType={requirement.RequirementType}");
+                sb.AppendLine($"  Description={requirement.Description}");
+            }
+
+            return sb.ToString();
         }
 
         private static string GetMimeTypeFromExtension(string extension)
@@ -3274,7 +3954,7 @@ Extract all legitimate requirements:";
                     ? parsedId
                     : $"DOC-{index:D3}";
 
-                var sanitizedClause = SanitizeRequirementBodyText(text);
+                var sanitizedClause = NormalizeAtpVerificationClausePrefix(SanitizeRequirementBodyText(text));
                 var sourceClause = sanitizedClause;
                 var normalizedDescription = LooksLikeUutRequirementForFallback(sanitizedClause)
                     ? RewriteUutRequirementAsTestSolutionVerificationForFallback(sanitizedClause)
@@ -3726,6 +4406,14 @@ Extract all legitimate requirements:";
                 return false;
             }
 
+            if (System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"^\s*(?:The\s+)?(?:production\s+test|test\s+procedure|acceptance\s+test)\s+(?:shall|must|will|should)\s+verify\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            {
+                return true;
+            }
+
             return System.Text.RegularExpressions.Regex.IsMatch(
                 normalized,
                 @"^\s*(?:The\s+)?(?:MFD|UUT|Unit\s+Under\s+Test|LRU|Aircraft|Display\s+Unit|Avionics\s+Unit)(?:\s+[A-Za-z0-9_\-/()]+){0,4}\s+shall\b",
@@ -3738,6 +4426,17 @@ Extract all legitimate requirements:";
             if (string.IsNullOrWhiteSpace(cleaned))
             {
                 return "The test solution shall verify required UUT behavior.";
+            }
+
+            var verificationRewriteMatch = System.Text.RegularExpressions.Regex.Match(
+                cleaned,
+                @"^(?:The\s+)?(?:production\s+test|test\s+procedure|acceptance\s+test)\s+(?:shall|must|will|should)\s+verify\s+(?<predicate>.+)$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (verificationRewriteMatch.Success)
+            {
+                var predicate = verificationRewriteMatch.Groups["predicate"].Value.Trim().TrimEnd('.');
+                return $"The test solution shall provide the means to verify {predicate}.";
             }
 
             var rewriteMatch = System.Text.RegularExpressions.Regex.Match(
@@ -3761,6 +4460,36 @@ Extract all legitimate requirements:";
             return $"The test solution shall verify that {char.ToLowerInvariant(cleaned[0])}{cleaned.Substring(1)}.";
         }
 
+        private static string NormalizeAtpVerificationClausePrefix(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return string.Empty;
+            }
+
+            var normalized = text.Trim();
+
+            var syntheticSectionMatch = System.Text.RegularExpressions.Regex.Match(
+                normalized,
+                @"^\s*Section:\s*\d+(?:\.\d+)*\s+(?<rest>(?:The\s+)?(?:production\s+test|test\s+procedure|acceptance\s+test)\s+(?:shall|must|will|should)\s+verify\b.*)$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (syntheticSectionMatch.Success)
+            {
+                return syntheticSectionMatch.Groups["rest"].Value.Trim();
+            }
+
+            var numberedClauseMatch = System.Text.RegularExpressions.Regex.Match(
+                normalized,
+                @"^\s*\d+(?:\.\d+)*\s+(?<rest>(?:The\s+)?(?:production\s+test|test\s+procedure|acceptance\s+test)\s+(?:shall|must|will|should)\s+verify\b.*)$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (numberedClauseMatch.Success)
+            {
+                return numberedClauseMatch.Groups["rest"].Value.Trim();
+            }
+
+            return normalized;
+        }
+
         private static string NormalizeRequirementPrefixForFallback(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -3768,7 +4497,7 @@ Extract all legitimate requirements:";
                 return string.Empty;
             }
 
-            var normalized = text;
+            var normalized = NormalizeAtpVerificationClausePrefix(text);
 
             // Remove leading bracketed tags like [REQ] [UUT].
             normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"^\s*(?:\[[^\]]+\]\s*)+", string.Empty);
@@ -4323,6 +5052,7 @@ Extract all legitimate requirements:";
                     if (body == null) return "";
 
                     var text = new StringBuilder();
+                    var headingNumberTracker = new WordHeadingNumberTracker();
                     foreach (var paragraph in body.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>())
                     {
                         var paragraphText = paragraph.InnerText?.Trim();
@@ -4331,7 +5061,7 @@ Extract all legitimate requirements:";
                             continue;
                         }
 
-                        if (TryBuildSectionMarker(paragraph, paragraphText, out var sectionMarker))
+                        if (TryBuildSectionMarker(paragraph, paragraphText, headingNumberTracker, out var sectionMarker))
                         {
                             text.AppendLine(sectionMarker);
                         }
@@ -4360,7 +5090,59 @@ Extract all legitimate requirements:";
             });
         }
 
-        private static bool TryBuildSectionMarker(DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraph, string paragraphText, out string marker)
+        private static Dictionary<string, string> BuildTocHeadingPrefixMap(IEnumerable<DocumentFormat.OpenXml.Wordprocessing.Paragraph> paragraphs)
+        {
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var tocLikeRegex = new System.Text.RegularExpressions.Regex(
+                @"^(?<prefix>\d+(?:\.\d+){1,6})\s*(?<title>[A-Za-z].+?)(?:\.{2,}\s*\d+)?(?:\s*_Toc\d+.*)?$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            foreach (var paragraph in paragraphs)
+            {
+                var paragraphText = paragraph.InnerText?.Trim();
+                if (string.IsNullOrWhiteSpace(paragraphText))
+                {
+                    continue;
+                }
+
+                var styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+                var isTocStyle = !string.IsNullOrWhiteSpace(styleId) &&
+                                 styleId.StartsWith("TOC", StringComparison.OrdinalIgnoreCase);
+                var hasTocArtifact = paragraphText.Contains("_Toc", StringComparison.OrdinalIgnoreCase) ||
+                                     System.Text.RegularExpressions.Regex.IsMatch(paragraphText, @"\.{2,}\s*\d+\s*$");
+
+                var match = tocLikeRegex.Match(paragraphText);
+                if (!match.Success || (!isTocStyle && !hasTocArtifact))
+                {
+                    continue;
+                }
+
+                if (System.Text.RegularExpressions.Regex.IsMatch(
+                        paragraphText,
+                        @"\b(shall|must|will|should)\b",
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                {
+                    continue;
+                }
+
+                var prefix = match.Groups["prefix"].Value.Trim().Trim('.');
+                var title = NormalizeSectionHeadingText(match.Groups["title"].Value);
+                if (string.IsNullOrWhiteSpace(prefix) || string.IsNullOrWhiteSpace(title) || map.ContainsKey(title))
+                {
+                    continue;
+                }
+
+                map[title] = prefix;
+            }
+
+            return map;
+        }
+
+        private static bool TryBuildSectionMarker(
+            DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraph,
+            string paragraphText,
+            WordHeadingNumberTracker headingNumberTracker,
+            out string marker)
         {
             marker = string.Empty;
 
@@ -4374,7 +5156,15 @@ Extract all legitimate requirements:";
                 @"^(?<prefix>\d+(?:\.\d+)+)\s+(?<title>.+?)(?:\.{2,}\s*\d+)?$",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
-            if (tocLike.Success)
+            var hasTocArtifact = paragraphText.Contains("_Toc", StringComparison.OrdinalIgnoreCase) ||
+                                 System.Text.RegularExpressions.Regex.IsMatch(paragraphText, @"\.{2,}\s*\d+\s*$");
+
+            var looksRequirementStatement = System.Text.RegularExpressions.Regex.IsMatch(
+                paragraphText,
+                @"\b(shall|must|will|should)\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (tocLike.Success && (isHeadingStyle || hasTocArtifact) && !looksRequirementStatement)
             {
                 var prefix = tocLike.Groups["prefix"].Value.Trim().Trim('.');
                 var title = tocLike.Groups["title"].Value.Trim();
@@ -4390,7 +5180,10 @@ Extract all legitimate requirements:";
             var prefixCandidate = ExtractSourcePrefix(paragraphText);
             if (string.IsNullOrWhiteSpace(prefixCandidate))
             {
-                return false;
+                if (!headingNumberTracker.TryGetHeadingPrefix(paragraph, out prefixCandidate))
+                {
+                    return false;
+                }
             }
 
             var titleText = System.Text.RegularExpressions.Regex.Replace(
@@ -4403,6 +5196,260 @@ Extract all legitimate requirements:";
                 ? $"Section: {prefixCandidate}"
                 : $"Section: {prefixCandidate} {titleText}";
             return true;
+        }
+
+        private async Task<IReadOnlyDictionary<string, string>> BuildWordClauseSectionHintMapAsync(byte[] wordBytes)
+        {
+            return await Task.Run(() =>
+            {
+                var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+                using var stream = new MemoryStream(wordBytes);
+                using var wordDoc = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(stream, false);
+                var body = wordDoc.MainDocumentPart?.Document?.Body;
+                if (body == null)
+                {
+                    return (IReadOnlyDictionary<string, string>)map;
+                }
+
+                var paragraphs = body.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>().ToList();
+                var tocTitleToPrefix = BuildTocHeadingPrefixMap(paragraphs);
+                var headingNumberTracker = new WordHeadingNumberTracker();
+                var childClauseCountersBySection = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                string? currentSectionPrefix = null;
+
+                foreach (var paragraph in paragraphs)
+                {
+                    var paragraphText = paragraph.InnerText?.Trim();
+                    if (string.IsNullOrWhiteSpace(paragraphText))
+                    {
+                        continue;
+                    }
+
+                    var styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+                    var isTocStyle = !string.IsNullOrWhiteSpace(styleId) &&
+                                     styleId.StartsWith("TOC", StringComparison.OrdinalIgnoreCase);
+                    var hasTocArtifact = paragraphText.Contains("_Toc", StringComparison.OrdinalIgnoreCase) ||
+                                         System.Text.RegularExpressions.Regex.IsMatch(paragraphText, @"\.{2,}\s*\d+\s*$");
+                    if (isTocStyle || hasTocArtifact)
+                    {
+                        continue;
+                    }
+
+                    if (TryResolveParagraphSectionPrefix(paragraph, paragraphText, tocTitleToPrefix, headingNumberTracker, out var headingPrefix))
+                    {
+                        currentSectionPrefix = headingPrefix;
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(currentSectionPrefix))
+                    {
+                        continue;
+                    }
+
+                    if (!System.Text.RegularExpressions.Regex.IsMatch(
+                            paragraphText,
+                            @"\b(shall|must|will|should)\b",
+                            System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (IsRawBoilerplateLine(paragraphText))
+                    {
+                        continue;
+                    }
+
+                    var key = NormalizeCandidateKey(paragraphText, out _);
+                    if (string.IsNullOrWhiteSpace(key))
+                    {
+                        continue;
+                    }
+
+                    // When a requirement line carries its own hierarchical clause number
+                    // (e.g. 4.1.1.1), prefer it over the parent heading (e.g. 4.1.1).
+                    var clausePrefix = currentSectionPrefix;
+                    var explicitClausePrefix = ExtractLeadingClausePrefix(paragraphText);
+                    if (!string.IsNullOrWhiteSpace(explicitClausePrefix) &&
+                        !string.IsNullOrWhiteSpace(currentSectionPrefix) &&
+                        IsNumericSectionPrefix(explicitClausePrefix) &&
+                        explicitClausePrefix.StartsWith(currentSectionPrefix + ".", StringComparison.Ordinal) &&
+                        GetSectionDepth(explicitClausePrefix) > GetSectionDepth(currentSectionPrefix))
+                    {
+                        clausePrefix = explicitClausePrefix;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(currentSectionPrefix) &&
+                             headingNumberTracker.TryGetHeadingPrefix(paragraph, out var numberedClausePrefix) &&
+                             IsNumericSectionPrefix(numberedClausePrefix) &&
+                             numberedClausePrefix.StartsWith(currentSectionPrefix + ".", StringComparison.Ordinal) &&
+                             GetSectionDepth(numberedClausePrefix) > GetSectionDepth(currentSectionPrefix))
+                    {
+                        clausePrefix = numberedClausePrefix;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(currentSectionPrefix) &&
+                             TryGetHeadingStyleLevel(styleId, out var headingLevel) &&
+                             headingLevel > GetSectionDepth(currentSectionPrefix))
+                    {
+                        // Some ATP clauses are formatted as Heading4+ but don't carry explicit numbering
+                        // in text or numbering metadata; synthesize child prefixes per section.
+                        var nextChildIndex = childClauseCountersBySection.TryGetValue(currentSectionPrefix, out var existing)
+                            ? existing + 1
+                            : 1;
+                        childClauseCountersBySection[currentSectionPrefix] = nextChildIndex;
+                        clausePrefix = $"{currentSectionPrefix}.{nextChildIndex}";
+                    }
+
+                    if (!map.ContainsKey(key))
+                    {
+                        map[key] = clausePrefix;
+                    }
+                }
+
+                return (IReadOnlyDictionary<string, string>)map;
+            });
+        }
+
+        private static bool TryResolveParagraphSectionPrefix(
+            DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraph,
+            string paragraphText,
+            IReadOnlyDictionary<string, string> tocTitleToPrefix,
+            WordHeadingNumberTracker headingNumberTracker,
+            out string prefix)
+        {
+            prefix = string.Empty;
+
+            var styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+            var isHeadingStyle = !string.IsNullOrWhiteSpace(styleId) &&
+                                 (styleId.StartsWith("Heading", StringComparison.OrdinalIgnoreCase) ||
+                                  styleId.StartsWith("TOC", StringComparison.OrdinalIgnoreCase));
+            if (System.Text.RegularExpressions.Regex.IsMatch(
+                    paragraphText,
+                    @"\b(shall|must|will|should)\b",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            {
+                return false;
+            }
+
+            var normalizedHeading = NormalizeSectionHeadingText(paragraphText);
+            if (!string.IsNullOrWhiteSpace(normalizedHeading) &&
+                tocTitleToPrefix.TryGetValue(normalizedHeading, out var mappedPrefix) &&
+                IsNumericSectionPrefix(mappedPrefix))
+            {
+                prefix = mappedPrefix;
+                return true;
+            }
+
+            if (!isHeadingStyle)
+            {
+                return false;
+            }
+
+            var extractedPrefix = ExtractSourcePrefix(paragraphText);
+            if (IsNumericSectionPrefix(extractedPrefix))
+            {
+                prefix = extractedPrefix;
+                return true;
+            }
+
+            if (headingNumberTracker.TryGetHeadingPrefix(paragraph, out var numberedPrefix) && IsNumericSectionPrefix(numberedPrefix))
+            {
+                prefix = numberedPrefix;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetHeadingStyleLevel(string? styleId, out int level)
+        {
+            level = 0;
+
+            if (string.IsNullOrWhiteSpace(styleId) ||
+                !styleId.StartsWith("Heading", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            var suffix = styleId.Substring("Heading".Length).Trim();
+            return int.TryParse(suffix, out level) && level > 0;
+        }
+
+        private sealed class WordHeadingNumberTracker
+        {
+            private readonly Dictionary<string, int[]> _countersByNumId = new(StringComparer.Ordinal);
+
+            public bool TryGetHeadingPrefix(DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraph, out string prefix)
+            {
+                prefix = string.Empty;
+
+                var numPr = paragraph.ParagraphProperties?.NumberingProperties;
+                var numIdValue = numPr?.NumberingId?.Val?.Value;
+                if (!numIdValue.HasValue)
+                {
+                    return false;
+                }
+
+                var numId = numIdValue.Value.ToString();
+
+                var level = numPr?.NumberingLevelReference?.Val?.Value ?? 0;
+                if (level < 0 || level > 8)
+                {
+                    return false;
+                }
+
+                if (!_countersByNumId.TryGetValue(numId, out var counters))
+                {
+                    counters = new int[9];
+                    _countersByNumId[numId] = counters;
+                }
+
+                counters[level]++;
+                for (var i = level + 1; i < counters.Length; i++)
+                {
+                    counters[i] = 0;
+                }
+
+                var visibleParts = new List<string>();
+                for (var i = 0; i <= level; i++)
+                {
+                    if (counters[i] <= 0)
+                    {
+                        continue;
+                    }
+
+                    visibleParts.Add(counters[i].ToString());
+                }
+
+                if (visibleParts.Count < 2)
+                {
+                    return false;
+                }
+
+                prefix = string.Join('.', visibleParts);
+                return IsNumericSectionPrefix(prefix);
+            }
+        }
+
+        private static bool IsNumericSectionPrefix(string? prefix)
+        {
+            if (string.IsNullOrWhiteSpace(prefix))
+            {
+                return false;
+            }
+
+            var normalized = prefix.Trim().Trim('.');
+            if (!System.Text.RegularExpressions.Regex.IsMatch(normalized, @"^\d+(?:\.\d+){1,6}$"))
+            {
+                return false;
+            }
+
+            var firstPartText = normalized.Split('.', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+            if (!int.TryParse(firstPartText, out var firstPart))
+            {
+                return false;
+            }
+
+            return firstPart >= 1 && firstPart <= 9;
         }
 
         /// <summary>
@@ -5321,18 +6368,69 @@ Extract all legitimate requirements:";
         }
 
         /// <summary>
-        /// Generate a concise requirement name from capability text and taxonomy
+        /// Generate a concise, stable requirement title from capability text and taxonomy.
         /// </summary>
-        private string GenerateRequirementNameFromCapability(string requirementText, string taxonomyCategory)
+        private string GenerateRequirementNameFromCapability(string requirementText, string taxonomyCategory, string? sourcePrefix = null)
         {
-            // Take first 60 characters and clean up
-            var name = requirementText.Length > 60 ? requirementText.Substring(0, 60) + "..." : requirementText;
-            
-            // Remove line breaks and extra spaces
-            name = System.Text.RegularExpressions.Regex.Replace(name, @"\s+", " ").Trim();
-            
-            // Prefix with taxonomy category for context
-            return $"[{taxonomyCategory}] {name}";
+            var category = string.IsNullOrWhiteSpace(taxonomyCategory) ? "Requirement" : taxonomyCategory.Trim();
+            var title = BuildRequirementTitleFromText(requirementText);
+
+            var normalizedPrefix = ExtractSourcePrefix(sourcePrefix);
+            if (!string.IsNullOrWhiteSpace(normalizedPrefix))
+            {
+                var titleWithoutPrefix = System.Text.RegularExpressions.Regex.Replace(
+                    title,
+                    $@"^\s*{System.Text.RegularExpressions.Regex.Escape(normalizedPrefix!)}(?:[\.:\)\-]\s*|\s+)",
+                    string.Empty,
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+
+                if (string.IsNullOrWhiteSpace(titleWithoutPrefix))
+                {
+                    titleWithoutPrefix = title;
+                }
+
+                return $"{normalizedPrefix} [{category}] {titleWithoutPrefix}";
+            }
+
+            return $"[{category}] {title}";
+        }
+
+        private static string BuildRequirementTitleFromText(string? requirementText)
+        {
+            if (string.IsNullOrWhiteSpace(requirementText))
+            {
+                return "Untitled Requirement";
+            }
+
+            var normalized = System.Text.RegularExpressions.Regex.Replace(requirementText, @"\s+", " ").Trim();
+
+            // Convert clause-like requirement statements into a short title phrase.
+            normalized = System.Text.RegularExpressions.Regex.Replace(
+                normalized,
+                @"^(?:(?:the|a|an)\s+)?(?:production\s+test|test\s+station|test\s+system|test\s+solution|system|software|hardware|equipment|controller|unit|module|interface|device|component)\s+(?:shall|must|will|should)\s+(?:verify\s+)?",
+                string.Empty,
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+
+            normalized = System.Text.RegularExpressions.Regex.Replace(
+                normalized,
+                @"^(?:shall|must|will|should)\s+",
+                string.Empty,
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+
+            normalized = normalized.Trim(' ', '.', ';', ':', '-', '\t');
+
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                normalized = "Untitled Requirement";
+            }
+
+            const int maxTitleLength = 86;
+            if (normalized.Length > maxTitleLength)
+            {
+                normalized = normalized.Substring(0, maxTitleLength).TrimEnd() + "...";
+            }
+
+            return normalized;
         }
 
         /// <summary>
