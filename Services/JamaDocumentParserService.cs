@@ -508,6 +508,14 @@ namespace TestCaseEditorApp.Services
                 return score >= 2 && (hasModalVerb || hasConstraintIndicator || hasSystemIndicator);
             }
 
+            if (sourceStage.Contains("raw", StringComparison.OrdinalIgnoreCase) &&
+                hasModalVerb &&
+                normalized.Contains("VREF", StringComparison.OrdinalIgnoreCase) &&
+                LooksLikeVerificationStyleClause(normalized))
+            {
+                return true;
+            }
+
             if (sourceStage.Contains("ATP", StringComparison.OrdinalIgnoreCase))
             {
                 return score >= 3 && (hasModalVerb || hasConstraintIndicator || hasActionVerb);
@@ -3474,9 +3482,14 @@ Extract all legitimate requirements:";
                 classification = score >= 9 ? "Test/Measurement Requirement" : "Potential Requirement";
             }
 
+            var isStrongVerificationPromotion =
+                classification == "Test/Measurement Requirement" &&
+                score >= 10 &&
+                LooksLikeVerificationStyleClause(normalized);
+
             var isPromoted = !looksFragmented && !proceduralNoise &&
-                             classification == "True System Requirement" &&
-                             score >= 11;
+                             ((classification == "True System Requirement" && score >= 11) ||
+                              isStrongVerificationPromotion);
             var reason = $"Score {score}/14 (obligation {obligationScore}, actor {actorScore}, action {actionScore}, constraint {constraintScore}, verifiable {verifiableScore}, scope {scopeScore}, non-procedural {proceduralScore}); verification-led={isVerificationLedClause}, explicit-system-obligation={hasExplicitSystemObligation}";
 
             return new DeterministicQualificationResult(score, classification, reason, isPromoted);
