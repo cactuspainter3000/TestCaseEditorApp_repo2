@@ -2960,6 +2960,50 @@ But thoroughly scan all sections first before concluding.";
 
                 progressCallback?.Invoke($"🔍 Preparing extraction-aware document index for analysis...");
 
+                IReadOnlyDictionary<string, string>? structuralSectionHints = null;
+                List<Requirement>? deterministicAtpBaseline = null;
+                var isAtpDocument = IsAtpDocument(attachment.FileName, documentContent);
+
+                if (attachment.IsWord)
+                {
+                    try
+                    {
+                        structuralSectionHints = await BuildWordClauseSectionHintMapAsync(fileBytes);
+                    }
+                    catch (Exception ex)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Failed to build structural Word hints for {attachment.FileName}: {ex.Message}");
+                    }
+                }
+
+                if (isAtpDocument)
+                {
+                    try
+                    {
+                        var deterministicContent = await StandardizeLocalExtractionContentAsync(
+                            documentContent,
+                            attachment,
+                            progressCallback: null,
+                            cancellationToken);
+
+                        deterministicAtpBaseline = await BuildLocalRequirementsFromDocumentAsync(
+                            deterministicContent,
+                            attachment,
+                            projectId,
+                            progressCallback: null,
+                            onRequirementDiscovered: null,
+                            cancellationToken,
+                            structuralSectionHints);
+
+                        TestCaseEditorApp.Services.Logging.Log.Info(
+                            $"[DirectRag] Deterministic ATP baseline produced {deterministicAtpBaseline.Count} requirements for {attachment.FileName} before template extraction.");
+                    }
+                    catch (Exception ex)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Deterministic ATP baseline failed for {attachment.FileName}: {ex.Message}");
+                    }
+                }
+
                 var ragIndexContent = documentContent;
                 try
                 {
@@ -3099,6 +3143,15 @@ But thoroughly scan all sections first before concluding.";
                 }
                 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Extracted {extractedRequirements.Count} requirements");
+
+                if (ShouldPreferDeterministicAtpBaseline(deterministicAtpBaseline, extractedRequirements))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn(
+                        $"[DirectRag] Replacing degraded template/foundation recovery output ({extractedRequirements.Count}) with deterministic ATP baseline ({deterministicAtpBaseline!.Count}) for {attachment.FileName}.");
+                    progressCallback?.Invoke(
+                        $"⚠️ Structured extraction degraded to recovery-only output. Using deterministic ATP baseline with {deterministicAtpBaseline!.Count} requirements.");
+                    extractedRequirements = deterministicAtpBaseline!;
+                }
                 
                 // Step 6: Optional ATP derivation (manual/advisory policy)
                 List<Requirement> derivedRequirements = new List<Requirement>();
@@ -7735,6 +7788,32 @@ Extract requirements now (JSON only):";
             return fileName.Contains("ATP", StringComparison.OrdinalIgnoreCase)
                 || documentContent.Contains("Acceptance Test Procedure", StringComparison.OrdinalIgnoreCase)
                 || documentContent.Contains("Test Procedure", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool ShouldPreferDeterministicAtpBaseline(
+            IReadOnlyCollection<Requirement>? deterministicAtpBaseline,
+            IReadOnlyCollection<Requirement> templateRequirements)
+        {
+            if (deterministicAtpBaseline == null || deterministicAtpBaseline.Count == 0)
+            {
+                return false;
+            }
+
+            if (templateRequirements.Count == 0)
+            {
+                return true;
+            }
+
+            var allFoundationRecovery = templateRequirements.All(requirement =>
+                !string.IsNullOrWhiteSpace(requirement.GlobalId)
+                && requirement.GlobalId.StartsWith("FND-", StringComparison.OrdinalIgnoreCase));
+
+            if (!allFoundationRecovery)
+            {
+                return false;
+            }
+
+            return deterministicAtpBaseline.Count >= templateRequirements.Count + 10;
         }
 
         private static void ApplyCategoryFieldInference(Requirement requirement, string? category, string requirementText)

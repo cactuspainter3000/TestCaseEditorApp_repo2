@@ -23,9 +23,127 @@ namespace TestCaseEditorApp.Tests.Integration
     public class JamaDocumentParserIntegrationTests
     {
         [TestMethod]
+        public async Task ParseAttachmentAsync_FallbackDisabled_SkipsAnythingLlmPath()
+        {
+            var attachment = new JamaAttachment
+            {
+                Id = 5001,
+                FileName = "fallback-disabled.txt",
+                Name = "fallback-disabled.txt",
+                MimeType = "text/plain",
+                FileSize = 256,
+                Item = 42
+            };
+
+            var jamaService = new Mock<IJamaConnectService>();
+            jamaService.SetupGet(s => s.IsConfigured).Returns(true);
+            jamaService
+                .Setup(s => s.DownloadAttachmentAsync(attachment.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Encoding.UTF8.GetBytes("The test solution shall report health status within 2 seconds."));
+
+            var anythingLlmService = new Mock<IAnythingLLMService>();
+
+            var userSettingsService = new Mock<IUserSettingsService>();
+            userSettingsService
+                .Setup(s => s.LoadSettings())
+                .Returns(new AppUserSettings { EnableAnythingLlmFallback = false });
+
+            var parser = new JamaDocumentParserService(
+                jamaService.Object,
+                anythingLlmService.Object,
+                directRagService: null,
+                textGenerationService: null,
+                derivationService: null,
+                envelopeService: null,
+                qualityService: null,
+                complianceWrapper: null,
+                abTestingFramework: null,
+                telemetryService: null,
+                ollamaProcessManager: null,
+                ollamaStatusMonitor: null,
+                documentExtractionService: null,
+                atpStepParser: null,
+                userSettingsService: userSettingsService.Object);
+
+            var result = await parser.ParseAttachmentAsync(attachment, projectId: 686, cancellationToken: CancellationToken.None);
+
+            Assert.AreEqual(0, result.Count, "Fallback-disabled flow should skip AnythingLLM extraction and return no requirements.");
+            jamaService.Verify(s => s.DownloadAttachmentAsync(attachment.Id, It.IsAny<CancellationToken>()), Times.Once);
+            anythingLlmService.Verify(s => s.CreateWorkspaceAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [TestMethod]
+        public async Task ParseAttachmentAsync_FallbackEnabled_EntersAnythingLlmPath()
+        {
+            var attachment = new JamaAttachment
+            {
+                Id = 5002,
+                FileName = "fallback-enabled.txt",
+                Name = "fallback-enabled.txt",
+                MimeType = "text/plain",
+                FileSize = 256,
+                Item = 43
+            };
+
+            var jamaService = new Mock<IJamaConnectService>();
+            jamaService.SetupGet(s => s.IsConfigured).Returns(true);
+            jamaService
+                .SetupSequence(s => s.DownloadAttachmentAsync(attachment.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Encoding.UTF8.GetBytes("The test solution shall verify power-on timing within 5 seconds under nominal load."))
+                .ReturnsAsync(Encoding.UTF8.GetBytes("The test solution shall verify power-on timing within 5 seconds under nominal load."));
+
+            var anythingLlmService = new Mock<IAnythingLLMService>();
+            var uploadRecords = new List<(string Name, string Content)>();
+            anythingLlmService
+                .Setup(s => s.CreateWorkspaceAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new AnythingLLMService.Workspace { Name = "fallback-enabled", Slug = "fallback-enabled" });
+            anythingLlmService
+                .Setup(s => s.UploadDocumentAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Callback<string, string, string, CancellationToken>((_, documentName, content, _) =>
+                {
+                    uploadRecords.Add((documentName, content));
+                })
+                .ReturnsAsync(true);
+            anythingLlmService
+                .Setup(s => s.DeleteWorkspaceAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            var userSettingsService = new Mock<IUserSettingsService>();
+            userSettingsService
+                .Setup(s => s.LoadSettings())
+                .Returns(new AppUserSettings { EnableAnythingLlmFallback = true });
+
+            var parser = new JamaDocumentParserService(
+                jamaService.Object,
+                anythingLlmService.Object,
+                directRagService: null,
+                textGenerationService: null,
+                derivationService: null,
+                envelopeService: null,
+                qualityService: null,
+                complianceWrapper: null,
+                abTestingFramework: null,
+                telemetryService: null,
+                ollamaProcessManager: null,
+                ollamaStatusMonitor: null,
+                documentExtractionService: null,
+                atpStepParser: null,
+                userSettingsService: userSettingsService.Object);
+
+            var result = await parser.ParseAttachmentAsync(attachment, projectId: 686, cancellationToken: CancellationToken.None);
+
+            Assert.AreEqual(0, result.Count, "Test setup does not provide a live AnythingLLM upload endpoint, so fallback should still return an empty list.");
+            jamaService.Verify(s => s.DownloadAttachmentAsync(attachment.Id, It.IsAny<CancellationToken>()), Times.Exactly(2));
+            var supplementalUpload = uploadRecords.FirstOrDefault(record => string.Equals(record.Name, "fallback-enabled-extracted-requirements.txt", StringComparison.OrdinalIgnoreCase));
+            Assert.AreEqual("fallback-enabled-extracted-requirements.txt", supplementalUpload.Name, "Expected AnythingLLM fallback to upload extracted requirements supplemental document.");
+            Assert.IsFalse(string.IsNullOrWhiteSpace(supplementalUpload.Content), "Expected supplemental extracted requirements content to be generated for AnythingLLM fallback.");
+            Assert.IsTrue(supplementalUpload.Content.Contains("[Extracted Requirements]", StringComparison.OrdinalIgnoreCase), "Expected supplemental upload content to include extracted requirements summary.");
+        }
+
+        [TestMethod]
         public async Task ParseLocalDocumentAsync_RealAtpFixture_MaintainsCurrentExtractionBaseline()
         {
-            var documentPath = ResolveRepoFilePath("Tests", "Fixtures", "ATP", "946-4DC0-001_C4B_DHM_ATP_Rev-.docx");
+            var documentPath = CreateTempTestCopy(ResolveRepoFilePath("Tests", "Fixtures", "ATP", "946-4DC0-001_C4B_DHM_ATP_Rev-.docx"));
             Assert.IsTrue(File.Exists(documentPath), $"Expected ATP fixture at {documentPath}");
 
             var jamaService = new Mock<IJamaConnectService>();
@@ -56,7 +174,7 @@ namespace TestCaseEditorApp.Tests.Integration
                 null,
                 CancellationToken.None);
 
-            Assert.AreEqual(72, result.Count, "ATP local extraction baseline changed. Inspect staged parser filters before accepting a new count.");
+            Assert.AreEqual(73, result.Count, "ATP local extraction baseline changed. Inspect staged parser filters before accepting a new count.");
 
             var descriptions = result
                 .Select(requirement => requirement.Description ?? string.Empty)
@@ -90,10 +208,85 @@ namespace TestCaseEditorApp.Tests.Integration
                 "Recommended power-up procedure guidance should remain filtered.");
 
             Assert.IsTrue(
-                progressMessages.Any(message => message.Contains("kept 72", StringComparison.OrdinalIgnoreCase)
+                progressMessages.Any(message => message.Contains("kept 73", StringComparison.OrdinalIgnoreCase)
                     && message.Contains("deterministic-filtered 10", StringComparison.OrdinalIgnoreCase)
                     && message.Contains("numeric-prefix-deduped 27", StringComparison.OrdinalIgnoreCase)),
                 "Expected the local extraction summary to report the current staged baseline metrics.");
+
+            Assert.IsTrue(
+                descriptions.Any(text => text.Contains("The test solution shall provide the means to verify +5VREF is within the range [4.9, 5.1] VDC.", StringComparison.OrdinalIgnoreCase)),
+                "Expected the +5VREF acceptance-criteria clause to be recovered into the final extracted requirement set.");
+        }
+
+        [TestMethod]
+        public async Task ParseLocalDocumentAsync_RealAtpFixture_EmitsJamaFieldsAndNonDuplicativeNames()
+        {
+            var documentPath = CreateTempTestCopy(ResolveRepoFilePath("Tests", "Fixtures", "ATP", "946-4DC0-001_C4B_DHM_ATP_Rev-.docx"));
+            Assert.IsTrue(File.Exists(documentPath), $"Expected ATP fixture at {documentPath}");
+
+            var jamaService = new Mock<IJamaConnectService>();
+            jamaService.SetupGet(s => s.IsConfigured).Returns(true);
+
+            var anythingLlmService = new Mock<IAnythingLLMService>();
+
+            var parser = new JamaDocumentParserService(
+                jamaService.Object,
+                anythingLlmService.Object,
+                directRagService: null,
+                textGenerationService: null,
+                derivationService: null,
+                envelopeService: null,
+                qualityService: null,
+                complianceWrapper: null,
+                abTestingFramework: null,
+                telemetryService: null,
+                ollamaProcessManager: null,
+                ollamaStatusMonitor: null,
+                documentExtractionService: null,
+                atpStepParser: null);
+
+            var result = await parser.ParseLocalDocumentAsync(documentPath, cancellationToken: CancellationToken.None);
+
+            Assert.IsTrue(result.Count > 0, "Expected local ATP extraction to return requirements.");
+
+            var populatedMetadataCount = result.Count(req =>
+                !string.IsNullOrWhiteSpace(req.SourcePrefix)
+                && !string.IsNullOrWhiteSpace(req.SourceSection)
+                && !string.IsNullOrWhiteSpace(req.RequirementType)
+                && !string.IsNullOrWhiteSpace(req.Status)
+                && !string.IsNullOrWhiteSpace(req.StatementOfCompliance)
+                && !string.IsNullOrWhiteSpace(req.VerificationMethodText)
+                && !string.IsNullOrWhiteSpace(req.ValidationMethodText));
+
+            Assert.IsTrue(
+                populatedMetadataCount > 0,
+                "Expected troubleshooting extraction requirements to include populated Jama-style metadata fields.");
+
+            var nonDuplicativeNamesCount = result.Count(req =>
+                !string.IsNullOrWhiteSpace(req.Name)
+                && !string.IsNullOrWhiteSpace(req.Description)
+                && !string.Equals(req.Name.Trim(), req.Description.Trim(), StringComparison.OrdinalIgnoreCase));
+
+            Assert.AreEqual(
+                result.Count,
+                nonDuplicativeNamesCount,
+                "Expected each requirement name to be distinct from its full description text.");
+
+            Assert.IsTrue(
+                result.Any(req => req.Description.Contains("The test solution shall provide the means to verify +5VREF is within the range [4.9, 5.1] VDC.", StringComparison.OrdinalIgnoreCase)),
+                "Expected ATP verification clauses to be rewritten into test-solution perspective for the +5VREF requirement.");
+
+            var plus5VrefRequirement = result.FirstOrDefault(req =>
+                req.Description.Contains("+5VREF is within the range [4.9, 5.1] VDC", StringComparison.OrdinalIgnoreCase));
+
+            Assert.IsNotNull(plus5VrefRequirement, "Expected +5VREF requirement to be present for section-prefix validation.");
+            Assert.AreEqual(
+                "4.1.2.1",
+                plus5VrefRequirement!.SourcePrefix,
+                "Expected +5VREF requirement to inherit child-level prefix 4.1.2.1 from section-heading continuity.");
+            Assert.IsTrue(
+                plus5VrefRequirement.Name.Contains("Test Reference Voltages", StringComparison.OrdinalIgnoreCase),
+                "Expected requirement name text to use section header title instead of clause sentence text.");
         }
 
         [TestMethod]
@@ -144,6 +337,7 @@ namespace TestCaseEditorApp.Tests.Integration
 
             var anythingLlmService = new Mock<IAnythingLLMService>();
             var directRagService = new Mock<IDirectRagService>();
+            string? indexedContent = null;
             directRagService.SetupGet(s => s.IsConfigured).Returns(true);
             directRagService
                 .Setup(s => s.ValidateAttachmentIndexesAsync(
@@ -168,6 +362,7 @@ namespace TestCaseEditorApp.Tests.Integration
                 .ReturnsAsync(true);
             directRagService
                 .Setup(s => s.IndexDocumentAsync(It.IsAny<JamaAttachment>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .Callback<JamaAttachment, string, int, CancellationToken>((_, content, _, _) => indexedContent = content)
                 .ReturnsAsync(true);
             directRagService
                 .Setup(s => s.GetRequirementAnalysisContextAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
@@ -213,12 +408,15 @@ namespace TestCaseEditorApp.Tests.Integration
             var requirement = result[0];
             Assert.AreEqual("REQ-001", requirement.GlobalId);
             Assert.IsFalse(string.IsNullOrWhiteSpace(requirement.Description));
+            Assert.IsFalse(string.IsNullOrWhiteSpace(indexedContent), "Expected DirectRAG indexing to receive extraction-aware content.");
+            Assert.IsTrue(indexedContent!.Contains("[Extracted Requirements]", StringComparison.OrdinalIgnoreCase), "Expected indexed content to include extracted requirement summary block.");
+            Assert.IsTrue(indexedContent.Contains("power-on timing", StringComparison.OrdinalIgnoreCase), "Expected indexed content to include the extracted requirement context.");
         }
 
         [TestMethod]
         public async Task TemplateFormInput_RealAtpFixture_PreservesTechnicalCanaries_AndExcludesProcedureGuidance()
         {
-            var documentPath = ResolveRepoFilePath("Tests", "Fixtures", "ATP", "946-4DC0-001_C4B_DHM_ATP_Rev-.docx");
+            var documentPath = CreateTempTestCopy(ResolveRepoFilePath("Tests", "Fixtures", "ATP", "946-4DC0-001_C4B_DHM_ATP_Rev-.docx"));
             Assert.IsTrue(File.Exists(documentPath), $"Expected ATP fixture at {documentPath}");
 
             var jamaService = new Mock<IJamaConnectService>();
@@ -299,7 +497,7 @@ namespace TestCaseEditorApp.Tests.Integration
         [TestMethod]
         public async Task ParseAttachmentAsync_RealAtpFixture_TemplateFormOutput_PreservesCanaries_EndToEnd()
         {
-            var documentPath = ResolveRepoFilePath("Tests", "Fixtures", "ATP", "946-4DC0-001_C4B_DHM_ATP_Rev-.docx");
+            var documentPath = CreateTempTestCopy(ResolveRepoFilePath("Tests", "Fixtures", "ATP", "946-4DC0-001_C4B_DHM_ATP_Rev-.docx"));
             Assert.IsTrue(File.Exists(documentPath), $"Expected ATP fixture at {documentPath}");
 
             const string impedanceCanary = "Minimum input impedance for equipment measuring voltages with test connector shall be 1 Mohm";
@@ -363,6 +561,7 @@ namespace TestCaseEditorApp.Tests.Integration
 
             var anythingLlmService = new Mock<IAnythingLLMService>();
             var directRagService = new Mock<IDirectRagService>();
+            string? indexedContent = null;
             directRagService.SetupGet(s => s.IsConfigured).Returns(true);
             directRagService
                 .Setup(s => s.ValidateAttachmentIndexesAsync(
@@ -387,6 +586,7 @@ namespace TestCaseEditorApp.Tests.Integration
                 .ReturnsAsync(true);
             directRagService
                 .Setup(s => s.IndexDocumentAsync(It.IsAny<JamaAttachment>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .Callback<JamaAttachment, string, int, CancellationToken>((_, content, _, _) => indexedContent = content)
                 .ReturnsAsync(true);
             directRagService
                 .Setup(s => s.GetRequirementAnalysisContextAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
@@ -451,12 +651,122 @@ namespace TestCaseEditorApp.Tests.Integration
                 Assert.IsTrue(finalHasHoldup, "When hold-up canary reaches prompt content, final parsed output should retain it.");
             }
 
+            Assert.IsFalse(string.IsNullOrWhiteSpace(indexedContent), "Expected DirectRAG indexing to receive extraction-aware content for the ATP fixture.");
+            Assert.IsTrue(indexedContent!.Contains("[Extracted Requirements]", StringComparison.OrdinalIgnoreCase), "Expected indexed ATP content to include extracted requirement summary block.");
+            Assert.IsTrue(indexedContent.Contains("SourcePrefix=4.1.1.1", StringComparison.OrdinalIgnoreCase), "Expected indexed ATP content to include child-level source prefix 4.1.1.1.");
+            Assert.IsTrue(indexedContent.Contains("Name=4.1.1.1 [Functional] Test Local Power Supply Operation", StringComparison.OrdinalIgnoreCase), "Expected indexed ATP content to include section-title based requirement name for 4.1.1.1.");
+
             Console.WriteLine(
                 $"Downstream matrix: foundationCandidates={foundation.Candidates.Count}, templateInputLen={templateInput.Length}, finalRequirements={result.Count}, " +
                 $"impedance(input/prompt/final)=true/{promptHasImpedance}/{finalHasImpedance}, " +
                 $"holdup(input/prompt/final)=true/{promptHasHoldup}/{finalHasHoldup}, " +
                 $"procDown(input/prompt/final)=false/{promptHasProcedureDown}/{finalHasProcedureDown}, " +
                 $"procUp(input/prompt/final)=false/{promptHasProcedureUp}/{finalHasProcedureUp}");
+        }
+
+        [TestMethod]
+        public async Task ParseAttachmentAsync_RealAtpFixture_LowCoverageEmptyEnvelope_PrefersDeterministicBaseline()
+        {
+            var documentPath = CreateTempTestCopy(ResolveRepoFilePath("Tests", "Fixtures", "ATP", "946-4DC0-001_C4B_DHM_ATP_Rev-.docx"));
+            Assert.IsTrue(File.Exists(documentPath), $"Expected ATP fixture at {documentPath}");
+
+            var attachment = new JamaAttachment
+            {
+                Id = 946002,
+                FileName = Path.GetFileName(documentPath),
+                Name = Path.GetFileName(documentPath),
+                MimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                FileSize = new FileInfo(documentPath).Length,
+                Item = 0
+            };
+
+            var attachmentBytes = await File.ReadAllBytesAsync(documentPath);
+
+            var jamaService = new Mock<IJamaConnectService>();
+            jamaService.SetupGet(s => s.IsConfigured).Returns(true);
+            jamaService
+                .Setup(s => s.DownloadAttachmentAsync(attachment.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(attachmentBytes);
+
+            var anythingLlmService = new Mock<IAnythingLLMService>();
+            var directRagService = new Mock<IDirectRagService>();
+            directRagService.SetupGet(s => s.IsConfigured).Returns(true);
+            directRagService
+                .Setup(s => s.ValidateAttachmentIndexesAsync(
+                    It.IsAny<int>(),
+                    It.IsAny<IReadOnlyCollection<JamaAttachment>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Dictionary<int, AttachmentIndexValidationResult>
+                {
+                    [attachment.Id] = new AttachmentIndexValidationResult
+                    {
+                        AttachmentId = attachment.Id,
+                        State = AttachmentIndexValidationState.NotIndexed,
+                        ScrapeBlocked = false,
+                        Message = "Not indexed"
+                    }
+                });
+            directRagService
+                .Setup(s => s.GetProjectIndexStatsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DocumentIndexStats { ProjectId = 77, TotalDocuments = 0, TotalChunks = 0 });
+            directRagService
+                .Setup(s => s.ClearProjectIndexAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            directRagService
+                .Setup(s => s.IndexDocumentAsync(It.IsAny<JamaAttachment>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            directRagService
+                .Setup(s => s.GetRequirementAnalysisContextAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(string.Join(Environment.NewLine, new[]
+                {
+                    "Acceptance Test Procedure excerpt",
+                    "Acceptance Criteria",
+                    "+3.3VDC is within range during hold-up timing.",
+                    "BRT_CMD_COARSE measurement guidance remains in the ATP."
+                }));
+
+            var textGenerationService = new Mock<ITextGenerationService>();
+            textGenerationService
+                .Setup(s => s.GenerateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((string prompt, CancellationToken _) =>
+                {
+                    if (prompt.StartsWith("Test", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return "ok";
+                    }
+
+                    return "{\"requirements\":[],\"metadata\":{\"total_requirements\":0,\"document_name\":\"946-4DC0-001_C4B_DHM_ATP_Rev-.docx\",\"extraction_method\":\"template_form\"}}";
+                });
+
+            var envelopeService = new OutputEnvelopeService(new EnvelopeSchemaService());
+            var loggerFactory = LoggerFactory.Create(builder => builder.SetMinimumLevel(LogLevel.Warning));
+            var extractionLogger = loggerFactory.CreateLogger<DocumentRequirementExtractionService>();
+            var extractionService = new DocumentRequirementExtractionService(extractionLogger);
+
+            var parser = new JamaDocumentParserService(
+                jamaService.Object,
+                anythingLlmService.Object,
+                directRagService.Object,
+                textGenerationService.Object,
+                derivationService: null,
+                envelopeService: envelopeService,
+                qualityService: null,
+                complianceWrapper: null,
+                abTestingFramework: null,
+                telemetryService: null,
+                ollamaProcessManager: null,
+                ollamaStatusMonitor: null,
+                documentExtractionService: extractionService);
+
+            var result = await parser.ParseAttachmentAsync(attachment, 77);
+
+            Assert.AreEqual(73, result.Count, "Low-coverage ATP runs should keep the richer deterministic baseline when template extraction degrades to recovery-only output.");
+            Assert.IsTrue(
+                result.Any(req => string.Equals(req.SourcePrefix, "4.1.2.1", StringComparison.OrdinalIgnoreCase)),
+                "Expected the deterministic ATP baseline to preserve hierarchical clause numbering.");
+            Assert.IsFalse(
+                result.All(req => (req.GlobalId ?? string.Empty).StartsWith("FND-", StringComparison.OrdinalIgnoreCase)),
+                "Expected parser to avoid returning pure foundation-recovery IDs for this ATP fixture.");
         }
 
         [TestMethod]
@@ -917,6 +1227,14 @@ namespace TestCaseEditorApp.Tests.Integration
             }
 
             throw new InvalidOperationException("Could not locate repository root from test base directory.");
+        }
+
+        private static string CreateTempTestCopy(string sourcePath)
+        {
+            var extension = Path.GetExtension(sourcePath);
+            var tempPath = Path.Combine(Path.GetTempPath(), $"{Path.GetFileNameWithoutExtension(sourcePath)}-{Guid.NewGuid():N}{extension}");
+            File.Copy(sourcePath, tempPath, overwrite: true);
+            return tempPath;
         }
 
         private static async Task<string> ExtractAttachmentTextForIndexingForTestAsync(JamaDocumentParserService parser, string documentPath)
