@@ -248,58 +248,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             RefreshDeletionPreview();
         }
 
-        /// <summary>
-        /// TEMP troubleshooting utility: deletes Jama project 686 folder "Common Requirements" and all descendants.
-        /// </summary>
-        [RelayCommand]
-        public async Task DeleteProject686CommonRequirementsFolderAsync()
-        {
-            var confirm = MessageBox.Show(
-                "TEMP TROUBLESHOOTING ACTION\n\n" +
-                "This will permanently delete the Jama folder 'Common Requirements' and EVERYTHING inside it in project 686.\n\n" +
-                "This action cannot be undone. Continue?",
-                "Confirm Dangerous Delete",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning,
-                MessageBoxResult.No);
-
-            if (confirm != MessageBoxResult.Yes)
-            {
-                return;
-            }
-
-            try
-            {
-                IsLoading = true;
-                StatusMessage = "Deleting 'Common Requirements' folder in Jama project 686...";
-                LogOutput += "[Troubleshoot Delete]\nStarting delete for project 686 / Common Requirements...\n";
-
-                var result = await _jamaService.DeleteCommonRequirementsFolderForProject686Async(686);
-                if (result.Success)
-                {
-                    StatusMessage = $"✅ {result.Message}";
-                    LogOutput += $"✓ Folder delete completed. FolderId={result.FolderId?.ToString() ?? "<unknown>"}, DeletedItems={result.DeletedCount}\n";
-                    _logger.LogInformation("[RequirementsUtilitiesViewModel] Deleted Common Requirements folder subtree in project 686. FolderId={FolderId}, DeletedCount={DeletedCount}", result.FolderId, result.DeletedCount);
-                }
-                else
-                {
-                    StatusMessage = $"❌ {result.Message}";
-                    LogOutput += $"✗ Folder delete failed. {result.Message} DeletedItems={result.DeletedCount}\n";
-                    _logger.LogWarning("[RequirementsUtilitiesViewModel] Common Requirements folder delete failed. Message={Message}, DeletedCount={DeletedCount}", result.Message, result.DeletedCount);
-                }
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"❌ Delete failed: {ex.Message}";
-                LogOutput += $"✗ Exception during folder delete: {ex.Message}\n";
-                _logger.LogError(ex, "[RequirementsUtilitiesViewModel] Exception deleting project 686 Common Requirements folder subtree");
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-
         partial void OnDeleteItemSuffixThresholdChanged(int value)
         {
             RefreshDeletionPreview();

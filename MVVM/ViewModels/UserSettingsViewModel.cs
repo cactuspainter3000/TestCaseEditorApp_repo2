@@ -39,7 +39,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             nameof(SelectedChatModel),
             nameof(SelectedEmbeddingModel),
             nameof(SelectedThemeName),
-            nameof(EnableRequirementsAnalysisSnapshot)
+            nameof(EnableRequirementsAnalysisSnapshot),
+            nameof(EnableAnythingLlmFallback)
         };
 
         [ObservableProperty]
@@ -74,6 +75,9 @@ namespace TestCaseEditorApp.MVVM.ViewModels
 
         [ObservableProperty]
         private bool _enableRequirementsAnalysisSnapshot;
+
+        [ObservableProperty]
+        private bool _enableAnythingLlmFallback = true;
 
         [ObservableProperty]
         private bool _hasUnsavedChanges;
@@ -984,6 +988,58 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         }
 
         [RelayCommand]
+        private async Task DeleteProject686CommonRequirementsFolderAsync()
+        {
+            var confirm = MessageBox.Show(
+                "TEMP TROUBLESHOOTING ACTION\n\n" +
+                "This will permanently delete the Jama folder 'Common Requirements' and EVERYTHING inside it in project 686.\n\n" +
+                "This action cannot be undone. Continue?",
+                "Confirm Dangerous Delete",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+
+            if (confirm != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            try
+            {
+                IsBusy = true;
+                IsStatusError = false;
+                StatusMessage = "Deleting 'Common Requirements' folder in Jama project 686...";
+
+                var jamaService = new JamaConnectService(
+                    (JamaBaseUrl ?? string.Empty).Trim(),
+                    (JamaClientId ?? string.Empty).Trim(),
+                    (JamaClientSecret ?? string.Empty).Trim(),
+                    true);
+
+                var result = await jamaService.DeleteCommonRequirementsFolderForProject686Async(686);
+                if (result.Success)
+                {
+                    StatusMessage = $"✅ {result.Message}";
+                    IsStatusError = false;
+                }
+                else
+                {
+                    StatusMessage = $"❌ {result.Message}";
+                    IsStatusError = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Delete failed: {ex.Message}";
+                IsStatusError = true;
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        [RelayCommand]
         private async Task TestAnythingLlmConnectionAsync()
         {
             try
@@ -1097,9 +1153,11 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             {
                 var existingSettings = _userSettingsService.LoadSettings();
                 existingSettings.EnableRequirementsAnalysisSnapshot = EnableRequirementsAnalysisSnapshot;
+                existingSettings.EnableAnythingLlmFallback = EnableAnythingLlmFallback;
                 _userSettingsService.SaveSettings(existingSettings);
                 _userSettingsService.ApplySettingsToEnvironment(existingSettings);
                 _lastSavedSettings.EnableRequirementsAnalysisSnapshot = EnableRequirementsAnalysisSnapshot;
+                _lastSavedSettings.EnableAnythingLlmFallback = EnableAnythingLlmFallback;
             }
             catch (Exception ex)
             {
@@ -1122,6 +1180,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
             SelectedEmbeddingModel = settings.OllamaEmbeddingModel;
             SelectedThemeName = string.IsNullOrWhiteSpace(settings.ThemeName) ? "Dark Orange" : settings.ThemeName;
             EnableRequirementsAnalysisSnapshot = settings.EnableRequirementsAnalysisSnapshot;
+            EnableAnythingLlmFallback = settings.EnableAnythingLlmFallback;
             SetLastSavedSettings(settings);
             _isLoadingSettings = false;
 
@@ -1203,7 +1262,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 OllamaChatModel = (SelectedChatModel ?? string.Empty).Trim(),
                 OllamaEmbeddingModel = (SelectedEmbeddingModel ?? string.Empty).Trim(),
                 ThemeName = (SelectedThemeName ?? "Dark Orange").Trim(),
-                EnableRequirementsAnalysisSnapshot = EnableRequirementsAnalysisSnapshot
+                EnableRequirementsAnalysisSnapshot = EnableRequirementsAnalysisSnapshot,
+                EnableAnythingLlmFallback = EnableAnythingLlmFallback
             };
         }
 
@@ -1220,7 +1280,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 OllamaChatModel = (settings.OllamaChatModel ?? string.Empty).Trim(),
                 OllamaEmbeddingModel = (settings.OllamaEmbeddingModel ?? string.Empty).Trim(),
                 ThemeName = (settings.ThemeName ?? "Dark Orange").Trim(),
-                EnableRequirementsAnalysisSnapshot = settings.EnableRequirementsAnalysisSnapshot
+                EnableRequirementsAnalysisSnapshot = settings.EnableRequirementsAnalysisSnapshot,
+                EnableAnythingLlmFallback = settings.EnableAnythingLlmFallback
             };
 
             HasUnsavedChanges = false;
@@ -1244,7 +1305,8 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 !string.Equals(current.OllamaChatModel, _lastSavedSettings.OllamaChatModel, StringComparison.Ordinal) ||
                 !string.Equals(current.OllamaEmbeddingModel, _lastSavedSettings.OllamaEmbeddingModel, StringComparison.Ordinal) ||
                 !string.Equals(current.ThemeName, _lastSavedSettings.ThemeName, StringComparison.Ordinal) ||
-                current.EnableRequirementsAnalysisSnapshot != _lastSavedSettings.EnableRequirementsAnalysisSnapshot;
+                current.EnableRequirementsAnalysisSnapshot != _lastSavedSettings.EnableRequirementsAnalysisSnapshot ||
+                current.EnableAnythingLlmFallback != _lastSavedSettings.EnableAnythingLlmFallback;
         }
 
         partial void OnSelectedThemeNameChanged(string value)
