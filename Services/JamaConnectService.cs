@@ -6264,6 +6264,7 @@ namespace TestCaseEditorApp.Services
                     else
                     {
                         unlockFailedCount++;
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Unlock pre-pass failed for item {itemId}; attempting delete anyway.");
                     }
                 }
 
@@ -6291,7 +6292,7 @@ namespace TestCaseEditorApp.Services
 
                 var successMessage =
                     $"Deleted 'Common Requirements' subtree in project 686. Removed {deletedCount} item(s). " +
-                    $"Unlock pre-pass: {unlockedCount} succeeded, {unlockFailedCount} failed.";
+                    $"Unlock pre-pass: {unlockedCount} succeeded, {unlockFailedCount} failed; delete proceeded anyway.";
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] {successMessage} FolderId={targetFolder.Id}");
                 return (true, successMessage, deletedCount, targetFolder.Id);
             });
@@ -6302,21 +6303,40 @@ namespace TestCaseEditorApp.Services
             try
             {
                 var url = $"{_baseUrl}/rest/v1/items/{itemId}";
-
-                // Cookbook pattern: PUT /items/{id} with { "locked": false }
-                var payload = new { locked = false };
-                var json = JsonSerializer.Serialize(payload);
-                using var content = new StringContent(json, Encoding.UTF8, "application/json");
-                using var response = await _httpClient.PutAsync(url, content, cancellationToken);
-
-                if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                object[] payloads =
                 {
-                    return true;
+                    new { locked = false },
+                    new { fields = new { locked = false } },
+                    new { locked = false, fields = new { locked = false } }
+                };
+
+                foreach (var payload in payloads)
+                {
+                    var json = JsonSerializer.Serialize(payload);
+                    using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    using var putResponse = await _httpClient.PutAsync(url, content, cancellationToken);
+                    if (putResponse.IsSuccessStatusCode || putResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        return true;
+                    }
+
+                    var putText = await putResponse.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Debug(
+                        $"[JamaConnect] Unlock PUT attempt for item {itemId} returned {putResponse.StatusCode}: {TruncateForLog(putText, 300)}");
+
+                    using var patchResponse = await _httpClient.PatchAsync(url, content);
+                    if (patchResponse.IsSuccessStatusCode || patchResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        return true;
+                    }
+
+                    var patchText = await patchResponse.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Debug(
+                        $"[JamaConnect] Unlock PATCH attempt for item {itemId} returned {patchResponse.StatusCode}: {TruncateForLog(patchText, 300)}");
                 }
 
-                var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
-                TestCaseEditorApp.Services.Logging.Log.Warn(
-                    $"[JamaConnect] Unlock failed for item {itemId}: {response.StatusCode} - {TruncateForLog(responseText, 300)}");
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Unlock attempts exhausted for item {itemId}.");
                 return false;
             }
             catch (Exception ex)
