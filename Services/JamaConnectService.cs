@@ -198,27 +198,6 @@ namespace TestCaseEditorApp.Services
             });
         }
 
-        private HttpClient CreateHttpClient()
-        {
-            var client = new HttpClient();
-            client.Timeout = TimeSpan.FromSeconds(30);
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-            // Set authentication for non-OAuth methods
-            if (!string.IsNullOrEmpty(_apiToken))
-            {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiToken);
-            }
-            else if (!string.IsNullOrEmpty(_username) && !string.IsNullOrEmpty(_password))
-            {
-                var credentials = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{_username}:{_password}"));
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
-            }
-            // OAuth will set Authorization header dynamically after getting access token
-
-            return client;
-        }
-
         /// <summary>
         /// Ensure we have a valid access token
         /// 🚨 CRITICAL OAUTH METHOD - DO NOT MODIFY WITHOUT EXPLICIT CONFIRMATION 🚨
@@ -273,8 +252,7 @@ namespace TestCaseEditorApp.Services
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] OAuth content length: {content.Length}");
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] OAuth response content: {content}");
+                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] OAuth response payload: {TruncateForLog(content, 400)}");
                 
                 try
                 {
@@ -293,17 +271,15 @@ namespace TestCaseEditorApp.Services
                         return false;
                     }
                     
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Deserialized token response - AccessToken is null: {tokenResponse?.AccessToken == null}");
-                    
                     _accessToken = tokenResponse?.AccessToken;
                     _httpClient.DefaultRequestHeaders.Authorization = 
                         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _accessToken);
                     
                     var hasToken = !string.IsNullOrEmpty(_accessToken);
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Token obtained: {hasToken}");
                     if (hasToken)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Token preview: {_accessToken?.Substring(0, Math.Min(20, _accessToken.Length))}...");
+                        var tokenPreview = _accessToken?.Substring(0, Math.Min(20, _accessToken.Length));
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] OAuth token obtained successfully ({tokenPreview}...)");
                         TestCaseEditorApp.Services.Logging.Log.Info("[JamaConnect] ✅ OAuth steel trap validation passed!");
                     }
                     return hasToken;
@@ -318,7 +294,7 @@ namespace TestCaseEditorApp.Services
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] OAuth failed: {errorContent}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] OAuth failed: {TruncateForLog(errorContent, 400)}");
             }
             
             return false;
@@ -1652,160 +1628,6 @@ namespace TestCaseEditorApp.Services
         }
 
         /// <summary>
-        /// Parse all fields in a Jama item for rich content (HTML tables, paragraphs, etc.)
-        /// </summary>
-        private RequirementLooseContent ParseAllFieldsForRichContent(JamaItem item, string description)
-        {
-            var looseContent = new RequirementLooseContent()
-            {
-                Paragraphs = new List<string>(),
-                Tables = new List<LooseTable>()
-            };
-
-            // Metadata/system fields that should NOT be displayed as user-facing content
-            // "description" is handled explicitly - extracting from fields would duplicate it
-            var metadataFieldsToSkip = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "documentKey", "globalId", "name", "text2", "id", "key", "itemType",
-                "project", "createdBy", "modifiedBy", "createdDate", "modifiedDate",
-                "parentId", "childItemType", "sortOrder", "release", "status",
-                "synchronizedItem", "lockedBy", "lastLockedDate", "baselinedApplicableItems",
-                "description"  // Already handled explicitly above - avoid duplicate processing
-            };
-
-            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id}: Scanning all fields for rich content");
-
-            var fieldsToScan = new List<(string name, string content)>();
-
-            // Add description field
-            if (!string.IsNullOrWhiteSpace(description))
-            {
-                fieldsToScan.Add(("description", description));
-            }
-
-            // Scan all custom fields in the Fields object using reflection
-            if (item.Fields != null)
-            {
-                var fieldsType = item.Fields.GetType();
-                var properties = fieldsType.GetProperties();
-
-                foreach (var property in properties)
-                {
-                    try
-                    {
-                        // Skip metadata/system fields that shouldn't be displayed as content
-                        if (metadataFieldsToSkip.Contains(property.Name))
-                        {
-                            TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Skipping metadata field '{property.Name}'");
-                            continue;
-                        }
-                        
-                        var value = property.GetValue(item.Fields);
-                        if (value is string stringValue && !string.IsNullOrWhiteSpace(stringValue))
-                        {
-                            fieldsToScan.Add((property.Name, stringValue));
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Failed to read property {property.Name}: {ex.Message}");
-                    }
-                }
-            }
-
-            // Also scan the raw fields collection if it exists as a dictionary
-            try
-            {
-                // Check if the JamaItem has additional fields as a dictionary
-                var itemType = item.GetType();
-                var fieldsProperty = itemType.GetProperty("Fields");
-                if (fieldsProperty?.GetValue(item) is IDictionary<string, object> fieldsDictionary)
-                {
-                    foreach (var kvp in fieldsDictionary)
-                    {
-                        // Skip metadata/system fields
-                        if (metadataFieldsToSkip.Contains(kvp.Key))
-                            continue;
-                            
-                        if (kvp.Value is string stringValue && !string.IsNullOrWhiteSpace(stringValue))
-                        {
-                            fieldsToScan.Add((kvp.Key, stringValue));
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {item.Id}: Failed to scan fields dictionary: {ex.Message}");
-            }
-
-            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id}: Found {fieldsToScan.Count} fields to scan for HTML content");
-
-            // Process each field for HTML content
-            int totalTablesFound = 0;
-            int totalParagraphsFound = 0;
-            int htmlFieldsFound = 0;
-
-            foreach (var (fieldName, content) in fieldsToScan)
-            {
-                if (content.Contains("<") && content.Contains(">"))
-                {
-                    htmlFieldsFound++;
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id}: Processing HTML content in field '{fieldName}' ({content.Length} chars)");
-
-                    var fieldContent = ParseHtmlContent(content, item.Id);
-                    
-                    // Merge tables
-                    foreach (var table in fieldContent.Tables)
-                    {
-                        // Set a descriptive title indicating which field this came from
-                        if (string.IsNullOrWhiteSpace(table.EditableTitle) || table.EditableTitle.StartsWith("Table from Jama Item"))
-                        {
-                            table.EditableTitle = $"Table from {fieldName} (Item {item.Id})";
-                        }
-                        looseContent.Tables.Add(table);
-                        totalTablesFound++;
-                    }
-
-                    // Merge paragraphs
-                    // Skip paragraphs from "description" field - that content is already in the Description property
-                    if (fieldName != "description")
-                    {
-                        foreach (var paragraph in fieldContent.Paragraphs)
-                        {
-                            if (!string.IsNullOrWhiteSpace(paragraph))
-                            {
-                                // Only skip exact duplicates to preserve original content
-                                if (!looseContent.Paragraphs.Contains(paragraph))
-                                {
-                                    looseContent.Paragraphs.Add(paragraph);
-                                    totalParagraphsFound++;
-                                }
-                            }
-                        }
-                    }
-                }
-                else if (!string.IsNullOrWhiteSpace(content) && fieldName != "description")
-                {
-                    // Plain text content from non-description fields - add as paragraph
-                    var normalizedContent = content.Trim();
-                    
-                    // Only skip exact duplicates to preserve original content
-                    if (!looseContent.Paragraphs.Contains(normalizedContent))
-                    {
-                        looseContent.Paragraphs.Add(normalizedContent);
-                        totalParagraphsFound++;
-                    }
-                }
-            }
-
-            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id}: Rich content parsing complete - " +
-                $"{htmlFieldsFound} HTML fields, {totalTablesFound} tables, {totalParagraphsFound} paragraphs");
-
-            return looseContent;
-        }
-
-        /// <summary>
         /// Parse HTML content to extract rich content like tables and paragraphs
         /// </summary>
         private RequirementLooseContent ParseHtmlContent(string htmlContent, int itemId)
@@ -2037,20 +1859,6 @@ namespace TestCaseEditorApp.Services
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaConnect] Item {itemId}: Failed to extract table");
                 return null;
             }
-        }
-
-        /// <summary>
-        /// Check if a field is metadata that should not appear in supplemental information
-        /// </summary>
-        private bool IsMetadataField(string fieldName)
-        {
-            var metadataFields = new[] {
-                "documentkey", "globalid", "id", "itemtype", "project", 
-                "status", "createddate", "modifieddate", "createdby", "modifiedby",
-                "version", "locked", "lockedby", "lastlocked", "sortorder"
-            };
-            
-            return metadataFields.Contains(fieldName.ToLowerInvariant());
         }
 
         /// <summary>
@@ -3259,7 +3067,7 @@ namespace TestCaseEditorApp.Services
                     else
                     {
                         var responseContent = await response.Content.ReadAsStringAsync();
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Strategy '{strategy}' failed: {response.StatusCode} - {responseContent.Substring(0, Math.Min(200, responseContent.Length))}");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Strategy '{strategy}' failed: {response.StatusCode} - {TruncateForLog(responseContent)}");
                     }
                     return null;
                 }
@@ -3329,7 +3137,7 @@ namespace TestCaseEditorApp.Services
                     // Test each URL format to find working one
                     foreach (var candidateUrl in urlCandidates)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {itemId}: Testing attachment URL: {candidateUrl}");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Testing attachment URL: {candidateUrl}");
                         
                         if (await TestAttachmentUrlAsync(candidateUrl, itemId))
                         {
@@ -3414,6 +3222,18 @@ namespace TestCaseEditorApp.Services
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, "[JamaConnect] Authentication check failed");
                 return false;
             }
+        }
+
+        private static string TruncateForLog(string? value, int maxLength = 200)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return string.Empty;
+            }
+
+            return value.Length <= maxLength
+                ? value
+                : value.Substring(0, maxLength);
         }
 
         private string DetectImageFormat(byte[] imageData)
@@ -3526,7 +3346,7 @@ namespace TestCaseEditorApp.Services
                     else
                     {
                         var responseContent = await response.Content.ReadAsStringAsync();
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Session auth failed: {response.StatusCode} - {responseContent.Substring(0, Math.Min(200, responseContent.Length))}");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Session auth failed: {response.StatusCode} - {TruncateForLog(responseContent)}");
                     }
                     return null;
                 }
@@ -3601,7 +3421,7 @@ namespace TestCaseEditorApp.Services
                     else
                     {
                         var responseContent = await response.Content.ReadAsStringAsync();
-                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Files endpoint failed: {response.StatusCode} - {responseContent.Substring(0, Math.Min(200, responseContent.Length))}");
+                        TestCaseEditorApp.Services.Logging.Log.Debug($"[JamaConnect] Item {itemId}: Files endpoint failed: {response.StatusCode} - {TruncateForLog(responseContent)}");
                     }
                     return null;
                 }
@@ -5056,85 +4876,15 @@ namespace TestCaseEditorApp.Services
                     return (false, "Could not determine requirement item type for project", null);
                 }
 
-                var requirementName = !string.IsNullOrWhiteSpace(requirement.Name)
-                    ? requirement.Name
-                    : !string.IsNullOrWhiteSpace(requirement.Item)
-                        ? requirement.Item
-                        : "Extracted Requirement";
-
-                var description = !string.IsNullOrWhiteSpace(requirement.Description)
-                    ? requirement.Description
-                    : requirementName;
-
-                var fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
-                {
-                    ["name"] = requirementName,
-                    ["description"] = description
-                };
-
-                var defaultFields = await GetRequirementFieldDefaultsAsync(projectId, itemTypeId.Value, cancellationToken);
-                foreach (var kvp in defaultFields)
-                {
-                    if (!fields.ContainsKey(kvp.Key))
-                    {
-                        fields[kvp.Key] = kvp.Value;
-                    }
-                }
-
-                await SanitizeLookupDefaultsForCreateAsync(fields, itemTypeId.Value, cancellationToken);
-
-                var sourceDocumentName = !string.IsNullOrWhiteSpace(requirement.SourceDocumentName)
-                    ? requirement.SourceDocumentName
-                    : requirement.AtpDerivation?.SourceDocumentName;
-                var sourceReference = !string.IsNullOrWhiteSpace(requirement.TraceReference)
-                    ? requirement.TraceReference
-                    : requirement.Item;
-
-                // Apply decoder-ring mapping validated for Requirement item type 193.
-                if (requirement.IsDerivedFromATP)
-                {
-                    fields["lookup1"] = 1608; // Requirement Type = System
-                    fields["lookup3"] = 1619; // Derived Requirement = Yes
-
-                    TestCaseEditorApp.Services.Logging.Log.Info(
-                        $"[JamaConnect] Applied derived requirement mapping for item type 193: lookup1=1608, lookup3=1619.");
-                }
-
-                await ApplyRequirementEnrichedFieldsAsync(
+                var requirementName = ResolveRequirementName(requirement);
+                var description = ResolveRequirementDescription(requirement, requirementName);
+                var fields = await BuildCreateRequirementFieldsAsync(
                     projectId,
                     itemTypeId.Value,
                     requirement,
-                    fields,
+                    requirementName,
+                    description,
                     cancellationToken);
-
-                ApplyUserSelectionRequiredFallbackFields(requirement, itemTypeId.Value, fields);
-
-                var upstreamSourceParts = new List<string>();
-                if (!string.IsNullOrWhiteSpace(sourceDocumentName))
-                {
-                    upstreamSourceParts.Add($"Source document: {sourceDocumentName}");
-                }
-
-                if (requirement.SourceAttachmentId.HasValue)
-                {
-                    upstreamSourceParts.Add($"Source attachment ID: {requirement.SourceAttachmentId.Value}");
-                }
-
-                if (requirement.SourceJamaItemId.HasValue)
-                {
-                    upstreamSourceParts.Add($"Source item ID: {requirement.SourceJamaItemId.Value}");
-                }
-
-                if (!string.IsNullOrWhiteSpace(sourceReference))
-                {
-                    upstreamSourceParts.Add($"Source reference: {sourceReference}");
-                }
-
-                if (upstreamSourceParts.Count > 0)
-                {
-                    fields["upstream_cross_instance_relationships$193"] = string.Join("; ", upstreamSourceParts);
-                }
-
                 var effectiveParentContainerId = await ResolvePreferredRequirementPlacementContainerAsync(projectId, itemTypeId.Value, preferredParentContainerId, cancellationToken);
 
                 object requestBody;
@@ -5189,25 +4939,14 @@ namespace TestCaseEditorApp.Services
 
                         if (locationRetry.Success && locationRetry.JamaItemId.HasValue)
                         {
-                            requirement.ApiId = locationRetry.JamaItemId.Value.ToString();
-                            if (!string.IsNullOrWhiteSpace(locationRetry.DocumentKey))
-                            {
-                                requirement.Item = locationRetry.DocumentKey;
-                                requirement.GlobalId = locationRetry.DocumentKey;
-                            }
-                            else if (!string.IsNullOrWhiteSpace(locationRetry.GlobalId))
-                            {
-                                requirement.Item = locationRetry.GlobalId;
-                                requirement.GlobalId = locationRetry.GlobalId;
-                            }
-
-                            await TryCreateTraceabilityRelationshipForDerivedRequirementAsync(
+                            return await FinalizeCreatedRequirementAsync(
                                 projectId,
-                                locationRetry.JamaItemId.Value,
                                 requirement,
+                                locationRetry.JamaItemId.Value,
+                                locationRetry.DocumentKey,
+                                locationRetry.GlobalId,
+                                "Requirement created successfully after location fallback",
                                 cancellationToken);
-
-                            return (true, "Requirement created successfully after location fallback", locationRetry.JamaItemId.Value);
                         }
                     }
 
@@ -5223,25 +4962,14 @@ namespace TestCaseEditorApp.Services
 
                     if (repairedAndRetried.Success && repairedAndRetried.JamaItemId.HasValue)
                     {
-                        requirement.ApiId = repairedAndRetried.JamaItemId.Value.ToString();
-                        if (!string.IsNullOrWhiteSpace(repairedAndRetried.DocumentKey))
-                        {
-                            requirement.Item = repairedAndRetried.DocumentKey;
-                            requirement.GlobalId = repairedAndRetried.DocumentKey;
-                        }
-                        else if (!string.IsNullOrWhiteSpace(repairedAndRetried.GlobalId))
-                        {
-                            requirement.Item = repairedAndRetried.GlobalId;
-                            requirement.GlobalId = repairedAndRetried.GlobalId;
-                        }
-
-                        await TryCreateTraceabilityRelationshipForDerivedRequirementAsync(
+                        return await FinalizeCreatedRequirementAsync(
                             projectId,
-                            repairedAndRetried.JamaItemId.Value,
                             requirement,
+                            repairedAndRetried.JamaItemId.Value,
+                            repairedAndRetried.DocumentKey,
+                            repairedAndRetried.GlobalId,
+                            "Requirement created successfully after lookup field repair",
                             cancellationToken);
-
-                        return (true, "Requirement created successfully after lookup field repair", repairedAndRetried.JamaItemId.Value);
                     }
 
                     var requiredFieldRetried = await TryPopulateRequiredFieldsAndRetryRequirementCreateAsync(
@@ -5256,25 +4984,14 @@ namespace TestCaseEditorApp.Services
 
                     if (requiredFieldRetried.Success && requiredFieldRetried.JamaItemId.HasValue)
                     {
-                        requirement.ApiId = requiredFieldRetried.JamaItemId.Value.ToString();
-                        if (!string.IsNullOrWhiteSpace(requiredFieldRetried.DocumentKey))
-                        {
-                            requirement.Item = requiredFieldRetried.DocumentKey;
-                            requirement.GlobalId = requiredFieldRetried.DocumentKey;
-                        }
-                        else if (!string.IsNullOrWhiteSpace(requiredFieldRetried.GlobalId))
-                        {
-                            requirement.Item = requiredFieldRetried.GlobalId;
-                            requirement.GlobalId = requiredFieldRetried.GlobalId;
-                        }
-
-                        await TryCreateTraceabilityRelationshipForDerivedRequirementAsync(
+                        return await FinalizeCreatedRequirementAsync(
                             projectId,
-                            requiredFieldRetried.JamaItemId.Value,
                             requirement,
+                            requiredFieldRetried.JamaItemId.Value,
+                            requiredFieldRetried.DocumentKey,
+                            requiredFieldRetried.GlobalId,
+                            "Requirement created successfully after required-field repair",
                             cancellationToken);
-
-                        return (true, "Requirement created successfully after required-field repair", requiredFieldRetried.JamaItemId.Value);
                     }
 
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Requirement create failed for project {projectId}, itemType {itemTypeId.Value}: {response.StatusCode} - {errorContent}");
@@ -5284,25 +5001,14 @@ namespace TestCaseEditorApp.Services
                 var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
                 if (TryExtractCreatedItemInfo(response, responseContent, out var createdId, out var documentKey, out var globalId))
                 {
-                    requirement.ApiId = createdId.ToString();
-                    if (!string.IsNullOrWhiteSpace(documentKey))
-                    {
-                        requirement.Item = documentKey;
-                        requirement.GlobalId = documentKey;
-                    }
-                    else if (!string.IsNullOrWhiteSpace(globalId))
-                    {
-                        requirement.Item = globalId;
-                        requirement.GlobalId = globalId;
-                    }
-
-                    await TryCreateTraceabilityRelationshipForDerivedRequirementAsync(
+                    return await FinalizeCreatedRequirementAsync(
                         projectId,
-                        createdId,
                         requirement,
+                        createdId,
+                        documentKey,
+                        globalId,
+                        "Requirement created successfully",
                         cancellationToken);
-
-                    return (true, "Requirement created successfully", createdId);
                 }
 
                 var truncated = string.IsNullOrWhiteSpace(responseContent)
@@ -5318,6 +5024,135 @@ namespace TestCaseEditorApp.Services
                 TestCaseEditorApp.Services.Logging.Log.Error($"[JamaConnect] Error creating requirement item: {ex.Message}");
                 return (false, $"Error creating requirement item: {ex.Message}", null);
             }
+        }
+
+        private static string ResolveRequirementName(Requirement requirement)
+        {
+            return !string.IsNullOrWhiteSpace(requirement.Name)
+                ? requirement.Name
+                : !string.IsNullOrWhiteSpace(requirement.Item)
+                    ? requirement.Item
+                    : "Extracted Requirement";
+        }
+
+        private static string ResolveRequirementDescription(Requirement requirement, string requirementName)
+        {
+            return !string.IsNullOrWhiteSpace(requirement.Description)
+                ? requirement.Description
+                : requirementName;
+        }
+
+        private async Task<Dictionary<string, object?>> BuildCreateRequirementFieldsAsync(
+            int projectId,
+            int itemTypeId,
+            Requirement requirement,
+            string requirementName,
+            string description,
+            CancellationToken cancellationToken)
+        {
+            var fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["name"] = requirementName,
+                ["description"] = description
+            };
+
+            var defaultFields = await GetRequirementFieldDefaultsAsync(projectId, itemTypeId, cancellationToken);
+            foreach (var kvp in defaultFields)
+            {
+                if (!fields.ContainsKey(kvp.Key))
+                {
+                    fields[kvp.Key] = kvp.Value;
+                }
+            }
+
+            await SanitizeLookupDefaultsForCreateAsync(fields, itemTypeId, cancellationToken);
+
+            if (requirement.IsDerivedFromATP)
+            {
+                fields["lookup1"] = 1608; // Requirement Type = System
+                fields["lookup3"] = 1619; // Derived Requirement = Yes
+
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    "[JamaConnect] Applied derived requirement mapping for item type 193: lookup1=1608, lookup3=1619.");
+            }
+
+            await ApplyRequirementEnrichedFieldsAsync(
+                projectId,
+                itemTypeId,
+                requirement,
+                fields,
+                cancellationToken);
+
+            ApplyUserSelectionRequiredFallbackFields(requirement, itemTypeId, fields);
+            ApplyUpstreamSourceFields(requirement, fields);
+
+            return fields;
+        }
+
+        private static void ApplyUpstreamSourceFields(Requirement requirement, Dictionary<string, object?> fields)
+        {
+            var sourceDocumentName = !string.IsNullOrWhiteSpace(requirement.SourceDocumentName)
+                ? requirement.SourceDocumentName
+                : requirement.AtpDerivation?.SourceDocumentName;
+            var sourceReference = !string.IsNullOrWhiteSpace(requirement.TraceReference)
+                ? requirement.TraceReference
+                : requirement.Item;
+
+            var upstreamSourceParts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(sourceDocumentName))
+            {
+                upstreamSourceParts.Add($"Source document: {sourceDocumentName}");
+            }
+
+            if (requirement.SourceAttachmentId.HasValue)
+            {
+                upstreamSourceParts.Add($"Source attachment ID: {requirement.SourceAttachmentId.Value}");
+            }
+
+            if (requirement.SourceJamaItemId.HasValue)
+            {
+                upstreamSourceParts.Add($"Source item ID: {requirement.SourceJamaItemId.Value}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(sourceReference))
+            {
+                upstreamSourceParts.Add($"Source reference: {sourceReference}");
+            }
+
+            if (upstreamSourceParts.Count > 0)
+            {
+                fields["upstream_cross_instance_relationships$193"] = string.Join("; ", upstreamSourceParts);
+            }
+        }
+
+        private async Task<(bool Success, string Message, int? JamaItemId)> FinalizeCreatedRequirementAsync(
+            int projectId,
+            Requirement requirement,
+            int createdId,
+            string? documentKey,
+            string? globalId,
+            string successMessage,
+            CancellationToken cancellationToken)
+        {
+            requirement.ApiId = createdId.ToString();
+            if (!string.IsNullOrWhiteSpace(documentKey))
+            {
+                requirement.Item = documentKey;
+                requirement.GlobalId = documentKey;
+            }
+            else if (!string.IsNullOrWhiteSpace(globalId))
+            {
+                requirement.Item = globalId;
+                requirement.GlobalId = globalId;
+            }
+
+            await TryCreateTraceabilityRelationshipForDerivedRequirementAsync(
+                projectId,
+                createdId,
+                requirement,
+                cancellationToken);
+
+            return (true, successMessage, createdId);
         }
 
         private async Task<(bool Success, int? JamaItemId, string? DocumentKey, string? GlobalId)> TryRepairLookupFieldsAndRetryRequirementCreateAsync(
@@ -6350,6 +6185,193 @@ namespace TestCaseEditorApp.Services
             return nodes;
         }
 
+        /// <summary>
+        /// TEMP troubleshooting utility: delete the "Common Requirements" folder and all descendants
+        /// from project 686 only. Leaf-first delete order is used to satisfy hierarchy constraints.
+        /// </summary>
+        public async Task<(bool Success, string Message, int DeletedCount, int? FolderId)> DeleteCommonRequirementsFolderForProject686Async(
+            int projectId,
+            CancellationToken cancellationToken = default)
+        {
+            if (projectId != 686)
+            {
+                return (false, "Safety guard: this temporary operation is restricted to project 686.", 0, null);
+            }
+
+            return await WithRetryAsync(async () =>
+            {
+                await EnsureAccessTokenAsync();
+
+                var nodes = await LoadProjectItemNodesAsync(projectId, cancellationToken);
+                if (nodes.Count == 0)
+                {
+                    return (false, "No project items were loaded; aborting folder deletion.", 0, (int?)null);
+                }
+
+                var matchingFolders = nodes.Values
+                    .Where(node => IsRequirementContainerItemType(node.ItemType) &&
+                                   node.Name.Equals("Common Requirements", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                if (matchingFolders.Count == 0)
+                {
+                    return (false, "Folder 'Common Requirements' was not found in project 686.", 0, (int?)null);
+                }
+
+                // If multiple matches exist, delete the one with the largest subtree to target the primary container.
+                var childrenByParent = nodes.Values
+                    .Where(node => node.ParentId.HasValue)
+                    .GroupBy(node => node.ParentId!.Value)
+                    .ToDictionary(group => group.Key, group => group.Select(n => n.Id).ToList());
+
+                int CountSubtreeSize(int rootId)
+                {
+                    var count = 1;
+                    if (!childrenByParent.TryGetValue(rootId, out var children))
+                    {
+                        return count;
+                    }
+
+                    foreach (var child in children)
+                    {
+                        count += CountSubtreeSize(child);
+                    }
+
+                    return count;
+                }
+
+                var targetFolder = matchingFolders
+                    .OrderByDescending(folder => CountSubtreeSize(folder.Id))
+                    .First();
+
+                var subtreeIds = BuildSubtreeIds(targetFolder.Id, childrenByParent);
+                var deleteOrder = subtreeIds
+                    .OrderByDescending(id => GetDepth(id, nodes))
+                    .ThenByDescending(id => id)
+                    .ToList();
+
+                var unlockedCount = 0;
+                var unlockFailedCount = 0;
+                foreach (var itemId in deleteOrder)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var unlockResult = await TryUnlockItemAsync(itemId, cancellationToken);
+                    if (unlockResult)
+                    {
+                        unlockedCount++;
+                    }
+                    else
+                    {
+                        unlockFailedCount++;
+                    }
+                }
+
+                var deletedCount = 0;
+                foreach (var itemId in deleteOrder)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var deleteUrl = $"{_baseUrl}/rest/v1/items/{itemId}";
+                    using var response = await _httpClient.DeleteAsync(deleteUrl, cancellationToken);
+
+                    if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        deletedCount++;
+                        continue;
+                    }
+
+                    var error = await response.Content.ReadAsStringAsync(cancellationToken);
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Delete failed for item {itemId}: {response.StatusCode} - {TruncateForLog(error, 400)}");
+                    var unlockDetail = unlockFailedCount > 0
+                        ? $" Unlock attempts failed for {unlockFailedCount} item(s)."
+                        : string.Empty;
+                    return (false, $"Delete failed at item {itemId}: {response.StatusCode}.{unlockDetail}", deletedCount, targetFolder.Id);
+                }
+
+                var successMessage =
+                    $"Deleted 'Common Requirements' subtree in project 686. Removed {deletedCount} item(s). " +
+                    $"Unlock pre-pass: {unlockedCount} succeeded, {unlockFailedCount} failed.";
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] {successMessage} FolderId={targetFolder.Id}");
+                return (true, successMessage, deletedCount, targetFolder.Id);
+            });
+        }
+
+        private async Task<bool> TryUnlockItemAsync(int itemId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var url = $"{_baseUrl}/rest/v1/items/{itemId}";
+
+                // Cookbook pattern: PUT /items/{id} with { "locked": false }
+                var payload = new { locked = false };
+                var json = JsonSerializer.Serialize(payload);
+                using var content = new StringContent(json, Encoding.UTF8, "application/json");
+                using var response = await _httpClient.PutAsync(url, content, cancellationToken);
+
+                if (response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    return true;
+                }
+
+                var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
+                TestCaseEditorApp.Services.Logging.Log.Warn(
+                    $"[JamaConnect] Unlock failed for item {itemId}: {response.StatusCode} - {TruncateForLog(responseText, 300)}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Unlock exception for item {itemId}: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static HashSet<int> BuildSubtreeIds(int rootId, Dictionary<int, List<int>> childrenByParent)
+        {
+            var result = new HashSet<int> { rootId };
+            var stack = new Stack<int>();
+            stack.Push(rootId);
+
+            while (stack.Count > 0)
+            {
+                var current = stack.Pop();
+                if (!childrenByParent.TryGetValue(current, out var children))
+                {
+                    continue;
+                }
+
+                foreach (var child in children)
+                {
+                    if (result.Add(child))
+                    {
+                        stack.Push(child);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private static int GetDepth(int id, Dictionary<int, (int Id, string Name, int ItemType, int? ParentId)> nodes)
+        {
+            var depth = 0;
+            var current = id;
+            var seen = new HashSet<int>();
+
+            while (nodes.TryGetValue(current, out var node) && node.ParentId.HasValue)
+            {
+                if (!seen.Add(current))
+                {
+                    break;
+                }
+
+                current = node.ParentId.Value;
+                depth++;
+            }
+
+            return depth;
+        }
+
         private async Task<List<(int Id, string Name, int Score)>> GetRequirementContainerCandidatesAsync(int projectId, CancellationToken cancellationToken)
         {
             var candidates = new List<(int Id, string Name, int Score)>();
@@ -6365,7 +6387,7 @@ namespace TestCaseEditorApp.Services
                 foreach (var node in nodes.Values)
                 {
                     // Folder (55) and Set (54) are preferred requirement containers.
-                    if (node.ItemType != 55 && node.ItemType != 54)
+                    if (!IsRequirementContainerItemType(node.ItemType))
                     {
                         continue;
                     }
@@ -6374,35 +6396,7 @@ namespace TestCaseEditorApp.Services
                     var ancestry = BuildAncestry(nodes, node.Id)
                         .Select(a => a.ToLowerInvariant())
                         .ToList();
-
-                    var hasSystemsInPath = ancestry.Any(a => a.Contains("systems"));
-                    var hasRequirementsInPath = ancestry.Any(a => a.Contains("requirements") || a.Contains("requirement"));
-                    var hasSoftwareInPath = ancestry.Any(a => a.Contains("software"));
-                    var hasHardwareInPath = ancestry.Any(a => a.Contains("hardware"));
-                    var hasDhaInPath = ancestry.Any(a => a.Contains("dha"));
-                    var hasDhaRevisedInPath = ancestry.Any(a => a.Contains("dha revised"));
-
-                    var hasPreferredDhaPath = hasSystemsInPath
-                        && hasRequirementsInPath
-                        && hasDhaInPath
-                        && hasDhaRevisedInPath;
-
-                    var score = 0;
-                    if (hasSystemsInPath) score += 180;
-                    if (hasRequirementsInPath) score += 180;
-                    if (hasDhaInPath) score += 120;
-                    if (hasDhaRevisedInPath) score += 200;
-                    if (hasPreferredDhaPath) score += 600;
-                    if (lower.Contains("requirement")) score += 120;
-                    if (lower.Equals("requirements")) score += 160;
-                    if (lower.Contains("dha revised")) score += 220;
-                    if (lower.Equals("dha")) score += 80;
-                    if (lower.Contains("system")) score += 20;
-                    if (lower.Contains("spec")) score += 20;
-                    if (lower.Contains("test") || lower.Contains("verification") || lower.Contains("procedure") || lower.Contains("case")) score -= 140;
-                    if (hasSoftwareInPath && !hasSystemsInPath) score -= 50;
-                    if (hasHardwareInPath && !hasSystemsInPath) score -= 50;
-                    if (lower.Contains("artifact") || lower.Contains("drawing") || lower.Contains("document")) score -= 60;
+                    var score = CalculateRequirementContainerScore(lower, ancestry);
 
                     // Keep broad candidates but rank requirement-like containers first.
                     candidates.Add((node.Id, node.Name, score));
@@ -6425,6 +6419,45 @@ namespace TestCaseEditorApp.Services
             }
 
             return candidates;
+        }
+
+        private static bool IsRequirementContainerItemType(int itemType)
+        {
+            return itemType == 55 || itemType == 54;
+        }
+
+        private static int CalculateRequirementContainerScore(string lowerName, List<string> ancestry)
+        {
+            var hasSystemsInPath = ancestry.Any(a => a.Contains("systems"));
+            var hasRequirementsInPath = ancestry.Any(a => a.Contains("requirements") || a.Contains("requirement"));
+            var hasSoftwareInPath = ancestry.Any(a => a.Contains("software"));
+            var hasHardwareInPath = ancestry.Any(a => a.Contains("hardware"));
+            var hasDhaInPath = ancestry.Any(a => a.Contains("dha"));
+            var hasDhaRevisedInPath = ancestry.Any(a => a.Contains("dha revised"));
+
+            var hasPreferredDhaPath = hasSystemsInPath
+                && hasRequirementsInPath
+                && hasDhaInPath
+                && hasDhaRevisedInPath;
+
+            var score = 0;
+            if (hasSystemsInPath) score += 180;
+            if (hasRequirementsInPath) score += 180;
+            if (hasDhaInPath) score += 120;
+            if (hasDhaRevisedInPath) score += 200;
+            if (hasPreferredDhaPath) score += 600;
+            if (lowerName.Contains("requirement")) score += 120;
+            if (lowerName.Equals("requirements")) score += 160;
+            if (lowerName.Contains("dha revised")) score += 220;
+            if (lowerName.Equals("dha")) score += 80;
+            if (lowerName.Contains("system")) score += 20;
+            if (lowerName.Contains("spec")) score += 20;
+            if (lowerName.Contains("test") || lowerName.Contains("verification") || lowerName.Contains("procedure") || lowerName.Contains("case")) score -= 140;
+            if (hasSoftwareInPath && !hasSystemsInPath) score -= 50;
+            if (hasHardwareInPath && !hasSystemsInPath) score -= 50;
+            if (lowerName.Contains("artifact") || lowerName.Contains("drawing") || lowerName.Contains("document")) score -= 60;
+
+            return score;
         }
 
         private static List<string> BuildAncestry(Dictionary<int, (int Id, string Name, int ItemType, int? ParentId)> nodes, int startId)

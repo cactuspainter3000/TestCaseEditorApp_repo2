@@ -57,9 +57,12 @@
 
                         <ProgressBar Grid.Column="0"
                                      Height="8"
-                                     IsIndeterminate="True"
+                                     IsIndeterminate="{Binding IsParsingProgressIndeterminate}"
                                      VerticalAlignment="Center"
-                                     Margin="0,0,12,0"/>
+                                     Margin="0,0,12,0"
+                                     Minimum="0"
+                                     Maximum="100"
+                                     Value="{Binding ParsingProgressPercent}"/>
 
                         <TextBlock Grid.Column="1"
                                    Text="{Binding StatusMessage}"

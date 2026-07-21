@@ -108,310 +108,37 @@ namespace TestCaseEditorApp.Services
             
             var stopwatch = Stopwatch.StartNew();
             var derivationOptions = options ?? new DerivationOptions();
-            var result = new DerivationResult 
-            { 
-                SourceATPContent = atpContent,
-                AnalysisModel = GetModelName(),
-                SourceMetadata = new Dictionary<string, string>(derivationOptions.SourceMetadata)
-            };
+            var result = CreateDerivationResult(atpContent, derivationOptions);
 
             try
             {
                 _logger.LogInformation("Starting enhanced capability derivation for ATP content (length: {ContentLength})", atpContent.Length);
 
-                // Validate input
                 if (string.IsNullOrWhiteSpace(atpContent))
                 {
                     result.ProcessingWarnings.Add("Empty ATP content provided");
                     return result;
                 }
 
-                // Extract ATP steps using dedicated parser
-                var parsedSteps = await _atpParser.ParseATPDocumentAsync(atpContent, new ATPParsingOptions
-                {
-                    ParseMetadata = true,
-                    SkipBoilerplate = true,
-                    SystemKeywords = derivationOptions.SystemType != "Generic" 
-                        ? new List<string> { derivationOptions.SystemType } 
-                        : new List<string>()
-                });
-                _logger.LogDebug("Extracted {StepCount} ATP steps from content", parsedSteps.Count);
-                progressCallback?.Invoke($"📊 ATP Parser: Extracted {parsedSteps.Count} test procedure steps from document structure");
+                var parsedSteps = await ParseAtpStepsAsync(atpContent, derivationOptions, progressCallback);
 
-                // Process all ATP steps for full analysis
-                progressCallback?.Invoke($"Processing {parsedSteps.Count} ATP steps for requirement derivation...");
+                var stepProcessingTelemetry = await ProcessParsedStepsAsync(
+                    parsedSteps,
+                    derivationOptions,
+                    result,
+                    stopwatch,
+                    progressCallback,
+                    retrySkippedCallback,
+                    onRequirementDiscovered);
 
-                // Process each step for capability derivation with progress tracking
-                int stepCounter = 0;
-                var timeoutCount = 0;
-                var failureCount = 0;
-                var zeroYieldStepCount = 0;
-                var nonZeroYieldStepCount = 0;
-
-                string? firstTimeoutStepPreview = null;
-                string? firstFailureStepPreview = null;
-                string? firstFailureReason = null;
-                string? firstZeroYieldStepPreview = null;
-                string? firstZeroYieldReason = null;
-
-                var configuredChatModel = GetConfiguredChatModel();
-                var configuredEmbeddingModel = GetConfiguredEmbeddingModel();
-                var shortChatModelName = ToShortModelName(configuredChatModel);
-                var shortEmbeddingModelName = ToShortModelName(configuredEmbeddingModel);
-                foreach (var parsedStep in parsedSteps)
-                {
-                    if (stopwatch.Elapsed >= derivationOptions.MaxProcessingTime)
-                    {
-                        var budgetMessage = $"Stopped step processing after reaching total time budget ({FormatDuration(derivationOptions.MaxProcessingTime)}). Processed {stepCounter}/{parsedSteps.Count} steps.";
-                        _logger.LogWarning("{Message}", budgetMessage);
-                        result.ProcessingWarnings.Add(budgetMessage);
-                        progressCallback?.Invoke($"⏱️ Time budget reached after {stepCounter}/{parsedSteps.Count} steps; finalizing partial results");
-                        break;
-                    }
-
-                    stepCounter++;
-                    var currentStepStopwatch = Stopwatch.StartNew();
-                    var parsingProgressBar = BuildProgressBar(stepCounter, parsedSteps.Count);
-                    var progressPercent = (int)Math.Round((double)stepCounter / parsedSteps.Count * 100);
-                    
-                    // Apply per-step timeout to prevent hanging
-                    var remainingBudget = derivationOptions.MaxProcessingTime - stopwatch.Elapsed;
-                    if (remainingBudget <= TimeSpan.Zero)
-                    {
-                        var budgetMessage = $"Stopped step processing because no total time budget remained after {stepCounter - 1} steps.";
-                        _logger.LogWarning("{Message}", budgetMessage);
-                        result.ProcessingWarnings.Add(budgetMessage);
-                        progressCallback?.Invoke("⏱️ No remaining processing budget; finalizing partial results");
-                        break;
-                    }
-
-                    var adaptiveStepTimeout = ComputeAdaptiveStepTimeout(
-                        parsedStep.StepText,
-                        parsedStep.ActionVerbs?.Count ?? 0,
-                        parsedStep.SystemReferences?.Count ?? 0,
-                        derivationOptions.PerStepTimeout,
-                        stepCounter,
-                        parsedSteps.Count,
-                        timeoutCount);
-
-                    var effectiveStepTimeout = adaptiveStepTimeout < remainingBudget
-                        ? adaptiveStepTimeout
-                        : remainingBudget;
-
-                    progressCallback?.Invoke($"📄 Parsing document {parsingProgressBar} ({stepCounter}/{parsedSteps.Count}, {progressPercent}%): chat={shortChatModelName} | embed={shortEmbeddingModelName} (embed may fallback) | timeout={effectiveStepTimeout.TotalSeconds:0}s → {parsedStep.StepText.Substring(0, Math.Min(50, parsedStep.StepText.Length))}... | current req: 00:00");
-
-                    using var stepCts = new CancellationTokenSource(effectiveStepTimeout);
-                    using var heartbeatCts = new CancellationTokenSource();
-                    var heartbeatTask = EmitStepHeartbeatAsync(
-                        progressCallback,
-                        stepCounter,
-                        parsedSteps.Count,
-                        shortChatModelName,
-                        currentStepStopwatch,
-                        heartbeatCts.Token);
-                    
-                    try
-                    {
-                        var stepResult = await DeriveSingleStepWithTimeoutAsync(parsedStep.StepText, derivationOptions, stepCts.Token);
-                        var stepPreview = BuildStepPreview(parsedStep.StepText);
-                        var stepCapabilityCount = stepResult.DerivedCapabilities.Count;
-
-                        if (stepCapabilityCount > 0)
-                        {
-                            nonZeroYieldStepCount++;
-                        }
-                        else
-                        {
-                            zeroYieldStepCount++;
-
-                            if (firstZeroYieldStepPreview == null)
-                            {
-                                firstZeroYieldStepPreview = stepPreview;
-                                firstZeroYieldReason = stepResult.ProcessingWarnings.FirstOrDefault();
-                                _logger.LogWarning(
-                                    "[DerivationDiag] First zero-yield step observed at {StepNumber}/{TotalSteps}. StepId={StepId}, StepType={StepType}, Warning='{Warning}', StepPreview='{StepPreview}'",
-                                    stepCounter,
-                                    parsedSteps.Count,
-                                    parsedStep.StepId,
-                                    parsedStep.StepType,
-                                    firstZeroYieldReason ?? "<none>",
-                                    firstZeroYieldStepPreview);
-                            }
-                        }
-                        
-                        // Enhance results with parsing metadata
-                        foreach (var capability in stepResult.DerivedCapabilities)
-                        {
-                            capability.SourceMetadata["StepId"] = parsedStep.StepId;
-                            capability.SourceMetadata["StepNumber"] = parsedStep.StepNumber;
-                            capability.SourceMetadata["StepType"] = parsedStep.StepType.ToString();
-                            capability.SourceMetadata["ActionVerbs"] = string.Join(", ", parsedStep.ActionVerbs);
-                            capability.SourceMetadata["SystemReferences"] = string.Join(", ", parsedStep.SystemReferences);
-                        }
-                        
-                        // Stream requirements in real-time before merging to batch collection
-                        if (onRequirementDiscovered != null)
-                        {
-                            foreach (var capability in stepResult.DerivedCapabilities)
-                            {
-                                var requirement = ConvertCapabilityToRequirement(capability);
-                                onRequirementDiscovered(requirement);
-                            }
-                        }
-                        
-                        // Merge results
-                        result.DerivedCapabilities.AddRange(stepResult.DerivedCapabilities);
-                        result.RejectedItems.AddRange(stepResult.RejectedItems);
-                        result.ProcessingWarnings.AddRange(stepResult.ProcessingWarnings);
-                        
-                        // Add parsing warnings if any
-                        result.ProcessingWarnings.AddRange(parsedStep.ParsingWarnings);
-                        
-                        // Update progress with running totals
-                        progressCallback?.Invoke($"✅ A-N Taxonomy ({stepCounter}/{parsedSteps.Count}): Derived {stepResult.DerivedCapabilities.Count} capabilities → Total: {result.DerivedCapabilities.Count} | current req: {FormatDuration(currentStepStopwatch.Elapsed)}");
-                        
-                    }
-                    catch (OperationCanceledException) when (stepCts.IsCancellationRequested)
-                    {
-                        timeoutCount++;
-                        _logger.LogWarning("ATP step {StepNumber} timed out after {TimeoutSeconds} seconds", stepCounter, effectiveStepTimeout.TotalSeconds);
-
-                        if (firstTimeoutStepPreview == null)
-                        {
-                            firstTimeoutStepPreview = BuildStepPreview(parsedStep.StepText);
-                            _logger.LogWarning(
-                                "[DerivationDiag] First timeout at step {StepNumber}/{TotalSteps}. StepId={StepId}, TimeoutSeconds={TimeoutSeconds}, StepPreview='{StepPreview}'",
-                                stepCounter,
-                                parsedSteps.Count,
-                                parsedStep.StepId,
-                                effectiveStepTimeout.TotalSeconds,
-                                firstTimeoutStepPreview);
-                        }
-                        
-                        // Collect skipped step for potential retry
-                        var skippedStep = new SkippedAtpStep
-                        {
-                            StepText = parsedStep.StepText,
-                            StepNumber = stepCounter,
-                            StepId = parsedStep.StepId,
-                            TimeoutDuration = effectiveStepTimeout,
-                            SkipReason = $"Timed out after {effectiveStepTimeout.TotalSeconds}s"
-                        };
-                        result.SkippedAtpSteps.Add(skippedStep);
-                        
-                        result.ProcessingWarnings.Add($"Step {stepCounter} timed out after {effectiveStepTimeout.TotalSeconds}s - added to retry queue");
-                        progressCallback?.Invoke($"⏰ Step {stepCounter}/{parsedSteps.Count} timed out (can retry later)");
-                    }
-                    catch (Exception ex)
-                    {
-                        failureCount++;
-                        _logger.LogWarning(ex, "Failed to process ATP step: {Step}", parsedStep.StepText.Substring(0, Math.Min(100, parsedStep.StepText.Length)));
-
-                        if (firstFailureStepPreview == null)
-                        {
-                            firstFailureStepPreview = BuildStepPreview(parsedStep.StepText);
-                            firstFailureReason = ex.Message;
-                            _logger.LogWarning(
-                                "[DerivationDiag] First failed step at {StepNumber}/{TotalSteps}. StepId={StepId}, Error='{Error}', StepPreview='{StepPreview}'",
-                                stepCounter,
-                                parsedSteps.Count,
-                                parsedStep.StepId,
-                                firstFailureReason,
-                                firstFailureStepPreview);
-                        }
-
-                        result.ProcessingWarnings.Add($"Failed to process step {parsedStep.StepNumber}: {ex.Message}");
-                        progressCallback?.Invoke($"❌ Step {stepCounter}/{parsedSteps.Count} failed: {ex.Message.Substring(0, Math.Min(50, ex.Message.Length))} | current req: {FormatDuration(currentStepStopwatch.Elapsed)}");
-                    }
-                    finally
-                    {
-                        heartbeatCts.Cancel();
-                        try
-                        {
-                            await heartbeatTask;
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            // Expected when step completes and heartbeat is cancelled.
-                        }
-                    }
-                }
-
-                // Handle retrying skipped ATP steps if user chooses to and callback is provided
-                if (result.SkippedAtpSteps.Count > 0 && retrySkippedCallback != null)
-                {
-                    progressCallback?.Invoke($"📋 ATP Derivation Complete: {result.DerivedCapabilities.Count} capabilities derived, {result.SkippedAtpSteps.Count} ATP steps timed out");
-                    
-                    try
-                    {
-                        var retryDecision = await retrySkippedCallback(result.SkippedAtpSteps);
-                        
-                        if (retryDecision.ShouldRetry)
-                        {
-                            progressCallback?.Invoke($"🔄 Retrying {result.SkippedAtpSteps.Count} skipped steps with {retryDecision.ExtendedTimeout.TotalSeconds}s timeout...");
-                            
-                            await RetrySkippedStepsAsync(result, derivationOptions, retryDecision.ExtendedTimeout, progressCallback);
-                            
-                            progressCallback?.Invoke($"✅ ATP Retry Complete: Final result: {result.DerivedCapabilities.Count} total capabilities via extended timeout");
-                        }
-                        else
-                        {
-                            progressCallback?.Invoke($"⏭️ Skipping retry - proceeding with {result.DerivedCapabilities.Count} capabilities");
-                        }
-                    }
-                    catch (Exception retryEx)
-                    {
-                        _logger.LogWarning(retryEx, "Failed to handle retry decision for skipped ATP steps");
-                        result.ProcessingWarnings.Add($"Retry handling failed: {retryEx.Message}");
-                    }
-                }
-                else if (result.SkippedAtpSteps.Count > 0)
-                {
-                    progressCallback?.Invoke($"✅ ATP Derivation Complete: {result.DerivedCapabilities.Count} capabilities derived, {result.SkippedAtpSteps.Count} ATP steps skipped (no retry callback)");
-                }
-
-                // Apply MBSE system-level requirement filtering
-                await ApplyMBSEFilteringAsync(result, derivationOptions, progressCallback);
-
-                // Calculate advanced multi-dimensional quality score
-                result.QualityScore = await CalculateAdvancedQualityAsync(result, atpContent);
-                result.ProcessedAt = DateTime.Now;
-                result.ProcessingTime = stopwatch.Elapsed;
-
-                _lastSuccessfulOperation = DateTime.Now;
-                _performanceMetrics["LastDerivationTime"] = stopwatch.ElapsedMilliseconds;
-                _performanceMetrics["LastCapabilityCount"] = result.DerivedCapabilities.Count;
-
-                var processedSteps = stepCounter;
-                var yieldRatio = processedSteps > 0
-                    ? (double)nonZeroYieldStepCount / processedSteps
-                    : 0d;
-
-                _performanceMetrics["LastProcessedStepCount"] = processedSteps;
-                _performanceMetrics["LastTimeoutStepCount"] = timeoutCount;
-                _performanceMetrics["LastFailedStepCount"] = failureCount;
-                _performanceMetrics["LastZeroYieldStepCount"] = zeroYieldStepCount;
-                _performanceMetrics["LastNonZeroYieldStepCount"] = nonZeroYieldStepCount;
-                _performanceMetrics["LastYieldRatio"] = yieldRatio;
-
-                _logger.LogInformation(
-                    "[DerivationDiag] Summary: ProcessedSteps={ProcessedSteps}/{TotalSteps}, DerivedCapabilities={CapabilityCount}, NonZeroYieldSteps={NonZeroYieldSteps}, ZeroYieldSteps={ZeroYieldSteps}, TimeoutSteps={TimeoutSteps}, FailedSteps={FailedSteps}, YieldRatio={YieldRatio:P1}, FirstTimeout='{FirstTimeout}', FirstFailure='{FirstFailure}', FirstFailureReason='{FirstFailureReason}', FirstZeroYield='{FirstZeroYield}', FirstZeroYieldReason='{FirstZeroYieldReason}'",
-                    processedSteps,
+                await FinalizeDerivationResultAsync(
+                    result,
+                    atpContent,
+                    derivationOptions,
+                    stopwatch,
                     parsedSteps.Count,
-                    result.DerivedCapabilities.Count,
-                    nonZeroYieldStepCount,
-                    zeroYieldStepCount,
-                    timeoutCount,
-                    failureCount,
-                    yieldRatio,
-                    firstTimeoutStepPreview ?? "<none>",
-                    firstFailureStepPreview ?? "<none>",
-                    firstFailureReason ?? "<none>",
-                    firstZeroYieldStepPreview ?? "<none>",
-                    firstZeroYieldReason ?? "<none>");
-
-                _logger.LogInformation("Capability derivation completed: {CapabilityCount} capabilities derived, {RejectionCount} items rejected, quality score: {QualityScore:F2}",
-                    result.DerivedCapabilities.Count, result.RejectedItems.Count, result.QualityScore);
+                    stepProcessingTelemetry,
+                    progressCallback);
 
                 return result;
             }
@@ -422,6 +149,333 @@ namespace TestCaseEditorApp.Services
                 result.ProcessingTime = stopwatch.Elapsed;
                 return result;
             }
+        }
+
+        private DerivationResult CreateDerivationResult(string atpContent, DerivationOptions derivationOptions)
+        {
+            return new DerivationResult
+            {
+                SourceATPContent = atpContent,
+                AnalysisModel = GetModelName(),
+                SourceMetadata = new Dictionary<string, string>(derivationOptions.SourceMetadata)
+            };
+        }
+
+        private async Task<List<ParsedATPStep>> ParseAtpStepsAsync(
+            string atpContent,
+            DerivationOptions derivationOptions,
+            Action<string>? progressCallback)
+        {
+            var parsedSteps = await _atpParser.ParseATPDocumentAsync(
+                atpContent,
+                BuildAtpParsingOptions(derivationOptions));
+
+            _logger.LogDebug("Extracted {StepCount} ATP steps from content", parsedSteps.Count);
+            progressCallback?.Invoke($"📊 ATP Parser: Extracted {parsedSteps.Count} test procedure steps from document structure");
+            return parsedSteps;
+        }
+
+        private static ATPParsingOptions BuildAtpParsingOptions(DerivationOptions derivationOptions)
+        {
+            return new ATPParsingOptions
+            {
+                ParseMetadata = true,
+                SkipBoilerplate = true,
+                SystemKeywords = derivationOptions.SystemType != "Generic"
+                    ? new List<string> { derivationOptions.SystemType }
+                    : new List<string>()
+            };
+        }
+
+        private async Task<StepProcessingTelemetry> ProcessParsedStepsAsync(
+            List<ParsedATPStep> parsedSteps,
+            DerivationOptions derivationOptions,
+            DerivationResult result,
+            Stopwatch stopwatch,
+            Action<string>? progressCallback,
+            Func<List<SkippedAtpStep>, Task<TimeoutRetryDecision>>? retrySkippedCallback,
+            Action<Requirement>? onRequirementDiscovered)
+        {
+            var telemetry = new StepProcessingTelemetry();
+
+            progressCallback?.Invoke($"Processing {parsedSteps.Count} ATP steps for requirement derivation...");
+
+            var configuredChatModel = GetConfiguredChatModel();
+            var configuredEmbeddingModel = GetConfiguredEmbeddingModel();
+            var shortChatModelName = ToShortModelName(configuredChatModel);
+            var shortEmbeddingModelName = ToShortModelName(configuredEmbeddingModel);
+
+            foreach (var parsedStep in parsedSteps)
+            {
+                if (stopwatch.Elapsed >= derivationOptions.MaxProcessingTime)
+                {
+                    var budgetMessage = $"Stopped step processing after reaching total time budget ({FormatDuration(derivationOptions.MaxProcessingTime)}). Processed {telemetry.StepCounter}/{parsedSteps.Count} steps.";
+                    _logger.LogWarning("{Message}", budgetMessage);
+                    result.ProcessingWarnings.Add(budgetMessage);
+                    progressCallback?.Invoke($"⏱️ Time budget reached after {telemetry.StepCounter}/{parsedSteps.Count} steps; finalizing partial results");
+                    break;
+                }
+
+                telemetry.StepCounter++;
+                var currentStepStopwatch = Stopwatch.StartNew();
+                var parsingProgressBar = BuildProgressBar(telemetry.StepCounter, parsedSteps.Count);
+                var progressPercent = (int)Math.Round((double)telemetry.StepCounter / parsedSteps.Count * 100);
+
+                var remainingBudget = derivationOptions.MaxProcessingTime - stopwatch.Elapsed;
+                if (remainingBudget <= TimeSpan.Zero)
+                {
+                    var budgetMessage = $"Stopped step processing because no total time budget remained after {telemetry.StepCounter - 1} steps.";
+                    _logger.LogWarning("{Message}", budgetMessage);
+                    result.ProcessingWarnings.Add(budgetMessage);
+                    progressCallback?.Invoke("⏱️ No remaining processing budget; finalizing partial results");
+                    break;
+                }
+
+                var adaptiveStepTimeout = ComputeAdaptiveStepTimeout(
+                    parsedStep.StepText,
+                    parsedStep.ActionVerbs?.Count ?? 0,
+                    parsedStep.SystemReferences?.Count ?? 0,
+                    derivationOptions.PerStepTimeout,
+                    telemetry.StepCounter,
+                    parsedSteps.Count,
+                    telemetry.TimeoutCount);
+
+                var effectiveStepTimeout = adaptiveStepTimeout < remainingBudget
+                    ? adaptiveStepTimeout
+                    : remainingBudget;
+
+                progressCallback?.Invoke($"📄 Parsing document {parsingProgressBar} ({telemetry.StepCounter}/{parsedSteps.Count}, {progressPercent}%): chat={shortChatModelName} | embed={shortEmbeddingModelName} (embed may fallback) | timeout={effectiveStepTimeout.TotalSeconds:0}s → {parsedStep.StepText.Substring(0, Math.Min(50, parsedStep.StepText.Length))}... | current req: 00:00");
+
+                using var stepCts = new CancellationTokenSource(effectiveStepTimeout);
+                using var heartbeatCts = new CancellationTokenSource();
+                var heartbeatTask = EmitStepHeartbeatAsync(
+                    progressCallback,
+                    telemetry.StepCounter,
+                    parsedSteps.Count,
+                    shortChatModelName,
+                    currentStepStopwatch,
+                    heartbeatCts.Token);
+
+                try
+                {
+                    var stepResult = await DeriveSingleStepWithTimeoutAsync(parsedStep.StepText, derivationOptions, stepCts.Token);
+                    var stepPreview = BuildStepPreview(parsedStep.StepText);
+                    var stepCapabilityCount = stepResult.DerivedCapabilities.Count;
+
+                    if (stepCapabilityCount > 0)
+                    {
+                        telemetry.NonZeroYieldStepCount++;
+                    }
+                    else
+                    {
+                        telemetry.ZeroYieldStepCount++;
+
+                        if (telemetry.FirstZeroYieldStepPreview == null)
+                        {
+                            telemetry.FirstZeroYieldStepPreview = stepPreview;
+                            telemetry.FirstZeroYieldReason = stepResult.ProcessingWarnings.FirstOrDefault();
+                            _logger.LogWarning(
+                                "[DerivationDiag] First zero-yield step observed at {StepNumber}/{TotalSteps}. StepId={StepId}, StepType={StepType}, Warning='{Warning}', StepPreview='{StepPreview}'",
+                                telemetry.StepCounter,
+                                parsedSteps.Count,
+                                parsedStep.StepId,
+                                parsedStep.StepType,
+                                telemetry.FirstZeroYieldReason ?? "<none>",
+                                telemetry.FirstZeroYieldStepPreview);
+                        }
+                    }
+
+                    foreach (var capability in stepResult.DerivedCapabilities)
+                    {
+                        capability.SourceMetadata["StepId"] = parsedStep.StepId;
+                        capability.SourceMetadata["StepNumber"] = parsedStep.StepNumber;
+                        capability.SourceMetadata["StepType"] = parsedStep.StepType.ToString();
+                        capability.SourceMetadata["ActionVerbs"] = string.Join(", ", parsedStep.ActionVerbs);
+                        capability.SourceMetadata["SystemReferences"] = string.Join(", ", parsedStep.SystemReferences);
+                    }
+
+                    if (onRequirementDiscovered != null)
+                    {
+                        foreach (var capability in stepResult.DerivedCapabilities)
+                        {
+                            var requirement = ConvertCapabilityToRequirement(capability);
+                            onRequirementDiscovered(requirement);
+                        }
+                    }
+
+                    result.DerivedCapabilities.AddRange(stepResult.DerivedCapabilities);
+                    result.RejectedItems.AddRange(stepResult.RejectedItems);
+                    result.ProcessingWarnings.AddRange(stepResult.ProcessingWarnings);
+                    result.ProcessingWarnings.AddRange(parsedStep.ParsingWarnings);
+
+                    progressCallback?.Invoke($"✅ A-N Taxonomy ({telemetry.StepCounter}/{parsedSteps.Count}): Derived {stepResult.DerivedCapabilities.Count} capabilities → Total: {result.DerivedCapabilities.Count} | current req: {FormatDuration(currentStepStopwatch.Elapsed)}");
+                }
+                catch (OperationCanceledException) when (stepCts.IsCancellationRequested)
+                {
+                    telemetry.TimeoutCount++;
+                    _logger.LogWarning("ATP step {StepNumber} timed out after {TimeoutSeconds} seconds", telemetry.StepCounter, effectiveStepTimeout.TotalSeconds);
+
+                    if (telemetry.FirstTimeoutStepPreview == null)
+                    {
+                        telemetry.FirstTimeoutStepPreview = BuildStepPreview(parsedStep.StepText);
+                        _logger.LogWarning(
+                            "[DerivationDiag] First timeout at step {StepNumber}/{TotalSteps}. StepId={StepId}, TimeoutSeconds={TimeoutSeconds}, StepPreview='{StepPreview}'",
+                            telemetry.StepCounter,
+                            parsedSteps.Count,
+                            parsedStep.StepId,
+                            effectiveStepTimeout.TotalSeconds,
+                            telemetry.FirstTimeoutStepPreview);
+                    }
+
+                    var skippedStep = new SkippedAtpStep
+                    {
+                        StepText = parsedStep.StepText,
+                        StepNumber = telemetry.StepCounter,
+                        StepId = parsedStep.StepId,
+                        TimeoutDuration = effectiveStepTimeout,
+                        SkipReason = $"Timed out after {effectiveStepTimeout.TotalSeconds}s"
+                    };
+                    result.SkippedAtpSteps.Add(skippedStep);
+
+                    result.ProcessingWarnings.Add($"Step {telemetry.StepCounter} timed out after {effectiveStepTimeout.TotalSeconds}s - added to retry queue");
+                    progressCallback?.Invoke($"⏰ Step {telemetry.StepCounter}/{parsedSteps.Count} timed out (can retry later)");
+                }
+                catch (Exception ex)
+                {
+                    telemetry.FailureCount++;
+                    _logger.LogWarning(ex, "Failed to process ATP step: {Step}", parsedStep.StepText.Substring(0, Math.Min(100, parsedStep.StepText.Length)));
+
+                    if (telemetry.FirstFailureStepPreview == null)
+                    {
+                        telemetry.FirstFailureStepPreview = BuildStepPreview(parsedStep.StepText);
+                        telemetry.FirstFailureReason = ex.Message;
+                        _logger.LogWarning(
+                            "[DerivationDiag] First failed step at {StepNumber}/{TotalSteps}. StepId={StepId}, Error='{Error}', StepPreview='{StepPreview}'",
+                            telemetry.StepCounter,
+                            parsedSteps.Count,
+                            parsedStep.StepId,
+                            telemetry.FirstFailureReason,
+                            telemetry.FirstFailureStepPreview);
+                    }
+
+                    result.ProcessingWarnings.Add($"Failed to process step {parsedStep.StepNumber}: {ex.Message}");
+                    progressCallback?.Invoke($"❌ Step {telemetry.StepCounter}/{parsedSteps.Count} failed: {ex.Message.Substring(0, Math.Min(50, ex.Message.Length))} | current req: {FormatDuration(currentStepStopwatch.Elapsed)}");
+                }
+                finally
+                {
+                    heartbeatCts.Cancel();
+                    try
+                    {
+                        await heartbeatTask;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Expected when step completes and heartbeat is cancelled.
+                    }
+                }
+            }
+
+            if (result.SkippedAtpSteps.Count > 0 && retrySkippedCallback != null)
+            {
+                progressCallback?.Invoke($"📋 ATP Derivation Complete: {result.DerivedCapabilities.Count} capabilities derived, {result.SkippedAtpSteps.Count} ATP steps timed out");
+
+                try
+                {
+                    var retryDecision = await retrySkippedCallback(result.SkippedAtpSteps);
+
+                    if (retryDecision.ShouldRetry)
+                    {
+                        progressCallback?.Invoke($"🔄 Retrying {result.SkippedAtpSteps.Count} skipped steps with {retryDecision.ExtendedTimeout.TotalSeconds}s timeout...");
+
+                        await RetrySkippedStepsAsync(result, derivationOptions, retryDecision.ExtendedTimeout, progressCallback);
+
+                        progressCallback?.Invoke($"✅ ATP Retry Complete: Final result: {result.DerivedCapabilities.Count} total capabilities via extended timeout");
+                    }
+                    else
+                    {
+                        progressCallback?.Invoke($"⏭️ Skipping retry - proceeding with {result.DerivedCapabilities.Count} capabilities");
+                    }
+                }
+                catch (Exception retryEx)
+                {
+                    _logger.LogWarning(retryEx, "Failed to handle retry decision for skipped ATP steps");
+                    result.ProcessingWarnings.Add($"Retry handling failed: {retryEx.Message}");
+                }
+            }
+            else if (result.SkippedAtpSteps.Count > 0)
+            {
+                progressCallback?.Invoke($"✅ ATP Derivation Complete: {result.DerivedCapabilities.Count} capabilities derived, {result.SkippedAtpSteps.Count} ATP steps skipped (no retry callback)");
+            }
+
+            return telemetry;
+        }
+
+        private async Task FinalizeDerivationResultAsync(
+            DerivationResult result,
+            string atpContent,
+            DerivationOptions derivationOptions,
+            Stopwatch stopwatch,
+            int totalStepCount,
+            StepProcessingTelemetry stepProcessingTelemetry,
+            Action<string>? progressCallback)
+        {
+            await ApplyMBSEFilteringAsync(result, derivationOptions, progressCallback);
+
+            result.QualityScore = await CalculateAdvancedQualityAsync(result, atpContent);
+            result.ProcessedAt = DateTime.Now;
+            result.ProcessingTime = stopwatch.Elapsed;
+
+            _lastSuccessfulOperation = DateTime.Now;
+            _performanceMetrics["LastDerivationTime"] = stopwatch.ElapsedMilliseconds;
+            _performanceMetrics["LastCapabilityCount"] = result.DerivedCapabilities.Count;
+
+            var processedSteps = stepProcessingTelemetry.StepCounter;
+            var yieldRatio = processedSteps > 0
+                ? (double)stepProcessingTelemetry.NonZeroYieldStepCount / processedSteps
+                : 0d;
+
+            _performanceMetrics["LastProcessedStepCount"] = processedSteps;
+            _performanceMetrics["LastTimeoutStepCount"] = stepProcessingTelemetry.TimeoutCount;
+            _performanceMetrics["LastFailedStepCount"] = stepProcessingTelemetry.FailureCount;
+            _performanceMetrics["LastZeroYieldStepCount"] = stepProcessingTelemetry.ZeroYieldStepCount;
+            _performanceMetrics["LastNonZeroYieldStepCount"] = stepProcessingTelemetry.NonZeroYieldStepCount;
+            _performanceMetrics["LastYieldRatio"] = yieldRatio;
+
+            _logger.LogInformation(
+                "[DerivationDiag] Summary: ProcessedSteps={ProcessedSteps}/{TotalSteps}, DerivedCapabilities={CapabilityCount}, NonZeroYieldSteps={NonZeroYieldSteps}, ZeroYieldSteps={ZeroYieldSteps}, TimeoutSteps={TimeoutSteps}, FailedSteps={FailedSteps}, YieldRatio={YieldRatio:P1}, FirstTimeout='{FirstTimeout}', FirstFailure='{FirstFailure}', FirstFailureReason='{FirstFailureReason}', FirstZeroYield='{FirstZeroYield}', FirstZeroYieldReason='{FirstZeroYieldReason}'",
+                processedSteps,
+                totalStepCount,
+                result.DerivedCapabilities.Count,
+                stepProcessingTelemetry.NonZeroYieldStepCount,
+                stepProcessingTelemetry.ZeroYieldStepCount,
+                stepProcessingTelemetry.TimeoutCount,
+                stepProcessingTelemetry.FailureCount,
+                yieldRatio,
+                stepProcessingTelemetry.FirstTimeoutStepPreview ?? "<none>",
+                stepProcessingTelemetry.FirstFailureStepPreview ?? "<none>",
+                stepProcessingTelemetry.FirstFailureReason ?? "<none>",
+                stepProcessingTelemetry.FirstZeroYieldStepPreview ?? "<none>",
+                stepProcessingTelemetry.FirstZeroYieldReason ?? "<none>");
+
+            _logger.LogInformation(
+                "Capability derivation completed: {CapabilityCount} capabilities derived, {RejectionCount} items rejected, quality score: {QualityScore:F2}",
+                result.DerivedCapabilities.Count,
+                result.RejectedItems.Count,
+                result.QualityScore);
+        }
+
+        private sealed class StepProcessingTelemetry
+        {
+            public int StepCounter { get; set; }
+            public int TimeoutCount { get; set; }
+            public int FailureCount { get; set; }
+            public int ZeroYieldStepCount { get; set; }
+            public int NonZeroYieldStepCount { get; set; }
+            public string? FirstTimeoutStepPreview { get; set; }
+            public string? FirstFailureStepPreview { get; set; }
+            public string? FirstFailureReason { get; set; }
+            public string? FirstZeroYieldStepPreview { get; set; }
+            public string? FirstZeroYieldReason { get; set; }
         }
 
         private static string FormatDuration(TimeSpan elapsed)

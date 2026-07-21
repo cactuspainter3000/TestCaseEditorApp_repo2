@@ -89,7 +89,7 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 
-                -- Document Selection Row -->
+                <!-- Document Selection Row -->
                 <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,12">
                     <TextBlock Text="Select:" 
                                FontSize="{StaticResource FontSize.Body}"
@@ -115,26 +115,21 @@
                         </ComboBox.Style>
                     </ComboBox>
                     
-                    <Button Content="📁 Open" 
-                            Command="{Binding ScanSelectedAttachmentCommand}" 
-                            IsEnabled="{Binding CanScanSelectedAttachment}"
+                        <Button Content="{Binding SmartButtonText}"
+                            Command="{Binding ExecuteSmartActionCommand}"
+                            IsEnabled="{Binding SmartButtonEnabled}"
                             Style="{StaticResource ActionButton.Secondary}"
                             Margin="0,0,12,0" 
                             Padding="12,8"
                             FontSize="{StaticResource FontSize.Body}"/>
-                            
-                    <!-- Smart Toggle Button - TESTING VISIBILITY -->
-                    <Button Content="TEST SMART TOGGLE" 
+
+                        <Button Content="{Binding SmartToggleButtonText}"
                             Command="{Binding SmartToggleCommand}" 
-                            IsEnabled="True"
+                            IsEnabled="{Binding SmartToggleButtonEnabled}"
+                            Style="{StaticResource ActionButton.Secondary}"
                             Padding="16,8"
-                            FontWeight="Bold"
                             MinWidth="250"
-                            Background="Red"
-                            Foreground="White"
-                            BorderThickness="3"
-                            BorderBrush="Yellow"
-                            FontSize="16"/>
+                            FontSize="{StaticResource FontSize.Body}"/>
                 </StackPanel>
                 
                 <!-- Traditional Individual Buttons (for advanced users) - HIDDEN BUT FUNCTIONALITY PRESERVED -->
@@ -221,9 +216,9 @@
                         <ListView.View>
                             <GridView>
                                 <GridViewColumn Header="ID" DisplayMemberBinding="{Binding Id}" Width="80"/>
-                                <GridViewColumn Header="Name" DisplayMemberBinding="{Binding Name}" Width="200"/>
+                                <GridViewColumn Header="Name" DisplayMemberBinding="{Binding DisplayName}" Width="200"/>
                                 <GridViewColumn Header="File Name" DisplayMemberBinding="{Binding FileName}" Width="150"/>
-                                <GridViewColumn Header="Size" DisplayMemberBinding="{Binding Size}" Width="80"/>
+                                <GridViewColumn Header="Size" DisplayMemberBinding="{Binding FileSizeDisplay}" Width="80"/>
                                 <GridViewColumn Header="Created Date" DisplayMemberBinding="{Binding CreatedDate}" Width="120"/>
                                 <GridViewColumn Header="Mime Type" DisplayMemberBinding="{Binding MimeType}" Width="120"/>
                             </GridView>

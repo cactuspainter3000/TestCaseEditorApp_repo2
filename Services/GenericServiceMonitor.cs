@@ -59,6 +59,19 @@ namespace TestCaseEditorApp.Services
             if (_disposed) return;
             
             var serviceName = config.Name;
+
+            if (_timers.TryGetValue(serviceName, out var existingTimer))
+            {
+                try
+                {
+                    existingTimer.Stop();
+                }
+                catch
+                {
+                    // Ignore timer stop errors during reconfiguration.
+                }
+            }
+
             _services[serviceName] = config;
             _lastKnownStatus[serviceName] = false;
             _checkingInProgress[serviceName] = false;
@@ -141,13 +154,22 @@ namespace TestCaseEditorApp.Services
             // Prevent concurrent checks for the same service
             lock (_lockObject)
             {
-                if (_checkingInProgress[serviceName]) return;
+                if (!_checkingInProgress.TryGetValue(serviceName, out var inProgress))
+                {
+                    return;
+                }
+
+                if (inProgress) return;
                 _checkingInProgress[serviceName] = true;
             }
 
             try
             {
-                var config = _services[serviceName];
+                if (!_services.TryGetValue(serviceName, out var config))
+                {
+                    return;
+                }
+
                 var status = new ServiceStatus
                 {
                     ServiceName = serviceName,
@@ -196,7 +218,7 @@ namespace TestCaseEditorApp.Services
                 }
 
                 // Only notify if status changed
-                if (status.IsAvailable != _lastKnownStatus[serviceName])
+                if (!_lastKnownStatus.TryGetValue(serviceName, out var previousStatus) || status.IsAvailable != previousStatus)
                 {
                     _lastKnownStatus[serviceName] = status.IsAvailable;
                     
@@ -214,7 +236,10 @@ namespace TestCaseEditorApp.Services
             {
                 lock (_lockObject)
                 {
-                    _checkingInProgress[serviceName] = false;
+                    if (_checkingInProgress.ContainsKey(serviceName))
+                    {
+                        _checkingInProgress[serviceName] = false;
+                    }
                 }
             }
         }

@@ -236,6 +236,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Events
             public string DocumentName { get; set; } = string.Empty;
             public int AttachmentId { get; set; }
             public string StatusMessage { get; set; } = string.Empty;
+            public int PercentComplete { get; set; }
             public DateTime Timestamp { get; set; } = DateTime.Now;
         }
 

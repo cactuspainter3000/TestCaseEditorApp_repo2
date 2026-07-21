@@ -73,6 +73,15 @@
                         ToolTip="Clear all edits and workspace data (cannot be undone)"
                         IsEnabled="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=NOT}"/>
 
+                <Button Command="{Binding DeleteProject686CommonRequirementsFolderCommand}"
+                    Content="⚠️ TEMP: Delete Project 686 Common Requirements Folder"
+                    Padding="12,8"
+                    Margin="0,0,0,8"
+                    Background="#6A0000"
+                    Foreground="White"
+                    ToolTip="Temporary troubleshooting action: permanently delete folder 'Common Requirements' and all descendants in Jama project 686"
+                    IsEnabled="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=NOT}"/>
+
                 <!-- Clear Logs button -->
                 <Button Command="{Binding ClearLogsCommand}"
                         Content="📝 Clear Output"

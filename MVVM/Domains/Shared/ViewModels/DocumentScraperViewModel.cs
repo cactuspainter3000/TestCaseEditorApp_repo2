@@ -54,8 +54,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
     public partial class DocumentScraperViewModel : ObservableObject
     {
         private readonly IJamaConnectService _jamaService;
+        private readonly IJamaDocumentParserService _documentParserService;
         private readonly IWorkspaceContext _workspaceContext;
         private readonly ILogger<DocumentScraperViewModel> _logger;
+        private readonly RequirementExtractionProgressTracker _extractionProgressTracker = new();
         private CancellationTokenSource? _scanCancellationSource;
         private Stopwatch? _scanStopwatch;
         private DispatcherTimer? _elapsedTimer;
@@ -281,10 +283,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
         /// </summary>
         public DocumentScraperViewModel(
             IJamaConnectService jamaService,
+            IJamaDocumentParserService documentParserService,
             IWorkspaceContext workspaceContext,
             ILogger<DocumentScraperViewModel> logger)
         {
             _jamaService = jamaService ?? throw new ArgumentNullException(nameof(jamaService));
+            _documentParserService = documentParserService ?? throw new ArgumentNullException(nameof(documentParserService));
             _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             
@@ -618,12 +622,38 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
                 StatusMessage = "No attachment selected for scanning.";
                 return;
             }
+
+            if (SelectedAttachment.ScrapeBlocked)
+            {
+                StatusMessage = $"⚠️ Scrape disabled for {SelectedAttachment.DisplayName}: {SelectedAttachment.IndexValidationMessage}";
+                return;
+            }
+
+            var projectId = _resolvedJamaProjectId;
+            if (!projectId.HasValue)
+            {
+                projectId = await TryResolveJamaProjectIdAsync(_workspaceContext.CurrentWorkspace);
+                _resolvedJamaProjectId = projectId;
+            }
+
+            if (!projectId.HasValue)
+            {
+                StatusMessage = "No Jama project available for document parsing.";
+                return;
+            }
             
             try
             {
+                _scanCancellationSource?.Dispose();
+                _scanCancellationSource = new CancellationTokenSource();
+                IsScanning = true;
+
                 // Start elapsed time tracking
                 StartElapsedTimeTracking();
-                
+
+                _extractionProgressTracker.Reset();
+                BackgroundScanProgress = 0;
+                BackgroundScanTotal = 100;
                 StatusMessage = $"Scanning {SelectedAttachment.Name} for requirements...";
                 _logger.LogInformation("[DocumentScraper] Starting requirement scan for attachment {AttachmentId}: {AttachmentName}", 
                     SelectedAttachment.Id, SelectedAttachment.Name);
@@ -634,34 +664,52 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
                     ExtractedRequirements.Clear();
                     ParsingResults.Clear();
                 });
-                
-                // For now, add placeholder extraction logic
-                // This would be where you integrate with document parsing/AI analysis
-                await Task.Delay(2000); // Simulate processing time
-                
-                // Add mock extracted requirements for demonstration
+
+                Action<string> progressCallback = message =>
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        StatusMessage = message;
+                        BackgroundScanProgress = _extractionProgressTracker.AdvanceFromMessage(message);
+                        BackgroundScanTotal = 100;
+                        RecordParsingStatus(message);
+                    });
+                };
+
+                Action<Requirement> onRequirementDiscovered = requirement =>
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        ExtractedRequirements.Add(requirement);
+                        BackgroundScanProgress = _extractionProgressTracker.AdvanceFromDiscoveryCount(ExtractedRequirements.Count);
+                        BackgroundScanTotal = 100;
+                        RecordParsingStatus($"Requirement discovered ({ExtractedRequirements.Count})");
+                    });
+                };
+
+                var extractedRequirements = await _documentParserService.ParseAttachmentAsync(
+                    SelectedAttachment,
+                    projectId.Value,
+                    progressCallback,
+                    onRequirementDiscovered,
+                    _scanCancellationSource.Token);
+
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    ParsingResults.Add($"Processing {SelectedAttachment.Name}...");
-                    ParsingResults.Add($"Document type: {SelectedAttachment.MimeType}");
-                    ParsingResults.Add("Searching for requirement patterns...");
-                    ParsingResults.Add($"Analysis complete. Ready for requirement extraction.");
-                    
-                    // Add sample extracted requirement (replace with actual extraction logic)
-                    var sampleReq = new Requirement
-                    {
-                        Item = "EXT-001",
-                        Name = $"Sample requirement from {SelectedAttachment.Name}",
-                        Description = $"Sample requirement text extracted from {SelectedAttachment.Name}",
-                        ItemType = "Functional",
-                        Project = CurrentJamaProjectName
-                    };
-                    ExtractedRequirements.Add(sampleReq);
+                    ReplaceExtractedRequirements(extractedRequirements);
                 });
-                
+
+                BackgroundScanProgress = _extractionProgressTracker.Complete();
                 StatusMessage = $"Scan completed in {ElapsedTime}. Found {ExtractedRequirements.Count} requirements in {SelectedAttachment.Name}.";
                 _logger.LogInformation("[DocumentScraper] Requirement scan completed for {AttachmentName}. Found {RequirementCount} requirements.", 
                     SelectedAttachment.Name, ExtractedRequirements.Count);
+            }
+            catch (OperationCanceledException)
+            {
+                BackgroundScanProgress = 0;
+                BackgroundScanTotal = 100;
+                StatusMessage = "Requirement scan cancelled.";
+                _logger.LogInformation("[DocumentScraper] Requirement scan cancelled for attachment {AttachmentId}", SelectedAttachment?.Id);
             }
             catch (Exception ex)
             {
@@ -673,9 +721,36 @@ namespace TestCaseEditorApp.MVVM.Domains.Shared.ViewModels
             {
                 // Stop elapsed time tracking
                 StopElapsedTimeTracking();
+                IsScanning = false;
+                _scanCancellationSource?.Dispose();
+                _scanCancellationSource = null;
                 // Update workflow state after scan completion
                 UpdateWorkflowState();
             }
+        }
+
+        private void ReplaceExtractedRequirements(System.Collections.Generic.IEnumerable<Requirement> requirements)
+        {
+            ExtractedRequirements.Clear();
+            foreach (var requirement in requirements)
+            {
+                ExtractedRequirements.Add(requirement);
+            }
+        }
+
+        private void RecordParsingStatus(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return;
+            }
+
+            if (ParsingResults.Count > 0 && string.Equals(ParsingResults[^1], message, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            ParsingResults.Add(message);
         }
 
         /// <summary>

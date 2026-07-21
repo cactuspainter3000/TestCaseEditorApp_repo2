@@ -167,8 +167,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         [ObservableProperty]
         private string timerDisplay = "";
 
+        [ObservableProperty]
+        private int parsingProgressPercent;
+
+        [ObservableProperty]
+        private bool isParsingProgressIndeterminate = true;
+
         private DispatcherTimer? parsingTimer;
         private string baseParsingMessage = "";
+        private readonly RequirementExtractionProgressTracker _extractionProgressTracker = new();
 
         // ==== PROPERTY CHANGE HANDLERS ====
 
@@ -1442,6 +1449,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 IsParsing = true;
                 IsBusy = true;
                 IsTimerVisible = true;
+                IsParsingProgressIndeterminate = false;
+                _extractionProgressTracker.Reset();
+                ParsingProgressPercent = _extractionProgressTracker.CurrentPercent;
                 baseParsingMessage = $"📄 Parsing {SelectedAttachment.Name} for requirements...";
                 StatusMessage = baseParsingMessage; // Status message without timer
                 
@@ -1461,8 +1471,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 System.Action<string> progressCallback = (message) => {
                     Application.Current?.Dispatcher?.Invoke(() => {
                         var conciseMessage = ToHeaderSafeStatus(message);
+                        var progressPercent = _extractionProgressTracker.AdvanceFromMessage(conciseMessage);
                         baseParsingMessage = conciseMessage;
                         StatusMessage = conciseMessage;
+                        ParsingProgressPercent = progressPercent;
                         
                         // Publish progress event for header display
                         _mediator.PublishEvent(new RequirementsEvents.DocumentParsingProgress
@@ -1470,6 +1482,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                             DocumentName = SelectedAttachment.Name,
                             AttachmentId = SelectedAttachment.Id,
                             StatusMessage = conciseMessage,
+                            PercentComplete = progressPercent,
                             Timestamp = DateTime.Now
                         });
                     });
@@ -1489,8 +1502,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                         OnPropertyChanged(nameof(CategoryCounts));
                         
                         // Update progress to show real-time count
+                        var progressPercent = _extractionProgressTracker.AdvanceFromDiscoveryCount(streamedRequirementCount);
                         baseParsingMessage = $"📄 Found {streamedRequirementCount} requirements so far from {SelectedAttachment.Name}...";
                         StatusMessage = baseParsingMessage;
+                        ParsingProgressPercent = progressPercent;
                         
                         // Publish real-time discovery event
                         _mediator.PublishEvent(new RequirementsEvents.DocumentParsingProgress
@@ -1498,6 +1513,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                             DocumentName = SelectedAttachment.Name,
                             AttachmentId = SelectedAttachment.Id,
                             StatusMessage = $"🚀 Requirement discovered ({streamedRequirementCount})",
+                            PercentComplete = progressPercent,
                             Timestamp = DateTime.Now
                         });
                     });
@@ -1550,6 +1566,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 }
 
                 _logger.LogInformation("[RequirementsSearchAttachments] Extracted {Count} requirements", ExtractedRequirements.Count);
+                ParsingProgressPercent = _extractionProgressTracker.Complete();
                 
                 // Publish successful parsing completion event
                 _mediator.PublishEvent(new RequirementsEvents.DocumentParsingCompleted
@@ -1568,6 +1585,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             {
                 _logger.LogInformation("[RequirementsSearchAttachments] Attachment parsing operation was canceled");
                 StatusMessage = "⏹️ Parsing canceled";
+                ParsingProgressPercent = 0;
                 
                 // Publish parsing canceled event
                 _mediator.PublishEvent(new RequirementsEvents.DocumentParsingCanceled
@@ -1638,6 +1656,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 IsParsing = false;
                 IsBusy = false;
                 IsTimerVisible = false;
+                IsParsingProgressIndeterminate = true;
                 ParsingStartTime = null;
                 ElapsedTime = "";
                 TimerDisplay = "";
