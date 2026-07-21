@@ -6256,6 +6256,8 @@ namespace TestCaseEditorApp.Services
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
+                    // Jama may reject unlock attempts for system-enforced or permission-based locks.
+                    // Treat unlock as informational only and continue straight to delete attempts.
                     var unlockResult = await TryUnlockItemAsync(itemId, cancellationToken);
                     if (unlockResult)
                     {
@@ -6264,7 +6266,7 @@ namespace TestCaseEditorApp.Services
                     else
                     {
                         unlockFailedCount++;
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Unlock pre-pass failed for item {itemId}; attempting delete anyway.");
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Unlock pre-pass failed for item {itemId}; continuing to delete attempt.");
                     }
                 }
 
@@ -6287,12 +6289,12 @@ namespace TestCaseEditorApp.Services
                     var unlockDetail = unlockFailedCount > 0
                         ? $" Unlock attempts failed for {unlockFailedCount} item(s)."
                         : string.Empty;
-                    return (false, $"Delete failed at item {itemId}: {response.StatusCode}.{unlockDetail}", deletedCount, targetFolder.Id);
+                    return (false, $"Delete failed at item {itemId}: {response.StatusCode}.{unlockDetail} Response: {TruncateForLog(error, 400)}", deletedCount, targetFolder.Id);
                 }
 
                 var successMessage =
                     $"Deleted 'Common Requirements' subtree in project 686. Removed {deletedCount} item(s). " +
-                    $"Unlock pre-pass: {unlockedCount} succeeded, {unlockFailedCount} failed; delete proceeded anyway.";
+                    $"Unlock pre-pass: {unlockedCount} succeeded, {unlockFailedCount} failed; delete continued anyway.";
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] {successMessage} FolderId={targetFolder.Id}");
                 return (true, successMessage, deletedCount, targetFolder.Id);
             });
