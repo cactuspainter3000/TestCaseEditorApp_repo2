@@ -6289,7 +6289,10 @@ namespace TestCaseEditorApp.Services
                     var unlockDetail = unlockFailedCount > 0
                         ? $" Unlock attempts failed for {unlockFailedCount} item(s)."
                         : string.Empty;
-                    return (false, $"Delete failed at item {itemId}: {response.StatusCode}.{unlockDetail} Response: {TruncateForLog(error, 400)}", deletedCount, targetFolder.Id);
+                    var workflowDetail = response.StatusCode == System.Net.HttpStatusCode.Forbidden
+                        ? " Jama is rejecting the delete because the item is locked by workflow/state rules or lacks delete permission."
+                        : string.Empty;
+                    return (false, $"Delete failed at item {itemId}: {response.StatusCode}.{unlockDetail}{workflowDetail} Response: {TruncateForLog(error, 400)}", deletedCount, targetFolder.Id);
                 }
 
                 var successMessage =
