@@ -84,6 +84,27 @@ namespace TestCaseEditorApp.Tests.Requirements
             Assert.IsFalse(viewModel.AnalyzeSelectedBatchCommand.CanExecute(null));
         }
 
+        [TestMethod]
+        public void RequirementDestinationSelection_PreservesUserChoice()
+        {
+            var mediatorMock = new Mock<IRequirementsMediator>(MockBehavior.Loose);
+            var workspaceContextMock = new Mock<IWorkspaceContext>(MockBehavior.Loose);
+            var loggerMock = new Mock<ILogger<RequirementsSearchAttachmentsViewModel>>();
+
+            var viewModel = new RequirementsSearchAttachmentsViewModel(
+                mediatorMock.Object,
+                workspaceContextMock.Object,
+                loggerMock.Object);
+
+            var expectedContainer = new JamaItem { Id = 4242, Name = "Imported Requirements" };
+            viewModel.RequirementContainerOptions.Add(expectedContainer);
+            viewModel.SelectedRequirementContainer = expectedContainer;
+
+            Assert.AreSame(expectedContainer, viewModel.SelectedRequirementContainer);
+            Assert.AreEqual(1, viewModel.RequirementContainerOptions.Count);
+            Assert.AreEqual(expectedContainer.Id, viewModel.SelectedRequirementContainer?.Id);
+        }
+
         private static UnifiedRequirementsMainViewModel CreateViewModel(
             ObservableCollection<Requirement> requirements,
             IPersistenceService persistence,

@@ -246,6 +246,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             OnPropertyChanged(nameof(HasAttachmentsAvailable));
         }
 
+        partial void OnSelectedRequirementContainerChanged(JamaItem? value)
+        {
+            ActiveImportDestinationLabel = value != null && value.Id > 0
+                ? value.Name
+                : "Auto-detect";
+        }
+
         /// <summary>
         /// Update search results based on current filter selection
         /// </summary>
@@ -412,7 +419,28 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private string importStatusMessage = string.Empty;
 
         [ObservableProperty]
+        private string activeImportDestinationLabel = "Auto-detect";
+
+        [ObservableProperty]
         private bool isJamaConfigured = false;
+
+        [ObservableProperty]
+        private ObservableCollection<JamaItem> requirementContainerOptions = new();
+
+        [ObservableProperty]
+        private JamaItem? selectedRequirementContainer;
+
+        [ObservableProperty]
+        private string requirementContainerSearchText = string.Empty;
+
+        [ObservableProperty]
+        private bool isLoadingRequirementContainers = false;
+
+        [ObservableProperty]
+        private string newRequirementContainerName = string.Empty;
+
+        [ObservableProperty]
+        private bool isCreatingRequirementContainer = false;
 
         // Cancellation token for parsing operations
         private CancellationTokenSource? _parsingCancellationTokenSource;
@@ -431,6 +459,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         public IRelayCommand<JamaAttachment> SelectAttachmentCommand { get; private set; } = null!;
         public IAsyncRelayCommand OpenAttachmentCommand { get; private set; } = null!;
         public IAsyncRelayCommand ReindexSelectedAttachmentCommand { get; private set; } = null!;
+        public IAsyncRelayCommand LoadRequirementContainersCommand { get; private set; } = null!;
+        public IAsyncRelayCommand CreateRequirementContainerCommand { get; private set; } = null!;
         public IAsyncRelayCommand ExecuteSmartActionCommand { get; private set; } = null!;
         public IAsyncRelayCommand SmartToggleCommand { get; private set; } = null!;
         public IRelayCommand<Requirement> LookupRequirementSourceCommand { get; private set; } = null!;
@@ -550,6 +580,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             SelectAttachmentCommand = new RelayCommand<JamaAttachment>(SelectAttachment);
             OpenAttachmentCommand = new AsyncRelayCommand(OpenSelectedAttachmentAsync, CanExecuteOpenAttachment);
             ReindexSelectedAttachmentCommand = new AsyncRelayCommand(ReindexSelectedAttachmentAsync, CanExecuteReindexAttachment);
+            LoadRequirementContainersCommand = new AsyncRelayCommand(LoadRequirementContainersAsync, () => !IsBusy && GetCurrentJamaProjectId() > 0);
+            CreateRequirementContainerCommand = new AsyncRelayCommand(CreateRequirementContainerAsync, CanCreateRequirementContainer);
             ExecuteSmartActionCommand = new AsyncRelayCommand(ExecuteSmartActionAsync, () => SmartButtonEnabled);
             SmartToggleCommand = new AsyncRelayCommand(SmartToggleAsync, () => true);
             LookupRequirementSourceCommand = new RelayCommand<Requirement>(LookupRequirementSource);
@@ -1434,6 +1466,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 return;
             }
 
+            await LoadRequirementContainersAsync();
+
             var parsingStartTime = DateTime.Now;
             ParsingStartTime = parsingStartTime;
             
@@ -1454,6 +1488,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 ParsingProgressPercent = _extractionProgressTracker.CurrentPercent;
                 baseParsingMessage = $"📄 Parsing {SelectedAttachment.Name} for requirements...";
                 StatusMessage = baseParsingMessage; // Status message without timer
+                var parsingDestinationLabel = SelectedRequirementContainer != null && SelectedRequirementContainer.Id > 0
+                    ? SelectedRequirementContainer.Name
+                    : "Auto-detect";
+                ActiveImportDestinationLabel = parsingDestinationLabel;
+                baseParsingMessage = $"📄 Parsing {SelectedAttachment.Name} for requirements → {parsingDestinationLabel}";
+                StatusMessage = baseParsingMessage;
                 
                 // Publish document parsing started event
                 _mediator.PublishEvent(new RequirementsEvents.DocumentParsingStarted
@@ -1503,7 +1543,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                         
                         // Update progress to show real-time count
                         var progressPercent = _extractionProgressTracker.AdvanceFromDiscoveryCount(streamedRequirementCount);
-                        baseParsingMessage = $"📄 Found {streamedRequirementCount} requirements so far from {SelectedAttachment.Name}...";
+                        var discoveryDestinationLabel = SelectedRequirementContainer != null && SelectedRequirementContainer.Id > 0
+                            ? SelectedRequirementContainer.Name
+                            : "Auto-detect";
+                        baseParsingMessage = $"📄 Found {streamedRequirementCount} requirements so far from {SelectedAttachment.Name} → {discoveryDestinationLabel}";
                         StatusMessage = baseParsingMessage;
                         ParsingProgressPercent = progressPercent;
                         
@@ -1523,7 +1566,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 ExtractedRequirements.Clear();
 
                 // Use real document parsing via mediator with streaming callback
-                var extractedRequirements = await _mediator.ParseAttachmentRequirementsAsync(SelectedAttachment, projectId, progressCallback, onRequirementDiscovered, _parsingCancellationTokenSource.Token);
+                var extractedRequirements = await _mediator.ParseAttachmentRequirementsAsync(
+                    SelectedAttachment,
+                    projectId,
+                    progressCallback,
+                    onRequirementDiscovered,
+                    _parsingCancellationTokenSource.Token,
+                    SelectedRequirementContainer?.Id > 0 ? SelectedRequirementContainer.Id : (int?)null);
 
                 // Reconcile streamed list with finalized parser output so users keep live context
                 // while still receiving complete metadata/provenance fields.
@@ -1548,16 +1597,20 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                         .Distinct()
                         .Take(5));
 
+                    var destinationLabel = SelectedRequirementContainer != null && SelectedRequirementContainer.Id > 0
+                        ? SelectedRequirementContainer.Name
+                        : "Auto-detect";
+
                     if (capturedCount > 0)
                     {
                         var previewSuffix = string.IsNullOrWhiteSpace(capturedIdPreview)
                             ? string.Empty
                             : $" | Jama IDs: {capturedIdPreview}";
-                        StatusMessage = $"✅ Extracted {ExtractedRequirements.Count} requirements from {SelectedAttachment.Name} ({categoryBreakdown}) | Captured in Jama: {capturedCount}/{ExtractedRequirements.Count}{previewSuffix}";
+                        StatusMessage = $"✅ Extracted {ExtractedRequirements.Count} requirements from {SelectedAttachment.Name} ({categoryBreakdown}) | Destination: {destinationLabel} | Captured in Jama: {capturedCount}/{ExtractedRequirements.Count}{previewSuffix}";
                     }
                     else
                     {
-                        StatusMessage = $"⚠️ Extracted {ExtractedRequirements.Count} requirements from {SelectedAttachment.Name} ({categoryBreakdown}) but none have Jama IDs yet.";
+                        StatusMessage = $"⚠️ Extracted {ExtractedRequirements.Count} requirements from {SelectedAttachment.Name} ({categoryBreakdown}) | Destination: {destinationLabel} | None have Jama IDs yet.";
                     }
                 }
                 else
@@ -2101,6 +2154,98 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         private bool CanExecuteImportRequirements()
         {
             return HasExtractedRequirements && !IsImporting && !IsBusy;
+        }
+
+        private bool CanCreateRequirementContainer()
+        {
+            return !string.IsNullOrWhiteSpace(NewRequirementContainerName) && !IsCreatingRequirementContainer && !IsBusy && GetCurrentJamaProjectId() > 0;
+        }
+
+        private async Task LoadRequirementContainersAsync()
+        {
+            var projectId = GetCurrentJamaProjectId();
+            if (projectId <= 0)
+            {
+                RequirementContainerOptions.Clear();
+                SelectedRequirementContainer = null;
+                return;
+            }
+
+            try
+            {
+                IsLoadingRequirementContainers = true;
+                var containers = await _mediator.GetRequirementContainerOptionsAsync(projectId);
+                RequirementContainerOptions.Clear();
+                foreach (var container in containers)
+                {
+                    RequirementContainerOptions.Add(container);
+                }
+
+                if (SelectedRequirementContainer == null || RequirementContainerOptions.All(c => c.Id != SelectedRequirementContainer.Id))
+                {
+                    SelectedRequirementContainer = RequirementContainerOptions.FirstOrDefault(c => c.Name.Equals("Requirements", StringComparison.OrdinalIgnoreCase))
+                        ?? RequirementContainerOptions.FirstOrDefault();
+                }
+
+                ActiveImportDestinationLabel = SelectedRequirementContainer != null && SelectedRequirementContainer.Id > 0
+                    ? SelectedRequirementContainer.Name
+                    : "Auto-detect";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsSearchAttachments] Failed to load requirement container options");
+                StatusMessage = "⚠️ Could not load Jama destination folders";
+            }
+            finally
+            {
+                IsLoadingRequirementContainers = false;
+            }
+        }
+
+        private async Task CreateRequirementContainerAsync()
+        {
+            if (!CanCreateRequirementContainer())
+            {
+                return;
+            }
+
+            var projectId = GetCurrentJamaProjectId();
+            if (projectId <= 0)
+            {
+                StatusMessage = "❌ No project selected - cannot create a destination folder";
+                return;
+            }
+
+            try
+            {
+                IsCreatingRequirementContainer = true;
+                IsBusy = true;
+                StatusMessage = $"🛠️ Creating Jama folder '{NewRequirementContainerName}'...";
+                var createdContainerId = await _mediator.CreateRequirementContainerAsync(projectId, NewRequirementContainerName.Trim(), SelectedRequirementContainer?.Id > 0 ? SelectedRequirementContainer.Id : (int?)null);
+                if (createdContainerId.HasValue && createdContainerId.Value > 0)
+                {
+                    await LoadRequirementContainersAsync();
+                    SelectedRequirementContainer = RequirementContainerOptions.FirstOrDefault(c => c.Id == createdContainerId.Value);
+                    NewRequirementContainerName = string.Empty;
+                    StatusMessage = $"✅ Created Jama folder '{NewRequirementContainerName}'";
+                }
+                else
+                {
+                    StatusMessage = "❌ Failed to create Jama folder";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RequirementsSearchAttachments] Failed to create requirement container");
+                StatusMessage = $"❌ Failed to create Jama folder: {ex.Message}";
+            }
+            finally
+            {
+                IsCreatingRequirementContainer = false;
+                IsBusy = false;
+                CreateRequirementContainerCommand?.NotifyCanExecuteChanged();
+                LoadRequirementContainersCommand?.NotifyCanExecuteChanged();
+            }
         }
 
         /// <summary>

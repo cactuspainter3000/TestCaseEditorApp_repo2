@@ -1491,7 +1491,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// <summary>
         /// Parse attachment for requirements using document parsing service
         /// </summary>
-        public async Task<List<Requirement>> ParseAttachmentRequirementsAsync(JamaAttachment attachment, int projectId, System.Action<string>? progressCallback = null, System.Action<Requirement>? onRequirementDiscovered = null, CancellationToken cancellationToken = default)
+        public async Task<List<Requirement>> ParseAttachmentRequirementsAsync(
+            JamaAttachment attachment,
+            int projectId,
+            System.Action<string>? progressCallback = null,
+            System.Action<Requirement>? onRequirementDiscovered = null,
+            CancellationToken cancellationToken = default,
+            int? preferredParentContainerId = null)
         {
             try
             {
@@ -1582,20 +1588,24 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     
                     // Check for test container override (e.g., JAMA_TEST_CONTAINER_ID=19853308)
                     var testContainerIdEnv = Environment.GetEnvironmentVariable("JAMA_TEST_CONTAINER_ID");
-                    var preferredParentContainerId = !string.IsNullOrWhiteSpace(testContainerIdEnv) && int.TryParse(testContainerIdEnv, out var testContainerId)
-                        ? testContainerId
-                        : (attachment.Item > 0 ? attachment.Item : (int?)null);
-                    
+                    var resolvedPreferredParentContainerId = RequirementImportDestinationResolver.ResolvePreferredParentContainerId(
+                        preferredParentContainerId,
+                        attachment.Item > 0 ? attachment.Item : (int?)null,
+                        testContainerIdEnv);
+
                     if (!string.IsNullOrWhiteSpace(testContainerIdEnv) && int.TryParse(testContainerIdEnv, out _))
                     {
                         _logger.LogInformation("[RequirementsMediator] Using test container override: JAMA_TEST_CONTAINER_ID={TestContainerId}", testContainerIdEnv);
-                        progressCallback?.Invoke($"🧪 Using test container: {preferredParentContainerId}");
+                        var containerTargetLabel = resolvedPreferredParentContainerId.HasValue
+                            ? resolvedPreferredParentContainerId.Value.ToString()
+                            : "auto-detected";
+                        progressCallback?.Invoke($"🧪 Using container target: {containerTargetLabel}");
                     }
                     
                     var (savedCount, failedCount) = await _jamaConnectService.ImportRequirementsToJamaAsync(
                         projectId,
                         extractedRequirements,
-                        preferredParentContainerId,
+                        resolvedPreferredParentContainerId,
                         cancellationToken,
                         (processed, total, failures, detail) =>
                         {
@@ -1616,7 +1626,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                             var (retrySavedCount, retryFailedCount) = await _jamaConnectService.ImportRequirementsToJamaAsync(
                                 projectId,
                                 unsavedRequirements,
-                                preferredParentContainerId,
+                                resolvedPreferredParentContainerId,
                                 cancellationToken,
                                 (processed, total, failures, detail) =>
                                 {
@@ -1781,6 +1791,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// <summary>
         /// Import extracted requirements into the current project
         /// </summary>
+        public async Task<List<JamaItem>> GetRequirementContainerOptionsAsync(int projectId, CancellationToken cancellationToken = default)
+        {
+            return await _jamaConnectService.GetRequirementContainerOptionsAsync(projectId, cancellationToken);
+        }
+
+        public async Task<int?> CreateRequirementContainerAsync(int projectId, string name, int? parentContainerId = null, CancellationToken cancellationToken = default)
+        {
+            return await _jamaConnectService.CreateRequirementContainerAsync(projectId, name, parentContainerId, cancellationToken);
+        }
+
         public Task ImportRequirementsAsync(List<Requirement> requirements)
         {
             try

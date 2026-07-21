@@ -4859,6 +4859,53 @@ namespace TestCaseEditorApp.Services
         /// <summary>
         /// Create a requirement item in Jama Connect.
         /// </summary>
+        public async Task<List<JamaItem>> GetRequirementContainerOptionsAsync(int projectId, CancellationToken cancellationToken = default)
+        {
+            if (projectId <= 0)
+            {
+                return new List<JamaItem>();
+            }
+
+            try
+            {
+                var nodes = await LoadProjectItemNodesAsync(projectId, cancellationToken);
+                return nodes.Values
+                    .Where(n => IsRequirementContainerItemType(n.ItemType))
+                    .Select(n => new JamaItem
+                    {
+                        Id = n.Id,
+                        Name = n.Name,
+                        ItemType = n.ItemType,
+                        Description = n.Name
+                    })
+                    .OrderBy(n => n.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to load requirement container options for project {projectId}: {ex.Message}");
+                return new List<JamaItem>();
+            }
+        }
+
+        public async Task<int?> CreateRequirementContainerAsync(int projectId, string name, int? parentContainerId = null, CancellationToken cancellationToken = default)
+        {
+            if (projectId <= 0 || string.IsNullOrWhiteSpace(name))
+            {
+                return null;
+            }
+
+            try
+            {
+                return await CreateContainerItemAsync(projectId, 55, name.Trim(), parentContainerId ?? 0, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to create requirement container '{name}' for project {projectId}: {ex.Message}");
+                return null;
+            }
+        }
+
         public async Task<(bool Success, string Message, int? JamaItemId)> CreateRequirementAsync(int projectId, Requirement requirement, int? preferredParentContainerId = null, CancellationToken cancellationToken = default)
         {
             if (projectId <= 0)

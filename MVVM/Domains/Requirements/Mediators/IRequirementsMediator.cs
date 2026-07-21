@@ -252,7 +252,23 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         /// <summary>
         /// Parse attachment for requirements using document parsing service
         /// </summary>
-        Task<List<Requirement>> ParseAttachmentRequirementsAsync(JamaAttachment attachment, int projectId, System.Action<string>? progressCallback = null, System.Action<Requirement>? onRequirementDiscovered = null, CancellationToken cancellationToken = default);
+        Task<List<Requirement>> ParseAttachmentRequirementsAsync(
+            JamaAttachment attachment,
+            int projectId,
+            System.Action<string>? progressCallback = null,
+            System.Action<Requirement>? onRequirementDiscovered = null,
+            CancellationToken cancellationToken = default,
+            int? preferredParentContainerId = null);
+
+        /// <summary>
+        /// Load Jama containers that can serve as requirement destinations for the current project.
+        /// </summary>
+        Task<List<JamaItem>> GetRequirementContainerOptionsAsync(int projectId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Create a Jama container that can receive imported requirements.
+        /// </summary>
+        Task<int?> CreateRequirementContainerAsync(int projectId, string name, int? parentContainerId = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Validate current attachment index keys against Jama metadata to detect stale indexes.
