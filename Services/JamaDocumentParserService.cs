@@ -593,6 +593,24 @@ namespace TestCaseEditorApp.Services
                 return true;
             }
 
+            if (sourceStage.Contains("ATP", StringComparison.OrdinalIgnoreCase) &&
+                qualification.Classification == "Potential Requirement" &&
+                qualification.Score >= 5)
+            {
+                // For ATP documents, allow Potential Requirements with score >= 5 to pass.
+                // ATP step content may be structured/procedural without strong explicit signals.
+                return true;
+            }
+
+            if (sourceStage.Contains("ATP", StringComparison.OrdinalIgnoreCase) &&
+                qualification.Classification == "Informational Text" &&
+                qualification.Score >= 4)
+            {
+                // For ATP documents, also allow Informational Text with score >= 4.
+                // ATP content may have constraints without explicit modal verbs.
+                return true;
+            }
+
             if (sourceStage.Contains("structured", StringComparison.OrdinalIgnoreCase) &&
                 qualification.Score >= 10 &&
                 qualification.Classification is "Test/Measurement Requirement" or "True System Requirement")
@@ -802,6 +820,10 @@ namespace TestCaseEditorApp.Services
 
             if (sourceStage.Contains("ATP", StringComparison.OrdinalIgnoreCase))
             {
+                // ATP documents often have structured content (tables, numbered steps) that don't always have
+                // explicit modal verbs. Relax the gate to promote more candidates to post-filter for evaluation.
+                // Priority: (1) if already has meaningful shape, promote; (2) if has ANY two signals + minimum score, promote
+                
                 var hasMeaningfulVerificationShape = hasModalVerb &&
                     (hasConstraintIndicator ||
                      hasAtrTechnicalRequirementSignal ||
@@ -810,7 +832,21 @@ namespace TestCaseEditorApp.Services
                      hasSystemIndicator ||
                      LooksLikeVerificationStyleClause(normalized));
 
-                return hasMeaningfulVerificationShape;
+                if (hasMeaningfulVerificationShape)
+                {
+                    return true;
+                }
+
+                // Relaxed gate for ATP: promote if score >= 5 and has at least 2 of the key signals
+                // This allows structured step content with constraints to reach the post-filter
+                var atpTechnicalSignalCount = 0;
+                if (hasModalVerb) atpTechnicalSignalCount++;
+                if (hasConstraintIndicator) atpTechnicalSignalCount++;
+                if (hasActionVerb) atpTechnicalSignalCount++;
+                if (hasSystemIndicator) atpTechnicalSignalCount++;
+                if (hasAtrTechnicalRequirementSignal) atpTechnicalSignalCount++;
+
+                return score >= 5 && atpTechnicalSignalCount >= 2;
             }
 
             if (sourceStage.Contains("numbered", StringComparison.OrdinalIgnoreCase))
@@ -4303,7 +4339,12 @@ Extract all legitimate requirements:";
                         ? "True System Requirement"
                         : "Potential Requirement",
                 >= 7 => "Potential Requirement",
-                >= 4 => obligationScore > 0 ? "Derived Requirement Candidate" : "Informational Text",
+                >= 4 => obligationScore > 0 ? "Derived Requirement Candidate" : 
+                    // For candidates without explicit obligation but with multiple technical signals,
+                    // classify as Potential (not Informational) to allow ATP step content through post-filter
+                    (constraintScore >= 1 && (actionScore >= 1 || verifiableScore >= 1))
+                        ? "Potential Requirement" 
+                        : "Informational Text",
                 _ => looksFragmented ? "Heading/Structure" : "Rejected Candidate"
             };
 
