@@ -98,6 +98,16 @@ namespace TestCaseEditorApp.Services
         Task<(bool Success, string Message, int? JamaItemId)> CreateRequirementAsync(int projectId, Requirement requirement, int? preferredParentContainerId = null, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Load Jama containers that can host imported requirements.
+        /// </summary>
+        Task<List<JamaItem>> GetRequirementContainerOptionsAsync(int projectId, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Create a Jama container that can host imported requirements.
+        /// </summary>
+        Task<int?> CreateRequirementContainerAsync(int projectId, string name, int? parentContainerId = null, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Search Jama items using the abstract items endpoint with a text contains filter.
         /// </summary>
         Task<List<JamaItem>> SearchAbstractItemsAsync(
