@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
@@ -53,6 +54,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private DateTime _analysisStartedUtc;
         private DateTime _statusStepStartedUtc;
         private string _statusBaseText = string.Empty;
+        private string? _lastLocalExtractionPath;
+        private readonly string _attachmentLogFilePath;
+        private const string KnownAtpRelativePath = @"Tests\Fixtures\ATP\946-4DC0-001_C4B_DHM_ATP_Rev-.docx";
         private CancellationTokenSource? _attachmentScraperCts;
         private readonly List<string> _attachmentLogLines = new();
         private DateTime _lastAttachmentScanLogUtc = DateTime.MinValue;
@@ -214,6 +218,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             _workspaceDiagnosticsService = workspaceDiagnosticsService ?? throw new ArgumentNullException(nameof(workspaceDiagnosticsService));
             _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
             _jamaDocumentParserService = jamaDocumentParserService ?? throw new ArgumentNullException(nameof(jamaDocumentParserService));
+
+            var logsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs");
+            Directory.CreateDirectory(logsDir);
+            _attachmentLogFilePath = Path.Combine(logsDir, "extraction-troubleshooter.log");
 
             _analysisHeartbeatTimer = new DispatcherTimer
             {
@@ -527,15 +535,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         {
             try
             {
-                var selectedPath = _fileDialogService.ShowOpenFile(
-                    "Select source document for local extraction",
-                    "Supported documents (*.docx;*.doc;*.pdf;*.xlsx;*.xls;*.txt;*.md;*.csv)|*.docx;*.doc;*.pdf;*.xlsx;*.xls;*.txt;*.md;*.csv|All files (*.*)|*.*");
+                var selectedPath = ResolvePreferredLocalExtractionPath();
 
                 if (string.IsNullOrWhiteSpace(selectedPath))
                 {
                     AppendAttachmentLog("Local extraction canceled before file selection.");
                     return;
                 }
+
+                _lastLocalExtractionPath = selectedPath;
 
                 _attachmentScraperCts?.Cancel();
                 _attachmentScraperCts?.Dispose();
@@ -610,6 +618,50 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         }
 
         private bool CanExtractLocalDocument() => !IsAttachmentScanning && !IsAttachmentScraping;
+
+        private string? ResolvePreferredLocalExtractionPath()
+        {
+            if (!string.IsNullOrWhiteSpace(_lastLocalExtractionPath) && File.Exists(_lastLocalExtractionPath))
+            {
+                AppendAttachmentLog($"Using last local source document: {_lastLocalExtractionPath}");
+                return _lastLocalExtractionPath;
+            }
+
+            var knownAtpPath = ResolveKnownAtpPathFromRepo();
+            if (!string.IsNullOrWhiteSpace(knownAtpPath) && File.Exists(knownAtpPath))
+            {
+                AppendAttachmentLog($"Using default ATP source document: {knownAtpPath}");
+                return knownAtpPath;
+            }
+
+            return _fileDialogService.ShowOpenFile(
+                "Select source document for local extraction",
+                "Supported documents (*.docx;*.doc;*.pdf;*.xlsx;*.xls;*.txt;*.md;*.csv)|*.docx;*.doc;*.pdf;*.xlsx;*.xls;*.txt;*.md;*.csv|All files (*.*)|*.*");
+        }
+
+        private static string? ResolveKnownAtpPathFromRepo()
+        {
+            try
+            {
+                var current = new DirectoryInfo(AppContext.BaseDirectory);
+                while (current != null)
+                {
+                    var markerFile = Path.Combine(current.FullName, "TestCaseEditorApp.csproj");
+                    if (File.Exists(markerFile))
+                    {
+                        return Path.Combine(current.FullName, KnownAtpRelativePath);
+                    }
+
+                    current = current.Parent;
+                }
+            }
+            catch
+            {
+                // Best-effort path resolution; fall back to file picker when unavailable.
+            }
+
+            return null;
+        }
 
         [RelayCommand(CanExecute = nameof(CanScrapeSelectedAttachment))]
         private async Task ScrapeSelectedAttachmentAsync()
@@ -866,13 +918,43 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             {
                 var req = list[i];
                 var id = string.IsNullOrWhiteSpace(req.Item) ? $"REQ-{i + 1}" : req.Item;
-                var text = string.IsNullOrWhiteSpace(req.Description) ? req.Name : req.Description;
-                if (text.Length > 180)
+                var name = string.IsNullOrWhiteSpace(req.Name) ? "(untitled)" : req.Name;
+                var description = string.IsNullOrWhiteSpace(req.Description) ? "(no description)" : req.Description;
+                if (description.Length > 180)
                 {
-                    text = text[..180] + "...";
+                    description = description[..180] + "...";
                 }
 
-                lines.Add($"{i + 1}. {id}: {text}");
+                var metadata = new List<string>
+                {
+                    $"Type={SafeOutputValue(req.RequirementType)}",
+                    $"Status={SafeOutputValue(req.Status)}",
+                    $"Method={req.Method}",
+                    $"SourcePrefix={SafeOutputValue(req.SourcePrefix)}",
+                    $"SourcePrefixType={SafeOutputValue(req.SourcePrefixType)}",
+                    $"Compliance={SafeOutputValue(req.StatementOfCompliance)}"
+                };
+
+                if (!string.IsNullOrWhiteSpace(req.SecurityRequirement))
+                {
+                    metadata.Add($"Security={req.SecurityRequirement}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(req.SafetyRequirement))
+                {
+                    metadata.Add($"Safety={req.SafetyRequirement}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(req.RobustRequirement))
+                {
+                    metadata.Add($"Robust={req.RobustRequirement}");
+                }
+
+                lines.Add($"{i + 1}. {id}");
+                lines.Add($"   Name: {name}");
+                lines.Add($"   Description: {description}");
+                lines.Add($"   JamaFields: {string.Join(" | ", metadata)}");
+                lines.Add(string.Empty);
             }
 
             if (list.Count > previewLimit)
@@ -882,6 +964,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             }
 
             return string.Join(Environment.NewLine, lines);
+        }
+
+        private static string SafeOutputValue(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? "(empty)" : value;
         }
 
         private void UpdateExtractionProgressFromMessage(string message)
@@ -966,6 +1053,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             if (normalized.Contains("checking jama") || normalized.Contains("previously saved") || normalized.Contains("duplicate")) return "Checking for duplicates";
             if (normalized.Contains("analyzing")) return "Analyzing source document";
             if (normalized.Contains("extract")) return "Extracting requirement candidates";
+            if (normalized.Contains("enrich") || normalized.Contains("bundled ai field") || normalized.Contains("field selection")) return "Enriching extracted candidates";
             if (normalized.Contains("save progress") || normalized.Contains("saving") || normalized.Contains("retry save") || normalized.Contains("retrying")) return "Saving candidates to Jama";
             if (normalized.Contains("complete") || normalized.Contains("success")) return "Extraction complete";
             return "Processing";
@@ -982,6 +1070,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             if (normalized.Contains("embedding")) return (46, 68);
             if (normalized.Contains("analyzing")) return (68, 82);
             if (normalized.Contains("extract")) return (82, 90);
+            if (normalized.Contains("enrich") || normalized.Contains("bundled ai field") || normalized.Contains("field selection")) return (82, 96);
             if (normalized.Contains("checking jama") || normalized.Contains("previously saved") || normalized.Contains("duplicate")) return (90, 94);
             if (normalized.Contains("save progress") || normalized.Contains("saving") || normalized.Contains("retry save") || normalized.Contains("retrying")) return (94, 99);
             if (normalized.Contains("complete") || normalized.Contains("success")) return (100, 100);
@@ -995,6 +1084,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             _attachmentLogLines.Add($"[{timestamp}] {header}");
             _attachmentLogLines.Add(new string('-', 72));
             AttachmentScraperOutputText = string.Join(Environment.NewLine, _attachmentLogLines);
+
+            try
+            {
+                File.WriteAllLines(_attachmentLogFilePath, _attachmentLogLines);
+            }
+            catch
+            {
+                // Keep troubleshooting UI functional even if disk logging fails.
+            }
         }
 
         private void AppendAttachmentLog(string message, bool force = false)
@@ -1033,6 +1131,15 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             }
 
             AttachmentScraperOutputText = string.Join(Environment.NewLine, _attachmentLogLines);
+
+            try
+            {
+                File.WriteAllLines(_attachmentLogFilePath, _attachmentLogLines);
+            }
+            catch
+            {
+                // Keep troubleshooting UI functional even if disk logging fails.
+            }
         }
 
         [RelayCommand(CanExecute = nameof(CanStage))]

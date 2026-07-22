@@ -36,6 +36,18 @@ namespace TestCaseEditorApp.Services.DependencyInjection
     {
         public static IServiceCollection AddViewModels(this IServiceCollection services)
         {
+            RegisterShellViewModels(services);
+            RegisterRequirementsViewModels(services);
+            RegisterTestCaseCreationViewModels(services);
+            RegisterNewProjectViewModels(services);
+            RegisterOpenProjectViewModels(services);
+            RegisterAuxiliaryViewModels(services);
+
+            return services;
+        }
+
+        private static void RegisterShellViewModels(IServiceCollection services)
+        {
             // Settings ViewModel (TRANSIENT - dialog instance)
             services.AddTransient<UserSettingsViewModel>(provider =>
             {
@@ -76,7 +88,7 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 var logger = provider.GetRequiredService<ILogger<SideMenuViewModel>>();
 
                 return new SideMenuViewModel(newProjectMediator, openProjectMediator, navigationMediator,
-                    testCaseGenerationMediator, requirementsMediator, testCaseAnythingLLMService, jamaConnectService, 
+                    testCaseGenerationMediator, requirementsMediator, testCaseAnythingLLMService, jamaConnectService,
                     requirementService, jamaTestCaseConversionService, userSettingsService, settingsDialogService, logger);
             });
 
@@ -111,8 +123,10 @@ namespace TestCaseEditorApp.Services.DependencyInjection
 
                 return new MainViewModel(viewAreaCoordinator, navigationService, titleViewModel, logger);
             });
+        }
 
-            // === REQUIREMENTS DOMAIN VIEWMODELS ===
+        private static void RegisterRequirementsViewModels(IServiceCollection services)
+        {
             // Unified Requirements Main (SINGLETON - maintains requirement list and selection)
             services.AddSingleton<UnifiedRequirementsMainViewModel>(provider =>
             {
@@ -145,7 +159,9 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 var logger = provider.GetRequiredService<ILogger<RequirementsIndexViewModel>>();
 
                 if (reqMediator == null)
+                {
                     throw new InvalidOperationException("RequirementsMediator implementation not found");
+                }
 
                 return new RequirementsIndexViewModel(
                     requirements: reqMediator.Requirements,
@@ -216,8 +232,10 @@ namespace TestCaseEditorApp.Services.DependencyInjection
 
             // Document Scraper (TRANSIENT - per-use instance)
             services.AddTransient<DocumentScraperViewModel>();
+        }
 
-            // === TEST CASE CREATION DOMAIN VIEWMODELS ===
+        private static void RegisterTestCaseCreationViewModels(IServiceCollection services)
+        {
             // LLM Test Case Generator (SINGLETON - maintains generation state)
             services.AddSingleton<LLMTestCaseGeneratorViewModel>(provider =>
             {
@@ -250,22 +268,25 @@ namespace TestCaseEditorApp.Services.DependencyInjection
 
             // Prompt Diagnostics (SINGLETON - debugging state)
             services.AddSingleton<PromptDiagnosticsViewModel>();
+        }
 
-            // === NEW PROJECT DOMAIN VIEWMODELS ===
+        private static void RegisterNewProjectViewModels(IServiceCollection services)
+        {
             services.AddTransient<NewProjectWorkflowViewModel>(provider =>
             {
                 var newProjectMediator = provider.GetRequiredService<INewProjectMediator>();
                 var logger = provider.GetRequiredService<ILogger<NewProjectWorkflowViewModel>>();
                 var anythingLLMService = provider.GetRequiredService<AnythingLLMService>();
 
-                return new NewProjectWorkflowViewModel(
-                    newProjectMediator, logger, anythingLLMService);
+                return new NewProjectWorkflowViewModel(newProjectMediator, logger, anythingLLMService);
             });
             services.AddTransient<NewProjectHeaderViewModel>();
             services.AddTransient<DummyNewProjectTitleViewModel>();
             services.AddTransient<DummyNewProjectNavigationViewModel>();
+        }
 
-            // === OPEN PROJECT DOMAIN VIEWMODELS ===
+        private static void RegisterOpenProjectViewModels(IServiceCollection services)
+        {
             services.AddTransient<OpenProjectWorkflowViewModel>(provider =>
             {
                 var mediator = provider.GetRequiredService<IOpenProjectMediator>();
@@ -280,20 +301,21 @@ namespace TestCaseEditorApp.Services.DependencyInjection
             services.AddTransient<OpenProject_TitleViewModel>();
             services.AddTransient<OpenProject_HeaderViewModel>();
             services.AddTransient<OpenProject_NavigationViewModel>();
+        }
 
-            // === DUMMY DOMAIN VIEWMODELS (FOR TESTING) ===
+        private static void RegisterAuxiliaryViewModels(IServiceCollection services)
+        {
+            // Dummy domain ViewModels (for testing)
             services.AddTransient<Dummy_MainViewModel>();
             services.AddTransient<Dummy_HeaderViewModel>();
             services.AddTransient<Dummy_NavigationViewModel>();
             services.AddTransient<Dummy_TitleViewModel>();
 
-            // === TEST CASE GENERATOR MODE VIEWMODELS ===
+            // Test case generator mode ViewModel
             services.AddTransient<TestCaseEditorApp.MVVM.Domains.TestCaseGenerator_Mode.ViewModels.TestCaseGeneratorMode_MainVM>();
 
-            // === TRAINING DATA VALIDATION DOMAIN VIEWMODELS ===
+            // Training data validation ViewModel
             services.AddTransient<TrainingDataValidationViewModel>();
-
-            return services;
         }
     }
 }

@@ -1,6 +1,6 @@
 <#
 Runs the ATP extraction foundation integration test from any working directory.
-This is intended for comparing the same local scrape foundation behavior across machines.
+This is intended for comparing the same local extraction foundation behavior across machines.
 
 Usage:
   .\run-atp-extraction-foundation-test.ps1

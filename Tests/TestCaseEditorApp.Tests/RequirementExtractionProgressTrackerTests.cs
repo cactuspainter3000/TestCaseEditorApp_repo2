@@ -21,8 +21,8 @@ namespace TestCaseEditorApp.Tests
 
             Assert.AreEqual(3, preparing);
             Assert.AreEqual(14, downloading);
-            Assert.AreEqual(28, indexing);
-            Assert.AreEqual(46, structured);
+            Assert.AreEqual(30, indexing);
+            Assert.AreEqual(52, structured);
             Assert.AreEqual(60, analyzing);
             Assert.AreEqual(84, found);
             Assert.AreEqual(found, stale);
@@ -57,7 +57,7 @@ namespace TestCaseEditorApp.Tests
             var complete = tracker.Complete();
 
             Assert.AreEqual(60, firstDiscovery);
-            Assert.AreEqual(63, fifthDiscovery);
+            Assert.AreEqual(62, fifthDiscovery);
             Assert.AreEqual(100, complete);
         }
     }

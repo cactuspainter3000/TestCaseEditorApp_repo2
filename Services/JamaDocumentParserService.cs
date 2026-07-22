@@ -380,13 +380,18 @@ namespace TestCaseEditorApp.Services
             var filteredInformationalText = 0;
             var filteredOther = 0;
 
-            AddStageCandidates(candidates, seen, "Stage 1 raw clause extract", ExtractLocalRequirementClauses(documentContent), progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
-            AddStageCandidates(candidates, seen, "Stage 2 ATP step parsing", await ExtractAtpStepClausesAsync(documentContent, cancellationToken), progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
-            AddStageCandidates(candidates, seen, "Stage 3 structured line recovery", ExtractStructuredRequirementClauses(documentContent), progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
-            AddStageCandidates(candidates, seen, "Stage 4 numbered step fallback", ExtractNumberedStepClauses(documentContent), progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
+            var isAtpDocument = IsAtpDocument(attachment.FileName, documentContent);
+            var stage1Candidates = isAtpDocument ? ExtractLocalRequirementClauses(documentContent).Where(candidate => ShouldPromoteLocalCandidate(candidate, "Stage 1 raw clause extract") || LooksLikeVerificationStyleClause(candidate) || LooksLikeExplicitEquipmentConstraintClause(candidate)).ToList() : ExtractLocalRequirementClauses(documentContent);
+            var stage2Candidates = isAtpDocument ? (await ExtractAtpStepClausesAsync(documentContent, cancellationToken)).Where(candidate => ShouldPromoteLocalCandidate(candidate, "Stage 2 ATP step parsing") || LooksLikeVerificationStyleClause(candidate) || LooksLikeExplicitEquipmentConstraintClause(candidate)).ToList() : await ExtractAtpStepClausesAsync(documentContent, cancellationToken);
+            var stage3Candidates = isAtpDocument ? ExtractStructuredRequirementClauses(documentContent).Where(candidate => ShouldPromoteLocalCandidate(candidate, "Stage 3 structured line recovery") || LooksLikeVerificationStyleClause(candidate) || LooksLikeExplicitEquipmentConstraintClause(candidate)).ToList() : ExtractStructuredRequirementClauses(documentContent);
+            var stage4Candidates = isAtpDocument ? ExtractNumberedStepClauses(documentContent).Where(candidate => ShouldPromoteLocalCandidate(candidate, "Stage 4 numbered step fallback") || LooksLikeVerificationStyleClause(candidate) || LooksLikeExplicitEquipmentConstraintClause(candidate)).ToList() : ExtractNumberedStepClauses(documentContent);
+
+            AddStageCandidates(candidates, seen, "Stage 1 raw clause extract", stage1Candidates, progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
+            AddStageCandidates(candidates, seen, "Stage 2 ATP step parsing", stage2Candidates, progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
+            AddStageCandidates(candidates, seen, "Stage 3 structured line recovery", stage3Candidates, progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
+            AddStageCandidates(candidates, seen, "Stage 4 numbered step fallback", stage4Candidates, progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
 
             var requirements = new List<Requirement>();
-            var isAtpDocument = IsAtpDocument(attachment.FileName, documentContent);
             var clauseSectionHints = structuralSectionHints != null && structuralSectionHints.Count > 0
                 ? new Dictionary<string, string>(structuralSectionHints, StringComparer.OrdinalIgnoreCase)
                 : BuildClauseSectionHintMap(documentContent);
@@ -552,13 +557,27 @@ namespace TestCaseEditorApp.Services
         {
             if (qualification.IsPromoted)
             {
+                if (qualification.Classification == "Test/Measurement Requirement")
+                {
+                    return IsStrongVerificationPromotionCandidate(text, qualification);
+                }
+
                 return true;
             }
 
             if (qualification.Classification == "Test/Measurement Requirement" &&
                 LooksLikeVerificationStyleClause(text))
             {
-                return true;
+                var normalized = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
+                var hasStrongVerificationException = normalized.Contains("VREF", StringComparison.OrdinalIgnoreCase) ||
+                    LooksLikeHighConfidenceTechnicalClause(text) ||
+                    LooksLikeExplicitEquipmentConstraintClause(text) ||
+                    qualification.Score >= 11;
+
+                if (hasStrongVerificationException)
+                {
+                    return true;
+                }
             }
 
             if (qualification.Score >= 10 &&
@@ -568,15 +587,14 @@ namespace TestCaseEditorApp.Services
                 return true;
             }
 
-            if (qualification.Score >= 9 &&
-                qualification.Classification == "Potential Requirement" &&
+            if (qualification.Classification is "Potential Requirement" or "Test/Measurement Requirement" or "True System Requirement" &&
                 LooksLikeExplicitEquipmentConstraintClause(text))
             {
                 return true;
             }
 
             if (sourceStage.Contains("structured", StringComparison.OrdinalIgnoreCase) &&
-                qualification.Score >= 9 &&
+                qualification.Score >= 10 &&
                 qualification.Classification is "Test/Measurement Requirement" or "True System Requirement")
             {
                 return true;
@@ -656,6 +674,30 @@ namespace TestCaseEditorApp.Services
             return hasNormativeConstraintLead && hasEquipmentConstraintSignal;
         }
 
+        private static bool IsStrongVerificationPromotionCandidate(string text, DeterministicQualificationResult qualification)
+        {
+            if (string.IsNullOrWhiteSpace(text) || qualification.Classification != "Test/Measurement Requirement")
+            {
+                return false;
+            }
+
+            var normalized = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return false;
+            }
+
+            var hasStrongVerificationException = normalized.Contains("VREF", StringComparison.OrdinalIgnoreCase) ||
+                LooksLikeHighConfidenceTechnicalClause(normalized) ||
+                LooksLikeExplicitEquipmentConstraintClause(normalized) ||
+                (qualification.Score >= 10 &&
+                 System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(?:test\s+solution|test\s+station|test\s+system|production\s+test|display\s+head|equipment|interface|unit|module)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase) &&
+                 System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(shall|must|will)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase) &&
+                 System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(provide|maintain|monitor|measure|detect|indicate|verify|record)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase));
+
+            return hasStrongVerificationException && LooksLikeVerificationStyleClause(normalized);
+        }
+
         private static bool ShouldPromoteLocalCandidate(string text, string sourceStage)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -691,11 +733,41 @@ namespace TestCaseEditorApp.Services
                 return false;
             }
 
+            var guidanceStyleSignals = new[]
+            {
+                "display head level tests",
+                "test equipment circuitry",
+                "bench supplies",
+                "prior to removing",
+                "prior to enabling",
+                "recommended setup",
+                "recommended power",
+                "power down procedure",
+                "power up procedure"
+            };
+
+            if (guidanceStyleSignals.Any(signal => normalized.Contains(signal, StringComparison.OrdinalIgnoreCase)))
+            {
+                return false;
+            }
+
+            var hasMandatoryModalVerb = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(shall|must|required\s+to|is\s+to|will)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var hasRecommendationSignal = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(recommended|recommendation|guidance|procedure|procedural|setup|bench|power-up|power up|power-down|power down|prior to|before|after|sequence|step)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var hasWeakRecommendationPattern = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\bshould\s+(?:always|generally|typically|preferably|not)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var hasInstructionalGuidanceLead = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(?:display head level tests|test equipment circuitry|bench supplies|prior to removing|prior to enabling|power up|power down|setup guidance|recommended setup|recommended power)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
             var hasModalVerb = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(shall|must|required\s+to|is\s+to|will|should)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var hasAtrTechnicalRequirementSignal = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(?:aircraft\s+interfaces|discrete\s+inputs|discrete\s+outputs|ground/open|general\s+purpose)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
             var hasSystemIndicator = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(system|software|hardware|equipment|interface|controller|module|unit|display|signal|voltage|current|temperature|performance|accuracy|latency|throughput|protocol|connection|communication)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
             var hasConstraintIndicator = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(within\s+the\s+range|at\s+least|at\s+most|less\s+than|greater\s+than|between|\+/-|\b\d+\s*(?:%|ms|s|sec|seconds|minutes|degrees|vdc|vac|hz|khz|mhz|ghz|amps?|volts?)\b)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
             var hasActionVerb = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(verify|measure|detect|indicate|display|calibrate|configure|apply|set|adjust|monitor|record|test|check|confirm|enable|disable|protect|provide|maintain|prevent|limit|ensure|transmit|receive|process|analyze|operate|function)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
             var wordCount = Regex.Matches(normalized, @"\b\w+\b").Count;
+
+            if ((hasRecommendationSignal && hasWeakRecommendationPattern) ||
+                (hasRecommendationSignal && !hasMandatoryModalVerb) ||
+                (hasInstructionalGuidanceLead && (hasWeakRecommendationPattern || !hasMandatoryModalVerb)))
+            {
+                return false;
+            }
 
             var score = 0;
             if (hasModalVerb) score += 2;
@@ -703,6 +775,7 @@ namespace TestCaseEditorApp.Services
             if (hasActionVerb) score += 1;
             if (hasConstraintIndicator) score += 1;
             if (wordCount >= 10) score += 1;
+            if (hasAtrTechnicalRequirementSignal) score += 2;
 
             if (normalized.Length >= 80) score += 1;
 
@@ -711,9 +784,12 @@ namespace TestCaseEditorApp.Services
                 score -= 1;
             }
 
+            var hasStrongRequirementShape = hasModalVerb && (hasConstraintIndicator || hasActionVerb || hasAtrTechnicalRequirementSignal || LooksLikeExplicitEquipmentConstraintClause(normalized));
+            var hasAtrTechnicalRequirementShape = hasAtrTechnicalRequirementSignal && (hasModalVerb || hasConstraintIndicator || hasActionVerb);
+
             if (sourceStage.Contains("structured", StringComparison.OrdinalIgnoreCase))
             {
-                return score >= 2 && (hasModalVerb || hasConstraintIndicator || hasSystemIndicator);
+                return score >= 4 && (hasStrongRequirementShape || hasAtrTechnicalRequirementShape);
             }
 
             if (sourceStage.Contains("raw", StringComparison.OrdinalIgnoreCase) &&
@@ -726,12 +802,20 @@ namespace TestCaseEditorApp.Services
 
             if (sourceStage.Contains("ATP", StringComparison.OrdinalIgnoreCase))
             {
-                return score >= 3 && (hasModalVerb || hasConstraintIndicator || hasActionVerb);
+                var hasMeaningfulVerificationShape = hasModalVerb &&
+                    (hasConstraintIndicator ||
+                     hasAtrTechnicalRequirementSignal ||
+                     LooksLikeExplicitEquipmentConstraintClause(normalized)) &&
+                    (hasActionVerb ||
+                     hasSystemIndicator ||
+                     LooksLikeVerificationStyleClause(normalized));
+
+                return hasMeaningfulVerificationShape;
             }
 
             if (sourceStage.Contains("numbered", StringComparison.OrdinalIgnoreCase))
             {
-                return score >= 3 && (hasModalVerb || hasConstraintIndicator || hasActionVerb || hasSystemIndicator);
+                return score >= 4 && (hasStrongRequirementShape || hasAtrTechnicalRequirementShape);
             }
 
             var technicalSignalCount = 0;
@@ -4228,15 +4312,16 @@ Extract all legitimate requirements:";
                 classification = score >= 9 ? "Test/Measurement Requirement" : "Potential Requirement";
             }
 
+            var reason = $"Score {score}/14 (obligation {obligationScore}, actor {actorScore}, action {actionScore}, constraint {constraintScore}, verifiable {verifiableScore}, scope {scopeScore}, non-procedural {proceduralScore}); verification-led={isVerificationLedClause}, explicit-system-obligation={hasExplicitSystemObligation}";
+
             var isStrongVerificationPromotion =
                 classification == "Test/Measurement Requirement" &&
                 score >= 10 &&
-                LooksLikeVerificationStyleClause(normalized);
+                IsStrongVerificationPromotionCandidate(normalized, new DeterministicQualificationResult(score, classification, reason, false));
 
             var isPromoted = !looksFragmented && !proceduralNoise &&
                              ((classification == "True System Requirement" && score >= 11) ||
                               isStrongVerificationPromotion);
-            var reason = $"Score {score}/14 (obligation {obligationScore}, actor {actorScore}, action {actionScore}, constraint {constraintScore}, verifiable {verifiableScore}, scope {scopeScore}, non-procedural {proceduralScore}); verification-led={isVerificationLedClause}, explicit-system-obligation={hasExplicitSystemObligation}";
 
             return new DeterministicQualificationResult(score, classification, reason, isPromoted);
         }

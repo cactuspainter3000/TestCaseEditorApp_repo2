@@ -33,6 +33,7 @@ namespace TestCaseEditorApp.Services
                     settings.OllamaEmbeddingModel = ReadString(key, "OllamaEmbeddingModel", "nomic-embed-text:latest");
                     settings.ThemeName = ReadString(key, "ThemeName", "Dark Orange");
                     settings.EnableRequirementsAnalysisSnapshot = ReadBool(key, "EnableRequirementsAnalysisSnapshot", false);
+                    settings.EnableAnythingLlmFallback = ReadBool(key, "EnableAnythingLlmFallback", true);
 
                     Logging.Log.Info($"[UserSettings] Loaded OllamaChatModel: {settings.OllamaChatModel}, OllamaEmbeddingModel: {settings.OllamaEmbeddingModel}");
                 }
@@ -59,6 +60,12 @@ namespace TestCaseEditorApp.Services
                 settings.OllamaChatModel = FirstNonEmpty(settings.OllamaChatModel, Environment.GetEnvironmentVariable("OLLAMA_MODEL"), "phi4-mini:latest");
                 settings.OllamaEmbeddingModel = FirstNonEmpty(settings.OllamaEmbeddingModel, Environment.GetEnvironmentVariable("OLLAMA_EMBEDDING_MODEL"), "nomic-embed-text:latest");
                 settings.ThemeName = FirstNonEmpty(settings.ThemeName, "Dark Orange");
+
+                var enableFallbackEnv = Environment.GetEnvironmentVariable("ENABLE_ANYTHINGLLM_FALLBACK");
+                if (bool.TryParse(enableFallbackEnv, out var enableFallback))
+                {
+                    settings.EnableAnythingLlmFallback = enableFallback;
+                }
             }
             catch (Exception ex)
             {
@@ -91,6 +98,7 @@ namespace TestCaseEditorApp.Services
             key.SetValue("OllamaEmbeddingModel", FirstNonEmpty(settings.OllamaEmbeddingModel, "nomic-embed-text:latest"));
             key.SetValue("ThemeName", FirstNonEmpty(settings.ThemeName, "Dark Orange"));
             key.SetValue("EnableRequirementsAnalysisSnapshot", settings.EnableRequirementsAnalysisSnapshot ? 1 : 0);
+            key.SetValue("EnableAnythingLlmFallback", settings.EnableAnythingLlmFallback ? 1 : 0);
 
             using var legacyKey = Registry.CurrentUser.CreateSubKey(LegacyAnythingLlmRegistryPath);
             legacyKey?.SetValue("ApiKey", (settings.AnythingLlmApiKey ?? string.Empty).Trim());
@@ -108,6 +116,7 @@ namespace TestCaseEditorApp.Services
             Environment.SetEnvironmentVariable("ANYTHINGLLM_ENDPOINT", NormalizeUrl(settings.AnythingLlmBaseUrl, "http://localhost:3001"), EnvironmentVariableTarget.Process);
             Environment.SetEnvironmentVariable("OLLAMA_MODEL", FirstNonEmpty(settings.OllamaChatModel, "phi4-mini:latest"), EnvironmentVariableTarget.Process);
             Environment.SetEnvironmentVariable("OLLAMA_EMBEDDING_MODEL", FirstNonEmpty(settings.OllamaEmbeddingModel, "nomic-embed-text:latest"), EnvironmentVariableTarget.Process);
+            Environment.SetEnvironmentVariable("ENABLE_ANYTHINGLLM_FALLBACK", settings.EnableAnythingLlmFallback ? "true" : "false", EnvironmentVariableTarget.Process);
         }
 
         public bool HasMissingRequiredSettings()

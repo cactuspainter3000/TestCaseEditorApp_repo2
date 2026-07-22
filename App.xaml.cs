@@ -64,6 +64,35 @@ namespace TestCaseEditorApp
                 {
                     // Clear default providers that might cause permission issues
                     logging.ClearProviders();
+
+                    // Keep Output window signal high: warnings/errors globally, plus
+                    // extraction pipeline informational logs needed for troubleshooting.
+                    logging.SetMinimumLevel(LogLevel.Warning);
+                    logging.AddFilter((category, level) =>
+                    {
+                        if (level >= LogLevel.Warning)
+                        {
+                            return true;
+                        }
+
+                        if (level >= LogLevel.Information)
+                        {
+                            if (string.Equals(category, "App", StringComparison.OrdinalIgnoreCase))
+                            {
+                                return true;
+                            }
+
+                            if (category.Contains("JamaDocumentParserService", StringComparison.OrdinalIgnoreCase) ||
+                                category.Contains("DirectRagService", StringComparison.OrdinalIgnoreCase) ||
+                                category.Contains("DocumentRequirementExtractionService", StringComparison.OrdinalIgnoreCase) ||
+                                category.Contains("SystemCapabilityDerivationService", StringComparison.OrdinalIgnoreCase))
+                            {
+                                return true;
+                            }
+                        }
+
+                        return false;
+                    });
                     
                     // Add only basic providers that don't require special permissions
                     logging.AddDebug();

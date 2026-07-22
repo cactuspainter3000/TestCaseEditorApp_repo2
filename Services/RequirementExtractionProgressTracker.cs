@@ -46,8 +46,9 @@ namespace TestCaseEditorApp.Services
                 return _currentPercent;
             }
 
-            // Discovery is a real unit of work. Keep this bounded to the extraction band.
-            var mapped = 58 + Math.Min(16, discoveredCount);
+            // Discovery is a real unit of work. Increase smoothly across the extraction band.
+            var cappedCount = Math.Min(discoveredCount, 20);
+            var mapped = 58 + (int)Math.Round((cappedCount / 20d) * 18d);
             _currentPercent = Math.Max(_currentPercent, mapped);
             return _currentPercent;
         }
@@ -70,10 +71,14 @@ namespace TestCaseEditorApp.Services
             if (message.Contains("Verifying Ollama service", StringComparison.OrdinalIgnoreCase)) return 8;
             if (message.Contains("AI services available", StringComparison.OrdinalIgnoreCase)) return 10;
             if (message.Contains("Downloading attachment", StringComparison.OrdinalIgnoreCase)) return 14;
-            if (message.Contains("Processing '", StringComparison.OrdinalIgnoreCase)) return 20;
-            if (message.Contains("Preparing extraction-aware document index", StringComparison.OrdinalIgnoreCase)) return 28;
-            if (message.Contains("Reusing existing index", StringComparison.OrdinalIgnoreCase)) return 34;
-            if (message.Contains("Using structured extraction", StringComparison.OrdinalIgnoreCase)) return 46;
+            if (message.Contains("Processing with reliable RAG-enhanced analysis", StringComparison.OrdinalIgnoreCase)) return 18;
+            if (message.Contains("Using fallback requirement extraction", StringComparison.OrdinalIgnoreCase)) return 20;
+            if (message.Contains("Processing '", StringComparison.OrdinalIgnoreCase)) return 22;
+            if (message.Contains("Preparing extraction-aware document index", StringComparison.OrdinalIgnoreCase)) return 30;
+            if (message.Contains("Reusing existing index", StringComparison.OrdinalIgnoreCase)) return 36;
+            if (message.Contains("Standardizing ATP content", StringComparison.OrdinalIgnoreCase)) return 42;
+            if (message.Contains("Extracting requirement clauses", StringComparison.OrdinalIgnoreCase)) return 46;
+            if (message.Contains("Using structured extraction", StringComparison.OrdinalIgnoreCase)) return 52;
             if (message.Contains("AI analyzing document with structured output", StringComparison.OrdinalIgnoreCase)) return 60;
             if (message.Contains("Validating", StringComparison.OrdinalIgnoreCase) && message.Contains("requirements", StringComparison.OrdinalIgnoreCase)) return 72;
             if (message.Contains("Enriching", StringComparison.OrdinalIgnoreCase) && message.Contains("requirements", StringComparison.OrdinalIgnoreCase)) return 80;

@@ -209,7 +209,7 @@ namespace TestCaseEditorApp.Tests.Integration
 
             Assert.IsTrue(
                 progressMessages.Any(message => message.Contains("kept 73", StringComparison.OrdinalIgnoreCase)
-                    && message.Contains("deterministic-filtered 10", StringComparison.OrdinalIgnoreCase)
+                    && message.Contains("deterministic-filtered 6", StringComparison.OrdinalIgnoreCase)
                     && message.Contains("numeric-prefix-deduped 27", StringComparison.OrdinalIgnoreCase)),
                 "Expected the local extraction summary to report the current staged baseline metrics.");
 
@@ -463,6 +463,29 @@ namespace TestCaseEditorApp.Tests.Integration
             Assert.IsFalse(
                 templateInput.Contains("Test equipment circuitry used to drive the TTL inputs of the control card should be powered up at the same time", StringComparison.OrdinalIgnoreCase),
                 "Template-form input should exclude recommended power-up procedure guidance.");
+        }
+
+        [TestMethod]
+        public void ShouldPromoteLocalCandidate_ATRStyleRequirements_AcceptsSystemRequirementsAndRejectsProcedureGuidance()
+        {
+            var method = typeof(JamaDocumentParserService).GetMethod(
+                "ShouldPromoteLocalCandidate",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.IsNotNull(method, "Expected private ShouldPromoteLocalCandidate helper.");
+
+            var systemRequirementClause = "The MFD shall monitor the following Aircraft Interfaces for erroneous operation: ARINC 429 Inputs and Outputs RS-422/485 MIL-STD-1553 Analog Inputs, except for the Bezel Lighting Input Analog Outputs Discrete Inputs Discrete Outputs.";
+            var discreteRequirementClause = "The MFD shall provide a minimum of twenty eight (28) General Purpose Ground/Open Discrete Inputs.";
+            var procedureGuidanceClause = "display head level tests should always set PWR_WARN_F to GND prior to removing low voltage power";
+
+            Assert.IsTrue(
+                (bool)method!.Invoke(null, new object[] { systemRequirementClause, "Stage 1 raw clause extract" })!,
+                "Expected ATR-style system requirement clauses to be promoted from raw extraction stage.");
+            Assert.IsTrue(
+                (bool)method.Invoke(null, new object[] { discreteRequirementClause, "Stage 1 raw clause extract" })!,
+                "Expected ATR-style discrete input requirements to be promoted from raw extraction stage.");
+            Assert.IsFalse(
+                (bool)method.Invoke(null, new object[] { procedureGuidanceClause, "Stage 1 raw clause extract" })!,
+                "Expected procedural guidance clauses to remain filtered out.");
         }
 
         [TestMethod]
@@ -905,7 +928,7 @@ namespace TestCaseEditorApp.Tests.Integration
         [TestMethod]
         public async Task ParseAttachmentAsync_RealAtrFixture_RagContextStageMatrix_PreservesTechnicalCanary_WithoutProcedureReintroduction()
         {
-            var documentPath = ResolveRepoFilePath("exports", "document-artifacts", "20260714-193344", "ATR_Export.docx");
+            var documentPath = ResolveAtrFixturePath();
             Assert.IsTrue(File.Exists(documentPath), $"Expected ATR fixture at {documentPath}");
 
             var bootstrapJamaService = new Mock<IJamaConnectService>();
@@ -1062,7 +1085,7 @@ namespace TestCaseEditorApp.Tests.Integration
         [TestMethod]
         public async Task ParseAttachmentAsync_RealAtrFixture_LowContextCoverage_AppendsFocusedRecovery_AndPreservesTechnicalCanary()
         {
-            var documentPath = ResolveRepoFilePath("exports", "document-artifacts", "20260714-193344", "ATR_Export.docx");
+            var documentPath = ResolveAtrFixturePath();
             Assert.IsTrue(File.Exists(documentPath), $"Expected ATR fixture at {documentPath}");
 
             var bootstrapJamaService = new Mock<IJamaConnectService>();
@@ -1203,7 +1226,7 @@ namespace TestCaseEditorApp.Tests.Integration
         [TestMethod]
         public async Task ParseAttachmentAsync_RealAtrFixture_LowContextCoverage_WithProcedurePoison_ExcludesPoisonFromPromptAndFinal()
         {
-            var documentPath = ResolveRepoFilePath("exports", "document-artifacts", "20260714-193344", "ATR_Export.docx");
+            var documentPath = ResolveAtrFixturePath();
             Assert.IsTrue(File.Exists(documentPath), $"Expected ATR fixture at {documentPath}");
 
             var bootstrapJamaService = new Mock<IJamaConnectService>();
@@ -1360,6 +1383,17 @@ namespace TestCaseEditorApp.Tests.Integration
             }
 
             throw new InvalidOperationException("Could not locate repository root from test base directory.");
+        }
+
+        private static string ResolveAtrFixturePath()
+        {
+            var candidates = new[]
+            {
+                ResolveRepoFilePath("exports", "document-artifacts", "20260722-073318", "ATR_Export.docx"),
+                ResolveRepoFilePath("exports", "document-artifacts", "20260714-193344", "ATR_Export.docx")
+            };
+
+            return candidates.FirstOrDefault(File.Exists) ?? candidates[0];
         }
 
         private static string CreateTempTestCopy(string sourcePath)

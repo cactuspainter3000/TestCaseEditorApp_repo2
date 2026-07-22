@@ -417,6 +417,13 @@
             "problems": ["$msCompile"]
         },
         {
+            "label": "🔍 AnythingLLM Embedding Diagnostics",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-ExecutionPolicy", "Bypass", "-File", "./test-embedding-diagnostics.ps1"],
+            "group": "test"
+        },
+        {
             "label": "🔐 Set Jama Probe Environment (Session)",
             "type": "shell",
             "command": "powershell",

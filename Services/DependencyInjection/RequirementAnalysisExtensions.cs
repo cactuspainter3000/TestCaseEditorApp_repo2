@@ -112,6 +112,7 @@ namespace TestCaseEditorApp.Services.DependencyInjection
             {
                 var jamaService = provider.GetRequiredService<IJamaConnectService>();
                 var llmService = provider.GetRequiredService<IAnythingLLMService>();
+                var userSettingsService = provider.GetService<IUserSettingsService>();
                 var directRagService = provider.GetService<IDirectRagService>(); // Optional fallback
                 var textGenerationService = provider.GetService<ITextGenerationService>(); // For DirectRag fallback
                 var derivationService = provider.GetService<ISystemCapabilityDerivationService>(); // ATP derivation
@@ -127,6 +128,7 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 // Ollama management
                 var ollamaProcessManager = provider.GetService<IOllamaProcessManager>();
                 var ollamaStatusMonitor = provider.GetService<IOllamaStatusMonitor>();
+                var atpStepParser = provider.GetService<ATPStepParser>();
 
                 return new JamaDocumentParserService(
                     jamaService,
@@ -141,7 +143,9 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                     telemetryService,
                     ollamaProcessManager,
                         ollamaStatusMonitor,
-                        extractionFoundationService);
+                        extractionFoundationService,
+                        atpStepParser,
+                        userSettingsService);
             });
 
             // Jama Test Case Conversion Service - Requirement to test case mapping (SINGLETON)
