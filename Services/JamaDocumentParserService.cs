@@ -555,6 +555,12 @@ namespace TestCaseEditorApp.Services
 
         private static bool ShouldPassLegacyDeterministicPostFilter(DeterministicQualificationResult qualification, string text, string sourceStage)
         {
+            // ✅ GUARDRAIL: Reject candidates that are extraction prompt leakage
+            if (IsExtractionPromptLeakage(text))
+            {
+                return false;
+            }
+
             if (qualification.IsPromoted)
             {
                 if (qualification.Classification == "Test/Measurement Requirement")
@@ -690,6 +696,47 @@ namespace TestCaseEditorApp.Services
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
             return hasNormativeConstraintLead && hasEquipmentConstraintSignal;
+        }
+
+        /// <summary>
+        /// Detects candidates that are extraction prompt leakage (instructions about extraction itself, not requirements).
+        /// Rejects: "The system shall extract...", "You shall analyze...", "Please identify..."
+        /// </summary>
+        private static bool IsExtractionPromptLeakage(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return false;
+
+            var normalized = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
+
+            // Reject meta-extraction instructions
+            var isMetaInstruction = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"(?:^|\b)(the\s+system\s+shall\s+extract|you\s+shall|please\s+identify|identify\s+all|analyze\s+the\s+document|extract\s+all\s+technical|respond\s+with|return\s+only|provide\s+json)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (isMetaInstruction)
+                return true;
+
+            // Reject candidates describing LLM output requirements
+            var isLlmOutputInstruction = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"(?:respond|return|provide|format|structure|ensure|validate).{0,50}(?:json|json array|output|format|structure|response)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (isLlmOutputInstruction)
+                return true;
+
+            // Reject candidates about the extraction process itself
+            var isProcessDescription = System.Text.RegularExpressions.Regex.IsMatch(
+                normalized,
+                @"\b(extraction process|extraction\s+procedure|parsing\s+the|requirement\s+discovery|requirement\s+parsing|document\s+scraping|from\s+the\s+document)",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+            if (isProcessDescription)
+                return true;
+
+            return false;
         }
 
         private static bool IsStrongVerificationPromotionCandidate(string text, DeterministicQualificationResult qualification)
