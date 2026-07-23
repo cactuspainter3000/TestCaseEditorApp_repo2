@@ -1584,91 +1584,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                         return extractedRequirements;
                     }
 
-                    progressCallback?.Invoke($"💾 Saving {extractedRequirements.Count} extracted requirements to Jama...");
+                    // ✅ NEW BEHAVIOR: Requirements extracted and ready for review
+                    // Jama persistence is deferred until user explicitly clicks "commit to workspace"
+                    // This allows users to review/edit before committing
+                    progressCallback?.Invoke($"✅ Extracted {extractedRequirements.Count} requirements — ready for review. Click 'Commit to Workspace' to save to Jama.");
                     
-                    // Check for test container override (e.g., JAMA_TEST_CONTAINER_ID=19853308)
-                    var testContainerIdEnv = Environment.GetEnvironmentVariable("JAMA_TEST_CONTAINER_ID");
-                    var resolvedPreferredParentContainerId = RequirementImportDestinationResolver.ResolvePreferredParentContainerId(
-                        preferredParentContainerId,
-                        attachment.Item > 0 ? attachment.Item : (int?)null,
-                        testContainerIdEnv);
-
-                    if (!string.IsNullOrWhiteSpace(testContainerIdEnv) && int.TryParse(testContainerIdEnv, out _))
-                    {
-                        _logger.LogInformation("[RequirementsMediator] Using test container override: JAMA_TEST_CONTAINER_ID={TestContainerId}", testContainerIdEnv);
-                        var containerTargetLabel = resolvedPreferredParentContainerId.HasValue
-                            ? resolvedPreferredParentContainerId.Value.ToString()
-                            : "auto-detected";
-                        progressCallback?.Invoke($"🧪 Using container target: {containerTargetLabel}");
-                    }
-                    
-                    var (savedCount, failedCount) = await _jamaConnectService.ImportRequirementsToJamaAsync(
-                        projectId,
-                        extractedRequirements,
-                        resolvedPreferredParentContainerId,
-                        cancellationToken,
-                        (processed, total, failures, detail) =>
-                        {
-                            var suffix = string.IsNullOrWhiteSpace(detail) ? string.Empty : $" | {detail}";
-                            progressCallback?.Invoke($"💾 Jama save progress: {processed}/{total} processed, {failures} failed{suffix}");
-                        });
-
-                    // Fail-closed posture: if any records failed, retry only unsaved requirements once more.
-                    if (failedCount > 0)
-                    {
-                        var unsavedRequirements = extractedRequirements
-                            .Where(r => string.IsNullOrWhiteSpace(r.ApiId))
-                            .ToList();
-
-                        if (unsavedRequirements.Count > 0)
-                        {
-                            progressCallback?.Invoke($"🔁 Retrying Jama save for {unsavedRequirements.Count} unsaved requirements...");
-                            var (retrySavedCount, retryFailedCount) = await _jamaConnectService.ImportRequirementsToJamaAsync(
-                                projectId,
-                                unsavedRequirements,
-                                resolvedPreferredParentContainerId,
-                                cancellationToken,
-                                (processed, total, failures, detail) =>
-                                {
-                                    var suffix = string.IsNullOrWhiteSpace(detail) ? string.Empty : $" | {detail}";
-                                    progressCallback?.Invoke($"🔁 Retry save progress: {processed}/{total} processed, {failures} failed{suffix}");
-                                });
-                            savedCount += retrySavedCount;
-                            failedCount = retryFailedCount;
-                        }
-                    }
-
-                    _logger.LogInformation("[RequirementsMediator] Persisted {SavedCount}/{TotalCount} extracted requirements to Jama (failed: {FailedCount})",
-                        savedCount, extractedRequirements.Count, failedCount);
-
-                    _logger.LogInformation(
-                        "[ATTACHMENT_TRACE] PersistResult AttachmentId={AttachmentId} SavedCount={SavedCount} FailedCount={FailedCount} PersistedSample={PersistedSample}",
-                        attachment.Id,
-                        savedCount,
-                        failedCount,
-                        BuildRequirementTraceSample(extractedRequirements.Where(r => !string.IsNullOrWhiteSpace(r.ApiId)).ToList()));
-
-                    if (savedCount > 0 && failedCount == 0)
-                    {
-                        progressCallback?.Invoke($"✅ Saved {savedCount} extracted requirements to Jama");
-                    }
-
-                    if (failedCount > 0)
-                    {
-                        var incompleteMessage =
-                            $"⚠️ Jama save incomplete: {savedCount}/{extractedRequirements.Count} saved, {failedCount} failed. " +
-                            "Continuing with successfully saved requirements; review logs for failed items.";
-
-                        _logger.LogWarning("[ATTACHMENT_DIAG] Jama save incomplete after retry. Saved={SavedCount} Total={TotalCount} Failed={FailedCount} AttachmentId={AttachmentId} ProjectId={ProjectId}",
-                            savedCount, extractedRequirements.Count, failedCount, attachment.Id, projectId);
-                        progressCallback?.Invoke(incompleteMessage);
-
-                        // Only fail the workflow when no requirements were persisted at all.
-                        if (savedCount == 0)
-                        {
-                            throw new InvalidOperationException($"Failed to persist extracted requirements to Jama. Saved 0/{extractedRequirements.Count}.");
-                        }
-                    }
+                    _logger.LogInformation("[RequirementsMediator] Extracted {Count} requirements from attachment {AttachmentId}. Deferring Jama save until explicit commit.", 
+                        extractedRequirements.Count, attachment.Id);
                 }
 
                 _logger.LogInformation("[RequirementsMediator] Parsed {Count} requirements from attachment {AttachmentId} ({FileName})", 
