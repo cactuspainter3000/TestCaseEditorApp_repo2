@@ -2379,6 +2379,106 @@ namespace TestCaseEditorApp.Services
         }
         
         /// <summary>
+        /// Get all attachments in a project using direct REST API query (much more efficient than iterating items)
+        /// Uses /attachments endpoint with project filtering to retrieve all attachments in one query
+        /// This avoids the N+1 problem of checking each item individually
+        /// </summary>
+        public async Task<List<JamaAttachment>> GetProjectAttachmentsDirectAsync(
+            int projectId, 
+            CancellationToken cancellationToken = default, 
+            Action<int, int, string>? progressCallback = null,
+            string projectName = "")
+        {
+            return await WithRetryAsync(async () =>
+            {
+                await EnsureAccessTokenAsync();
+                
+                var attachments = new List<JamaAttachment>();
+                var displayName = string.IsNullOrEmpty(projectName) ? $"Project {projectId}" : projectName;
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Starting direct attachment query for project {projectId} using /attachments endpoint");
+                
+                try
+                {
+                    var startAt = 0;
+                    const int maxResults = 50; // Batch size for pagination
+                    var hasMore = true;
+                    var pageNumber = 1;
+                    
+                    while (hasMore)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        
+                        // Query attachments filtered by project using REST API
+                        var url = $"{_baseUrl}/rest/v1/attachments?project={projectId}&startAt={startAt}&maxResults={maxResults}";
+                        
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Querying attachments page {pageNumber}: {url}");
+                        
+                        var response = await _httpClient.GetAsync(url, cancellationToken);
+                        
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                            var result = JsonSerializer.Deserialize<JamaAttachmentsResponse>(json, new JsonSerializerOptions
+                            {
+                                PropertyNameCaseInsensitive = true
+                            });
+                            
+                            if (result?.Data != null && result.Data.Count > 0)
+                            {
+                                attachments.AddRange(result.Data);
+                                
+                                var totalResults = result.Meta?.PageInfo?.TotalResults ?? attachments.Count;
+                                var percentage = totalResults > 0 ? (int)((double)attachments.Count / totalResults * 100) : 0;
+                                
+                                progressCallback?.Invoke(attachments.Count, totalResults, 
+                                    $"Searching {displayName} for attachments | direct query | {percentage}% complete | {attachments.Count} found");
+                                
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Page {pageNumber}: received {result.Data.Count} attachments, total so far: {attachments.Count}");
+                                
+                                startAt += result.Data.Count;
+                                hasMore = result.Meta?.PageInfo?.TotalResults > startAt;
+                                pageNumber++;
+                            }
+                            else
+                            {
+                                hasMore = false;
+                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] No more attachments found (page {pageNumber})");
+                            }
+                        }
+                        else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        {
+                            // Project has no attachments or endpoint not available with project filter
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] No attachments found for project {projectId} (404)");
+                            hasMore = false;
+                        }
+                        else
+                        {
+                            var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Direct attachment query failed for page {pageNumber}: {response.StatusCode} - {errorContent}");
+                            
+                            // If direct query fails, we could fall back to item-by-item checking, but for now just log and return what we have
+                            hasMore = false;
+                        }
+                    }
+                    
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Direct attachment query complete: {attachments.Count} total attachments found");
+                }
+                catch (OperationCanceledException)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Direct attachment query cancelled for project {projectId}");
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaConnect] Error during direct attachment query for project {projectId}: {ex.Message}");
+                }
+                
+                return attachments;
+            });
+        }
+        
+        /// <summary>
         /// Get abstract items for a project using the recommended cookbook approach
         /// Uses /abstractitems endpoint with project filtering
         /// </summary>
