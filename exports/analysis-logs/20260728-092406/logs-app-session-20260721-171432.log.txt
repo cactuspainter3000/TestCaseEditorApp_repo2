@@ -1,0 +1,284 @@
+﻿2026-07-21T17:14:32.5471713Z	Information	Microsoft.Hosting.Lifetime	Application started. Press Ctrl+C to shut down.
+2026-07-21T17:14:32.5537880Z	Information	Microsoft.Hosting.Lifetime	Hosting environment: Production
+2026-07-21T17:14:32.5555703Z	Information	Microsoft.Hosting.Lifetime	Content root path: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows
+2026-07-21T17:14:32.5608469Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-21T17:14:32.5766213Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-21T17:14:32.6137713Z	Information	TestCaseEditorApp.App	Ensuring Ollama service is running...
+2026-07-21T17:14:32.6154573Z	Information	TestCaseEditorApp.App	Runtime session log file: C:\Users\e10653214\TestCaseEditorApp\logs\app-session-20260721-171432.log
+2026-07-21T17:14:32.6184933Z	Information	App	[OllamaProcessManager] Environment variables configured: LOAD_TIMEOUT=10m, KEEP_ALIVE=20m
+2026-07-21T17:14:33.0612361Z	Information	App	[OllamaProcessManager] ✅ Ollama is running and healthy
+2026-07-21T17:14:33.0632787Z	Information	TestCaseEditorApp.App	? Ollama service is ready
+2026-07-21T17:14:33.0684012Z	Information	TestCaseEditorApp.App	Initializing extension system...
+2026-07-21T17:14:33.0733790Z	Information	TestCaseEditorApp.App	Extension discovery completed. Loaded: 0, Errors: 0
+2026-07-21T17:14:33.0785867Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-21T17:14:33.0808936Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-21T17:14:33.0844893Z	Information	App	[OllamaEmbedding] Initialized with model: mxbai-embed-large:335m-v1-fp16, dimensions: 1024
+2026-07-21T17:14:33.0884171Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Service initialized with storage path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\DocumentIndexes
+2026-07-21T17:14:33.0939249Z	Information	TestCaseEditorApp.Services.RequirementAnalysisCache	[AnalysisCache] Initialized with maxSize=500, maxAge=08:00:00
+2026-07-21T17:14:33.1005965Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-21T17:14:33.1027029Z	Information	TestCaseEditorApp.Services.Templates.ServiceComplianceWrapper	ServiceComplianceWrapper initialized with Full Template Form Architecture
+2026-07-21T17:14:33.1087745Z	Information	TestCaseEditorApp.Services.DerivationQualityScorer	DerivationQualityScorer initialized with evaluation framework
+2026-07-21T17:14:33.1108327Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-21T17:14:33.1128347Z	Information	TestCaseEditorApp.Services.SystemCapabilityDerivationService	SystemCapabilityDerivationService initialized with Template Form Architecture with taxonomy containing 14 categories
+2026-07-21T17:14:33.1206304Z	Information	App	[JamaConnect] FromConfiguration called
+2026-07-21T17:14:33.1223419Z	Information	App	[JamaConnect] Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-21T17:14:33.1239185Z	Information	App	[JamaConnect] API Token: NOT SET
+2026-07-21T17:14:33.1253542Z	Information	App	[JamaConnect] Client ID: hpytk1ocbt0p01u
+2026-07-21T17:14:33.1268600Z	Information	App	[JamaConnect] Client Secret: SET
+2026-07-21T17:14:33.1288251Z	Information	App	[JamaConnect] Creating service with OAuth
+2026-07-21T17:14:33.1319252Z	Information	App	[JamaConnect] OAuth constructor - Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-21T17:14:33.1345080Z	Information	App	[JamaConnect] OAuth constructor - Client ID: hpytk1ocbt0p01u
+2026-07-21T17:14:33.1371298Z	Information	App	[JamaConnect] OAuth constructor - Client Secret: SET
+2026-07-21T17:14:33.1394296Z	Information	App	[JamaConnect] OCR service configured for image text extraction
+2026-07-21T17:14:33.1510778Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-21T17:14:33.1537305Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-21T17:14:33.1554846Z	Information	App	[TesseractOCR] Initializing with tessdata path: C:\Users\e10653214\AppData\Local\Programs\Tesseract-OCR\tessdata
+2026-07-21T17:14:33.1570597Z	Information	TestCaseEditorApp.Services.Templates.ABTestingFramework	ABTestingFramework initialized. ComplianceWrapper: True, QualityService: True
+2026-07-21T17:14:33.1589561Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-21T17:14:33.1619258Z	Information	TestCaseEditorApp.Services.Templates.TelemetryDashboardService	📊 TelemetryDashboardService initialized. Integration: QualityService+ABTesting+Compliance
+2026-07-21T17:14:33.1731194Z	Information	App	[OllamaStatusMonitor] HTTP timeout configured: 8s
+2026-07-21T17:14:33.1750293Z	Information	App	[OllamaStatusMonitor] Max supported Ollama version: 0.5.13
+2026-07-21T17:14:33.1770175Z	Information	App	[JamaDocumentParser] Initialized with Template Form Architecture: Envelope=True, Quality=True, Compliance=True, ABTest=True, Telemetry=True, OllamaManager=True, OllamaMonitor=True
+2026-07-21T17:14:33.1814355Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Navigation (NavigationMediator)
+2026-07-21T17:14:33.1890027Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: TestCaseGeneration (TestCaseGenerationMediator)
+2026-07-21T17:14:33.1906988Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: TestFlow (TestFlowMediator)
+2026-07-21T17:14:33.1922441Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: NewProject (NewProjectMediator)
+2026-07-21T17:14:33.1941931Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: OpenProject (OpenProjectMediator)
+2026-07-21T17:14:33.1962186Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Requirements (RequirementsMediator)
+2026-07-21T17:14:33.2420180Z	Information	TestCaseEditorApp.App	Service monitoring started for AnythingLLM
+2026-07-21T17:14:33.2548983Z	Information	TestCaseEditorApp.App	Attempting to auto-start AnythingLLM service...
+2026-07-21T17:14:33.2685213Z	Information	App	[ServiceMonitor] MEDIATOR DEBUG: NotifyStatusChange for AnythingLLM - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-21T17:14:33.2735805Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-07-21T17:14:33.2804329Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-21T17:14:33.2870592Z	Information	App	[ServiceMonitor] AnythingLLM status changed - Available: True, Message: AnythingLLM service is available
+2026-07-21T17:14:33.3367002Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-07-21T17:14:33.3391749Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-07-21T17:14:33.3531078Z	Information	App	[AnythingLLM] Availability check result: True
+2026-07-21T17:14:33.3571055Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
+2026-07-21T17:14:33.3591385Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=True, Message=Checking AnythingLLM status...
+2026-07-21T17:14:33.3620236Z	Information	App	[AnythingLLMMediator] Broadcasting last known status via NotifyStatusUpdated: Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-21T17:14:33.3633907Z	Information	App	[AnythingLLM] Availability check result: True
+2026-07-21T17:14:33.3669237Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=True, Message=Checking AnythingLLM status...
+2026-07-21T17:14:33.3699502Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: True, Starting: True
+2026-07-21T17:14:33.3726008Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: True, Starting: True
+2026-07-21T17:14:33.3712543Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-21T17:14:33.3802854Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-21T17:14:33.3838881Z	Information	TestCaseEditorApp.App	AnythingLLM auto-start completed successfully
+2026-07-21T17:14:33.4152478Z	Information	TestCaseEditorApp.Services.NavigationService	NavigationService created with initial title: 'Systems ATE APP'
+2026-07-21T17:14:33.4220645Z	Information	TestCaseEditorApp.Services.NavigationService	NavigationService initial TitleChanged event fired with 'Systems ATE APP'
+2026-07-21T17:14:33.4884400Z	Information	App	[RecentFiles] Load() called, path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\recent-files.json
+2026-07-21T17:14:33.4953922Z	Information	App	[RecentFiles] Loaded JSON: [
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B Test workshop.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B sandbox.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B TL Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Top Level C4B Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD-268C4B.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\CMP-6000.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Decagon.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\RTU-42XX.tcex.json"
+]
+2026-07-21T17:14:33.5444682Z	Information	App	[RecentFiles] Deserialized 10 files
+2026-07-21T17:14:33.5482579Z	Information	App	[RecentFiles] After filtering non-existent: 10 files
+2026-07-21T17:14:33.6348861Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-07-21T17:14:33.6494485Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel initialized as simple 5-workspace container
+2026-07-21T17:14:33.9069713Z	Information	App	[TesseractOCR] Tesseract OCR engine initialized successfully
+2026-07-21T17:14:33.9089155Z	Information	App	[JamaConnect] OCR engine availability: Available
+2026-07-21T17:14:34.0446775Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-07-21T17:14:34.0465746Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel initialized as simple 5-workspace container
+2026-07-21T17:14:34.7620130Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-21T17:14:34.7649111Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-21T17:14:38.6781386Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-21T17:14:38.6813855Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-21T17:14:56.8491028Z	Information	App	[JamaConnect] OAuth constructor - Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-21T17:14:56.8512918Z	Information	App	[JamaConnect] OAuth constructor - Client ID: hpytk1ocbt0p01u
+2026-07-21T17:14:56.8532841Z	Information	App	[JamaConnect] OAuth constructor - Client Secret: SET
+2026-07-21T17:14:56.8628250Z	Information	App	[JamaConnect] Getting OAuth token from: https://jama02.rockwellcollins.com/contour/rest/oauth/token
+2026-07-21T17:14:56.8662514Z	Information	App	[JamaConnect] Sending OAuth request...
+2026-07-21T17:14:57.2448340Z	Information	App	[JamaConnect] OAuth response: OK
+2026-07-21T17:14:57.2629517Z	Information	App	[JamaConnect] OAuth token obtained successfully (eyJraWQiOiJvYXV0aEtl...)
+2026-07-21T17:14:57.2652976Z	Information	App	[JamaConnect] ✅ OAuth steel trap validation passed!
+2026-07-21T17:15:03.0572428Z	Warning	App	[JamaConnect] Unlock failed for item 19887341: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:03.044+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:03.1868741Z	Warning	App	[JamaConnect] Unlock failed for item 19887340: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:03.174+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:03.2853644Z	Warning	App	[JamaConnect] Unlock failed for item 19887339: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:03.273+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:03.3827514Z	Warning	App	[JamaConnect] Unlock failed for item 19887338: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:03.370+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:03.4792641Z	Warning	App	[JamaConnect] Unlock failed for item 19887337: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:03.466+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:03.5830298Z	Warning	App	[JamaConnect] Unlock failed for item 19887336: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:03.569+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:03.6826364Z	Warning	App	[JamaConnect] Unlock failed for item 19887335: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:03.669+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:03.7804614Z	Warning	App	[JamaConnect] Unlock failed for item 19887334: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:03.767+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:03.8797457Z	Warning	App	[JamaConnect] Unlock failed for item 19887332: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:03.867+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:03.9806151Z	Warning	App	[JamaConnect] Unlock failed for item 19887331: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:03.967+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:04.0799127Z	Warning	App	[JamaConnect] Unlock failed for item 19887330: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:04.067+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:04.1764572Z	Warning	App	[JamaConnect] Unlock failed for item 19887329: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:04.164+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:04.2794058Z	Warning	App	[JamaConnect] Unlock failed for item 19887328: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:04.264+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:04.3777397Z	Warning	App	[JamaConnect] Unlock failed for item 19887327: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:04.365+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:04.4904939Z	Warning	App	[JamaConnect] Unlock failed for item 19887326: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:04.478+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:04.5947958Z	Warning	App	[JamaConnect] Unlock failed for item 19887325: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:04.582+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:04.6934573Z	Warning	App	[JamaConnect] Unlock failed for item 19887303: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:04.679+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:04.7922280Z	Warning	App	[JamaConnect] Unlock failed for item 19887302: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:04.779+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:04.9853917Z	Warning	App	[JamaConnect] Unlock failed for item 19887333: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:04.972+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:05.1647566Z	Warning	App	[JamaConnect] Unlock failed for item 19887324: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:05.152+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:05.2630706Z	Warning	App	[JamaConnect] Unlock failed for item 19887323: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:05.250+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:05.3637421Z	Warning	App	[JamaConnect] Unlock failed for item 19887322: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:05.350+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:05.4595595Z	Warning	App	[JamaConnect] Unlock failed for item 19887320: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:05.447+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:05.5572309Z	Warning	App	[JamaConnect] Unlock failed for item 19887319: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:05.545+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:05.6574992Z	Warning	App	[JamaConnect] Unlock failed for item 19887318: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:05.644+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:05.7554164Z	Warning	App	[JamaConnect] Unlock failed for item 19887317: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:05.742+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:05.8539984Z	Warning	App	[JamaConnect] Unlock failed for item 19887316: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:05.841+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:05.9504180Z	Warning	App	[JamaConnect] Unlock failed for item 19887313: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:05.937+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:06.0507579Z	Warning	App	[JamaConnect] Unlock failed for item 19887312: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:06.037+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:06.1535213Z	Warning	App	[JamaConnect] Unlock failed for item 19887311: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:06.140+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:06.2564980Z	Warning	App	[JamaConnect] Unlock failed for item 19887310: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:06.243+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:06.3574899Z	Warning	App	[JamaConnect] Unlock failed for item 19887308: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:06.345+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:06.4584622Z	Warning	App	[JamaConnect] Unlock failed for item 19887307: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:06.445+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:06.5557676Z	Warning	App	[JamaConnect] Unlock failed for item 19887306: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:06.542+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:06.6559983Z	Warning	App	[JamaConnect] Unlock failed for item 19887305: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:06.642+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:06.7581016Z	Warning	App	[JamaConnect] Unlock failed for item 19887304: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:06.745+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:06.8562530Z	Warning	App	[JamaConnect] Unlock failed for item 19887301: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:06.842+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:06.9597192Z	Warning	App	[JamaConnect] Unlock failed for item 19887299: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:06.942+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:07.0787974Z	Warning	App	[JamaConnect] Unlock failed for item 19887298: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:07.043+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:07.2030869Z	Warning	App	[JamaConnect] Unlock failed for item 19887297: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:07.166+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:07.3007056Z	Warning	App	[JamaConnect] Unlock failed for item 19887296: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:07.287+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:07.4020419Z	Warning	App	[JamaConnect] Unlock failed for item 19887295: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:07.389+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:07.5003999Z	Warning	App	[JamaConnect] Unlock failed for item 19887294: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:07.487+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:07.5993756Z	Warning	App	[JamaConnect] Unlock failed for item 19887293: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:07.586+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:07.6999353Z	Warning	App	[JamaConnect] Unlock failed for item 19887292: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:07.686+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:07.8005433Z	Warning	App	[JamaConnect] Unlock failed for item 19887291: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:07.787+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:07.8975378Z	Warning	App	[JamaConnect] Unlock failed for item 19887290: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:07.885+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:07.9985549Z	Warning	App	[JamaConnect] Unlock failed for item 19887422: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:07.985+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:08.0966923Z	Warning	App	[JamaConnect] Unlock failed for item 19887406: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:08.084+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:08.1988926Z	Warning	App	[JamaConnect] Unlock failed for item 19887405: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:08.186+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:08.2974537Z	Warning	App	[JamaConnect] Unlock failed for item 19887404: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:08.284+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:08.3950592Z	Warning	App	[JamaConnect] Unlock failed for item 19887403: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:08.382+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:08.4950351Z	Warning	App	[JamaConnect] Unlock failed for item 19887402: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:08.482+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:08.5931601Z	Warning	App	[JamaConnect] Unlock failed for item 19887401: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:08.580+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:08.6944151Z	Warning	App	[JamaConnect] Unlock failed for item 19887400: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:08.679+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:08.7921908Z	Warning	App	[JamaConnect] Unlock failed for item 19887399: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:08.779+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:08.8876539Z	Warning	App	[JamaConnect] Unlock failed for item 19887398: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:08.874+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:08.9852107Z	Warning	App	[JamaConnect] Unlock failed for item 19887397: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:08.972+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:09.0814248Z	Warning	App	[JamaConnect] Unlock failed for item 19887396: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:09.069+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:09.1796318Z	Warning	App	[JamaConnect] Unlock failed for item 19887395: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:09.167+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:09.2769969Z	Warning	App	[JamaConnect] Unlock failed for item 19887394: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:09.264+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:09.3738179Z	Warning	App	[JamaConnect] Unlock failed for item 19887393: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:09.361+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:09.4719863Z	Warning	App	[JamaConnect] Unlock failed for item 19887392: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:09.458+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:09.5695935Z	Warning	App	[JamaConnect] Unlock failed for item 19887390: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:09.556+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:09.6652943Z	Warning	App	[JamaConnect] Unlock failed for item 19887389: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:09.652+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:09.7616380Z	Warning	App	[JamaConnect] Unlock failed for item 19887388: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:09.749+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:09.8603488Z	Warning	App	[JamaConnect] Unlock failed for item 19887387: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:09.847+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:09.9589785Z	Warning	App	[JamaConnect] Unlock failed for item 19887386: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:09.945+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:10.0567705Z	Warning	App	[JamaConnect] Unlock failed for item 19887385: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:10.043+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:10.1549244Z	Warning	App	[JamaConnect] Unlock failed for item 19887383: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:10.142+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:10.2552766Z	Warning	App	[JamaConnect] Unlock failed for item 19887382: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:10.241+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:10.3541993Z	Warning	App	[JamaConnect] Unlock failed for item 19887380: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:10.341+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:10.4542037Z	Warning	App	[JamaConnect] Unlock failed for item 19887379: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:10.439+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:10.5554543Z	Warning	App	[JamaConnect] Unlock failed for item 19887361: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:10.542+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:10.6558604Z	Warning	App	[JamaConnect] Unlock failed for item 19887360: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:10.642+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:10.7556400Z	Warning	App	[JamaConnect] Unlock failed for item 19887359: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:10.743+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:10.8530035Z	Warning	App	[JamaConnect] Unlock failed for item 19887358: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:10.840+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:10.9510342Z	Warning	App	[JamaConnect] Unlock failed for item 19887356: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:10.938+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:11.0518661Z	Warning	App	[JamaConnect] Unlock failed for item 19887355: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:11.039+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:11.1856592Z	Warning	App	[JamaConnect] Unlock failed for item 19887354: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:11.173+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:11.2848634Z	Warning	App	[JamaConnect] Unlock failed for item 19887353: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:11.272+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:11.3817897Z	Warning	App	[JamaConnect] Unlock failed for item 19887352: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:11.369+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:11.4819145Z	Warning	App	[JamaConnect] Unlock failed for item 19887351: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:11.469+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:11.5867356Z	Warning	App	[JamaConnect] Unlock failed for item 19887350: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:11.574+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:11.6857939Z	Warning	App	[JamaConnect] Unlock failed for item 19887349: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:11.672+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:11.7829149Z	Warning	App	[JamaConnect] Unlock failed for item 19887347: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:11.770+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:11.8793251Z	Warning	App	[JamaConnect] Unlock failed for item 19887346: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:11.867+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:11.9802374Z	Warning	App	[JamaConnect] Unlock failed for item 19887345: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:11.967+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:12.1573023Z	Warning	App	[JamaConnect] Unlock failed for item 19887321: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:12.142+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:12.3326676Z	Warning	App	[JamaConnect] Unlock failed for item 19887315: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:12.319+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:12.5056373Z	Warning	App	[JamaConnect] Unlock failed for item 19887309: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:12.492+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:12.6762777Z	Warning	App	[JamaConnect] Unlock failed for item 19887300: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:12.664+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:12.8486456Z	Warning	App	[JamaConnect] Unlock failed for item 19887289: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:12.835+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:12.9465720Z	Warning	App	[JamaConnect] Unlock failed for item 19887287: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:12.933+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:13.0538284Z	Warning	App	[JamaConnect] Unlock failed for item 19887286: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:13.041+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:13.1498059Z	Warning	App	[JamaConnect] Unlock failed for item 19887285: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:13.137+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:13.2499808Z	Warning	App	[JamaConnect] Unlock failed for item 19887284: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:13.237+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:13.3466287Z	Warning	App	[JamaConnect] Unlock failed for item 19887283: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:13.334+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:13.4475665Z	Warning	App	[JamaConnect] Unlock failed for item 19887282: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:13.435+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:13.5454195Z	Warning	App	[JamaConnect] Unlock failed for item 19887281: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:13.533+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:13.6437272Z	Warning	App	[JamaConnect] Unlock failed for item 19887441: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:13.631+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:13.7455848Z	Warning	App	[JamaConnect] Unlock failed for item 19887440: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:13.733+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:13.8433108Z	Warning	App	[JamaConnect] Unlock failed for item 19887439: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:13.830+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:13.9411067Z	Warning	App	[JamaConnect] Unlock failed for item 19887438: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:13.928+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:14.0374856Z	Warning	App	[JamaConnect] Unlock failed for item 19887437: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:14.024+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:14.1358412Z	Warning	App	[JamaConnect] Unlock failed for item 19887436: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:14.123+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:14.2343282Z	Warning	App	[JamaConnect] Unlock failed for item 19887435: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:14.221+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:14.3319160Z	Warning	App	[JamaConnect] Unlock failed for item 19887434: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:14.318+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:14.4302335Z	Warning	App	[JamaConnect] Unlock failed for item 19887433: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:14.417+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:14.5294945Z	Warning	App	[JamaConnect] Unlock failed for item 19887432: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:14.517+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:14.6284211Z	Warning	App	[JamaConnect] Unlock failed for item 19887431: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:14.615+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:14.7259934Z	Warning	App	[JamaConnect] Unlock failed for item 19887430: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:14.713+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:14.8233206Z	Warning	App	[JamaConnect] Unlock failed for item 19887429: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:14.810+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:14.9190246Z	Warning	App	[JamaConnect] Unlock failed for item 19887428: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:14.906+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:15.0156854Z	Warning	App	[JamaConnect] Unlock failed for item 19887427: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:15.002+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:15.1123238Z	Warning	App	[JamaConnect] Unlock failed for item 19887426: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:15.099+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:15.2118611Z	Warning	App	[JamaConnect] Unlock failed for item 19887425: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:15.199+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:15.3077659Z	Warning	App	[JamaConnect] Unlock failed for item 19887424: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:15.295+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:15.4052537Z	Warning	App	[JamaConnect] Unlock failed for item 19887423: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:15.392+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:15.5020697Z	Warning	App	[JamaConnect] Unlock failed for item 19887421: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:15.489+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:15.6003721Z	Warning	App	[JamaConnect] Unlock failed for item 19887420: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:15.588+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:15.6966132Z	Warning	App	[JamaConnect] Unlock failed for item 19887419: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:15.684+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:15.8006865Z	Warning	App	[JamaConnect] Unlock failed for item 19887416: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:15.786+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:15.9000623Z	Warning	App	[JamaConnect] Unlock failed for item 19887415: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:15.887+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:15.9979530Z	Warning	App	[JamaConnect] Unlock failed for item 19887414: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:15.985+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:16.0978590Z	Warning	App	[JamaConnect] Unlock failed for item 19887413: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:16.083+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:16.1957628Z	Warning	App	[JamaConnect] Unlock failed for item 19887411: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:16.182+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:16.2948652Z	Warning	App	[JamaConnect] Unlock failed for item 19887410: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:16.282+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:16.3944457Z	Warning	App	[JamaConnect] Unlock failed for item 19887409: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:16.379+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:16.4884002Z	Warning	App	[JamaConnect] Unlock failed for item 19887408: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:16.475+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:16.6594928Z	Warning	App	[JamaConnect] Unlock failed for item 19887391: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:16.646+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:16.8288904Z	Warning	App	[JamaConnect] Unlock failed for item 19887384: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:16.816+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:16.9972225Z	Warning	App	[JamaConnect] Unlock failed for item 19887381: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:16.984+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:17.1655023Z	Warning	App	[JamaConnect] Unlock failed for item 19887378: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:17.153+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:17.3342919Z	Warning	App	[JamaConnect] Unlock failed for item 19887348: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:17.321+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:17.5066534Z	Warning	App	[JamaConnect] Unlock failed for item 19887342: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:17.494+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:17.6756626Z	Warning	App	[JamaConnect] Unlock failed for item 19887288: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:17.663+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:17.8433791Z	Warning	App	[JamaConnect] Unlock failed for item 19887280: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:17.831+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:18.0103732Z	Warning	App	[JamaConnect] Unlock failed for item 19887418: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:17.997+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:18.1754095Z	Warning	App	[JamaConnect] Unlock failed for item 19887412: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:18.163+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:18.3421164Z	Warning	App	[JamaConnect] Unlock failed for item 19887407: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:18.329+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:18.5072586Z	Warning	App	[JamaConnect] Unlock failed for item 19887279: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:18.494+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:18.6059768Z	Warning	App	[JamaConnect] Unlock failed for item 19849166: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:18.592+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:18.7052428Z	Warning	App	[JamaConnect] Unlock failed for item 19849165: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:18.692+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:18.8010517Z	Warning	App	[JamaConnect] Unlock failed for item 19849164: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:18.788+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:18.8977786Z	Warning	App	[JamaConnect] Unlock failed for item 19849163: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:18.885+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:18.9926612Z	Warning	App	[JamaConnect] Unlock failed for item 19849162: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:18.980+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:19.0909965Z	Warning	App	[JamaConnect] Unlock failed for item 19849161: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:19.077+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:19.1899005Z	Warning	App	[JamaConnect] Unlock failed for item 19849160: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:19.175+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:19.2869933Z	Warning	App	[JamaConnect] Unlock failed for item 19849159: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:19.274+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:19.3858857Z	Warning	App	[JamaConnect] Unlock failed for item 19849158: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:19.373+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:19.4823466Z	Warning	App	[JamaConnect] Unlock failed for item 19849157: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:19.470+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:19.5784922Z	Warning	App	[JamaConnect] Unlock failed for item 19849156: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:19.566+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:19.6778565Z	Warning	App	[JamaConnect] Unlock failed for item 19849155: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:19.664+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:19.7743399Z	Warning	App	[JamaConnect] Unlock failed for item 19849154: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:19.761+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:19.8734649Z	Warning	App	[JamaConnect] Unlock failed for item 19849153: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:19.860+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:19.9700349Z	Warning	App	[JamaConnect] Unlock failed for item 19849152: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:19.957+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:20.0711638Z	Warning	App	[JamaConnect] Unlock failed for item 19849151: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:20.058+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:20.1682106Z	Warning	App	[JamaConnect] Unlock failed for item 19849150: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:20.155+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:20.2651424Z	Warning	App	[JamaConnect] Unlock failed for item 19849149: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:20.252+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:20.3685802Z	Warning	App	[JamaConnect] Unlock failed for item 19849148: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:20.355+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:20.4663035Z	Warning	App	[JamaConnect] Unlock failed for item 19849147: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:20.453+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:20.5641452Z	Warning	App	[JamaConnect] Unlock failed for item 19849146: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:20.551+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:20.6881168Z	Warning	App	[JamaConnect] Unlock failed for item 19849145: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:20.676+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:20.7879939Z	Warning	App	[JamaConnect] Unlock failed for item 19849144: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:20.773+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:20.8850045Z	Warning	App	[JamaConnect] Unlock failed for item 19849143: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:20.872+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:20.9815054Z	Warning	App	[JamaConnect] Unlock failed for item 19849142: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:20.969+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:21.0799321Z	Warning	App	[JamaConnect] Unlock failed for item 19849141: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:21.066+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:21.1772274Z	Warning	App	[JamaConnect] Unlock failed for item 19849140: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:21.165+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:21.2737508Z	Warning	App	[JamaConnect] Unlock failed for item 19849139: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:21.261+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:21.3713248Z	Warning	App	[JamaConnect] Unlock failed for item 19849138: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:21.358+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:21.4694065Z	Warning	App	[JamaConnect] Unlock failed for item 19849137: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:21.456+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:21.5701150Z	Warning	App	[JamaConnect] Unlock failed for item 19849136: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:21.557+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:21.6706100Z	Warning	App	[JamaConnect] Unlock failed for item 19849135: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:21.658+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:21.7702371Z	Warning	App	[JamaConnect] Unlock failed for item 19849134: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:21.757+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:21.8691232Z	Warning	App	[JamaConnect] Unlock failed for item 19849133: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:21.856+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:15:22.0334755Z	Warning	App	[JamaConnect] Unlock failed for item 19849078: BadRequest - {"meta":{"status":"Bad Request","timestamp":"2026-07-21T17:15:22.021+0000","message":"Missing parentId and project values."}}
+2026-07-21T17:15:22.1393380Z	Warning	App	[JamaConnect] Delete failed for item 19887341: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:15:22.126+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:19:45.4661941Z	Information	Microsoft.Hosting.Lifetime	Application is shutting down...
+2026-07-21T17:19:45.4721386Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-21T17:19:45.4743043Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-21T17:19:45.4766266Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-21T17:19:45.4809815Z	Information	TestCaseEditorApp.Services.RequirementAnalysisCache	[AnalysisCache] Disposed cache with 0 hits, 0 misses, 0ms saved

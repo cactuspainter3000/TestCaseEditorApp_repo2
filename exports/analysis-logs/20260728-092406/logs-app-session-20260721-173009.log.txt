@@ -1,0 +1,461 @@
+﻿2026-07-21T17:30:09.1018004Z	Information	Microsoft.Hosting.Lifetime	Application started. Press Ctrl+C to shut down.
+2026-07-21T17:30:09.1096061Z	Information	Microsoft.Hosting.Lifetime	Hosting environment: Production
+2026-07-21T17:30:09.1111456Z	Information	Microsoft.Hosting.Lifetime	Content root path: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows
+2026-07-21T17:30:09.1166158Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-21T17:30:09.1294174Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-21T17:30:09.1572165Z	Information	TestCaseEditorApp.App	Ensuring Ollama service is running...
+2026-07-21T17:30:09.1589256Z	Information	TestCaseEditorApp.App	Runtime session log file: C:\Users\e10653214\TestCaseEditorApp\logs\app-session-20260721-173009.log
+2026-07-21T17:30:09.1614789Z	Information	App	[OllamaProcessManager] Environment variables configured: LOAD_TIMEOUT=10m, KEEP_ALIVE=20m
+2026-07-21T17:30:09.8098016Z	Information	App	[OllamaProcessManager] ✅ Ollama is running and healthy
+2026-07-21T17:30:09.8117189Z	Information	TestCaseEditorApp.App	? Ollama service is ready
+2026-07-21T17:30:09.8145901Z	Information	TestCaseEditorApp.App	Initializing extension system...
+2026-07-21T17:30:09.8186626Z	Information	TestCaseEditorApp.App	Extension discovery completed. Loaded: 0, Errors: 0
+2026-07-21T17:30:09.8240526Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-21T17:30:09.8267866Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-21T17:30:09.8294689Z	Information	App	[OllamaEmbedding] Initialized with model: mxbai-embed-large:335m-v1-fp16, dimensions: 1024
+2026-07-21T17:30:09.8322542Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Service initialized with storage path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\DocumentIndexes
+2026-07-21T17:30:09.8361518Z	Information	TestCaseEditorApp.Services.RequirementAnalysisCache	[AnalysisCache] Initialized with maxSize=500, maxAge=08:00:00
+2026-07-21T17:30:09.8432757Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-21T17:30:09.8455057Z	Information	TestCaseEditorApp.Services.Templates.ServiceComplianceWrapper	ServiceComplianceWrapper initialized with Full Template Form Architecture
+2026-07-21T17:30:09.8511578Z	Information	TestCaseEditorApp.Services.DerivationQualityScorer	DerivationQualityScorer initialized with evaluation framework
+2026-07-21T17:30:09.8531949Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-21T17:30:09.8552133Z	Information	TestCaseEditorApp.Services.SystemCapabilityDerivationService	SystemCapabilityDerivationService initialized with Template Form Architecture with taxonomy containing 14 categories
+2026-07-21T17:30:09.8636036Z	Information	App	[JamaConnect] FromConfiguration called
+2026-07-21T17:30:09.8656164Z	Information	App	[JamaConnect] Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-21T17:30:09.8674907Z	Information	App	[JamaConnect] API Token: NOT SET
+2026-07-21T17:30:09.8690448Z	Information	App	[JamaConnect] Client ID: hpytk1ocbt0p01u
+2026-07-21T17:30:09.8706515Z	Information	App	[JamaConnect] Client Secret: SET
+2026-07-21T17:30:09.8723132Z	Information	App	[JamaConnect] Creating service with OAuth
+2026-07-21T17:30:09.8751029Z	Information	App	[JamaConnect] OAuth constructor - Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-21T17:30:09.8768389Z	Information	App	[JamaConnect] OAuth constructor - Client ID: hpytk1ocbt0p01u
+2026-07-21T17:30:09.8784388Z	Information	App	[JamaConnect] OAuth constructor - Client Secret: SET
+2026-07-21T17:30:09.8806689Z	Information	App	[JamaConnect] OCR service configured for image text extraction
+2026-07-21T17:30:09.8913424Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-21T17:30:09.8932262Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-21T17:30:09.8951559Z	Information	TestCaseEditorApp.Services.Templates.ABTestingFramework	ABTestingFramework initialized. ComplianceWrapper: True, QualityService: True
+2026-07-21T17:30:09.8969678Z	Information	App	[TesseractOCR] Initializing with tessdata path: C:\Users\e10653214\AppData\Local\Programs\Tesseract-OCR\tessdata
+2026-07-21T17:30:09.8986193Z	Information	TestCaseEditorApp.Services.Templates.FieldLevelQualityService	FieldLevelQualityService initialized with Template Form Architecture integration
+2026-07-21T17:30:09.9030903Z	Information	TestCaseEditorApp.Services.Templates.TelemetryDashboardService	📊 TelemetryDashboardService initialized. Integration: QualityService+ABTesting+Compliance
+2026-07-21T17:30:09.9154733Z	Information	App	[OllamaStatusMonitor] HTTP timeout configured: 8s
+2026-07-21T17:30:09.9174077Z	Information	App	[OllamaStatusMonitor] Max supported Ollama version: 0.5.13
+2026-07-21T17:30:09.9199503Z	Information	App	[JamaDocumentParser] Initialized with Template Form Architecture: Envelope=True, Quality=True, Compliance=True, ABTest=True, Telemetry=True, OllamaManager=True, OllamaMonitor=True
+2026-07-21T17:30:09.9338414Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Navigation (NavigationMediator)
+2026-07-21T17:30:09.9402467Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: TestCaseGeneration (TestCaseGenerationMediator)
+2026-07-21T17:30:09.9467204Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: TestFlow (TestFlowMediator)
+2026-07-21T17:30:09.9534811Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: NewProject (NewProjectMediator)
+2026-07-21T17:30:09.9600947Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: OpenProject (OpenProjectMediator)
+2026-07-21T17:30:09.9679076Z	Information	TestCaseEditorApp.Services.DomainCoordinator	Registered domain mediator: Requirements (RequirementsMediator)
+2026-07-21T17:30:10.0328864Z	Information	TestCaseEditorApp.App	Service monitoring started for AnythingLLM
+2026-07-21T17:30:10.0538953Z	Information	TestCaseEditorApp.App	Attempting to auto-start AnythingLLM service...
+2026-07-21T17:30:10.0635497Z	Information	App	[ServiceMonitor] MEDIATOR DEBUG: NotifyStatusChange for AnythingLLM - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-21T17:30:10.0732931Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-07-21T17:30:10.0775172Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-07-21T17:30:10.0790062Z	Information	App	[ServiceMonitor] AnythingLLM status changed - Available: True, Message: AnythingLLM service is available
+2026-07-21T17:30:10.1285537Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-07-21T17:30:10.1298412Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-07-21T17:30:10.1452386Z	Information	App	[AnythingLLM] Availability check result: True
+2026-07-21T17:30:10.1495215Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
+2026-07-21T17:30:10.1520795Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=True, Message=Checking AnythingLLM status...
+2026-07-21T17:30:10.1543528Z	Information	App	[AnythingLLM] Availability check result: True
+2026-07-21T17:30:10.1591856Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: True, Starting: True
+2026-07-21T17:30:10.1612117Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-21T17:30:10.1686147Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-21T17:30:10.1722845Z	Information	App	[AnythingLLMMediator] Broadcasting last known status via NotifyStatusUpdated: Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-21T17:30:10.1757938Z	Information	TestCaseEditorApp.App	AnythingLLM auto-start completed successfully
+2026-07-21T17:30:10.1775885Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-07-21T17:30:10.1850256Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-07-21T17:30:10.2185166Z	Information	TestCaseEditorApp.Services.NavigationService	NavigationService created with initial title: 'Systems ATE APP'
+2026-07-21T17:30:10.2265029Z	Information	TestCaseEditorApp.Services.NavigationService	NavigationService initial TitleChanged event fired with 'Systems ATE APP'
+2026-07-21T17:30:10.2684359Z	Information	App	[RecentFiles] Load() called, path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\recent-files.json
+2026-07-21T17:30:10.2714702Z	Information	App	[RecentFiles] Loaded JSON: [
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B Test workshop.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B sandbox.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B TL Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Top Level C4B Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD-268C4B.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\CMP-6000.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Decagon.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\RTU-42XX.tcex.json"
+]
+2026-07-21T17:30:10.3340531Z	Information	App	[RecentFiles] Deserialized 10 files
+2026-07-21T17:30:10.3535958Z	Information	App	[RecentFiles] After filtering non-existent: 10 files
+2026-07-21T17:30:10.4652252Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-07-21T17:30:10.4749731Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel initialized as simple 5-workspace container
+2026-07-21T17:30:10.5942971Z	Information	App	[TesseractOCR] Tesseract OCR engine initialized successfully
+2026-07-21T17:30:10.5960495Z	Information	App	[JamaConnect] OCR engine availability: Available
+2026-07-21T17:30:10.8127239Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-07-21T17:30:10.8147089Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel initialized as simple 5-workspace container
+2026-07-21T17:30:11.4044132Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-21T17:30:11.4070336Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-21T17:30:14.3251553Z	Information	App	[UserSettings] Loading settings from registry.
+2026-07-21T17:30:14.3291031Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-07-21T17:30:23.0382928Z	Information	App	[JamaConnect] OAuth constructor - Base URL: https://jama02.rockwellcollins.com/contour
+2026-07-21T17:30:23.0405834Z	Information	App	[JamaConnect] OAuth constructor - Client ID: hpytk1ocbt0p01u
+2026-07-21T17:30:23.0426260Z	Information	App	[JamaConnect] OAuth constructor - Client Secret: SET
+2026-07-21T17:30:23.0600211Z	Information	App	[JamaConnect] Getting OAuth token from: https://jama02.rockwellcollins.com/contour/rest/oauth/token
+2026-07-21T17:30:23.0637487Z	Information	App	[JamaConnect] Sending OAuth request...
+2026-07-21T17:30:23.4309858Z	Information	App	[JamaConnect] OAuth response: OK
+2026-07-21T17:30:23.4455779Z	Information	App	[JamaConnect] OAuth token obtained successfully (eyJraWQiOiJvYXV0aEtl...)
+2026-07-21T17:30:23.4475362Z	Information	App	[JamaConnect] ✅ OAuth steel trap validation passed!
+2026-07-21T17:30:30.4019151Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887341.
+2026-07-21T17:30:30.4043447Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887341; continuing to delete attempt.
+2026-07-21T17:30:31.0460792Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887340.
+2026-07-21T17:30:31.0494910Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887340; continuing to delete attempt.
+2026-07-21T17:30:31.6450247Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887339.
+2026-07-21T17:30:31.6470457Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887339; continuing to delete attempt.
+2026-07-21T17:30:32.2475990Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887338.
+2026-07-21T17:30:32.2498536Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887338; continuing to delete attempt.
+2026-07-21T17:30:32.8491747Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887337.
+2026-07-21T17:30:32.8509974Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887337; continuing to delete attempt.
+2026-07-21T17:30:33.4434804Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887336.
+2026-07-21T17:30:33.4459882Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887336; continuing to delete attempt.
+2026-07-21T17:30:34.0430939Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887335.
+2026-07-21T17:30:34.0451001Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887335; continuing to delete attempt.
+2026-07-21T17:30:34.6329488Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887334.
+2026-07-21T17:30:34.6349089Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887334; continuing to delete attempt.
+2026-07-21T17:30:35.2363832Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887332.
+2026-07-21T17:30:35.2383157Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887332; continuing to delete attempt.
+2026-07-21T17:30:35.8604936Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887331.
+2026-07-21T17:30:35.8629906Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887331; continuing to delete attempt.
+2026-07-21T17:30:36.4482362Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887330.
+2026-07-21T17:30:36.4504364Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887330; continuing to delete attempt.
+2026-07-21T17:30:37.0661019Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887329.
+2026-07-21T17:30:37.0679998Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887329; continuing to delete attempt.
+2026-07-21T17:30:37.6727675Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887328.
+2026-07-21T17:30:37.6747787Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887328; continuing to delete attempt.
+2026-07-21T17:30:38.2580826Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887327.
+2026-07-21T17:30:38.2601198Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887327; continuing to delete attempt.
+2026-07-21T17:30:38.8500718Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887326.
+2026-07-21T17:30:38.8518075Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887326; continuing to delete attempt.
+2026-07-21T17:30:39.4427459Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887325.
+2026-07-21T17:30:39.4454677Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887325; continuing to delete attempt.
+2026-07-21T17:30:40.0435735Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887303.
+2026-07-21T17:30:40.0456107Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887303; continuing to delete attempt.
+2026-07-21T17:30:40.6931659Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887302.
+2026-07-21T17:30:40.6953358Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887302; continuing to delete attempt.
+2026-07-21T17:30:41.6003830Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887333.
+2026-07-21T17:30:41.6024065Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887333; continuing to delete attempt.
+2026-07-21T17:30:42.5033182Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887324.
+2026-07-21T17:30:42.5052074Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887324; continuing to delete attempt.
+2026-07-21T17:30:43.0908941Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887323.
+2026-07-21T17:30:43.0930017Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887323; continuing to delete attempt.
+2026-07-21T17:30:43.6909120Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887322.
+2026-07-21T17:30:43.6932873Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887322; continuing to delete attempt.
+2026-07-21T17:30:44.2822292Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887320.
+2026-07-21T17:30:44.2848282Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887320; continuing to delete attempt.
+2026-07-21T17:30:44.8828940Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887319.
+2026-07-21T17:30:44.8851515Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887319; continuing to delete attempt.
+2026-07-21T17:30:45.4752249Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887318.
+2026-07-21T17:30:45.4774151Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887318; continuing to delete attempt.
+2026-07-21T17:30:46.0664449Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887317.
+2026-07-21T17:30:46.0693157Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887317; continuing to delete attempt.
+2026-07-21T17:30:46.6487387Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887316.
+2026-07-21T17:30:46.6510180Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887316; continuing to delete attempt.
+2026-07-21T17:30:47.2277108Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887313.
+2026-07-21T17:30:47.2300828Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887313; continuing to delete attempt.
+2026-07-21T17:30:47.8172605Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887312.
+2026-07-21T17:30:47.8200541Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887312; continuing to delete attempt.
+2026-07-21T17:30:48.3987528Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887311.
+2026-07-21T17:30:48.4011064Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887311; continuing to delete attempt.
+2026-07-21T17:30:48.9846633Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887310.
+2026-07-21T17:30:48.9876850Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887310; continuing to delete attempt.
+2026-07-21T17:30:49.5773438Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887308.
+2026-07-21T17:30:49.5796281Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887308; continuing to delete attempt.
+2026-07-21T17:30:50.1696335Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887307.
+2026-07-21T17:30:50.1716461Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887307; continuing to delete attempt.
+2026-07-21T17:30:50.7991530Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887306.
+2026-07-21T17:30:50.8014838Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887306; continuing to delete attempt.
+2026-07-21T17:30:51.3815127Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887305.
+2026-07-21T17:30:51.3839965Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887305; continuing to delete attempt.
+2026-07-21T17:30:51.9735223Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887304.
+2026-07-21T17:30:51.9768258Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887304; continuing to delete attempt.
+2026-07-21T17:30:52.5828971Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887301.
+2026-07-21T17:30:52.5849676Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887301; continuing to delete attempt.
+2026-07-21T17:30:53.1640859Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887299.
+2026-07-21T17:30:53.1658652Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887299; continuing to delete attempt.
+2026-07-21T17:30:53.7447854Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887298.
+2026-07-21T17:30:53.7473702Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887298; continuing to delete attempt.
+2026-07-21T17:30:54.3452581Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887297.
+2026-07-21T17:30:54.3472974Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887297; continuing to delete attempt.
+2026-07-21T17:30:54.9431218Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887296.
+2026-07-21T17:30:54.9463199Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887296; continuing to delete attempt.
+2026-07-21T17:30:55.5452536Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887295.
+2026-07-21T17:30:55.5473599Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887295; continuing to delete attempt.
+2026-07-21T17:30:56.1590463Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887294.
+2026-07-21T17:30:56.1610112Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887294; continuing to delete attempt.
+2026-07-21T17:30:56.7444867Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887293.
+2026-07-21T17:30:56.7468296Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887293; continuing to delete attempt.
+2026-07-21T17:30:57.3357550Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887292.
+2026-07-21T17:30:57.3379682Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887292; continuing to delete attempt.
+2026-07-21T17:30:57.9291689Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887291.
+2026-07-21T17:30:57.9312722Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887291; continuing to delete attempt.
+2026-07-21T17:30:58.5079276Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887290.
+2026-07-21T17:30:58.5102024Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887290; continuing to delete attempt.
+2026-07-21T17:30:59.0961873Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887422.
+2026-07-21T17:30:59.0984505Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887422; continuing to delete attempt.
+2026-07-21T17:30:59.6906270Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887406.
+2026-07-21T17:30:59.6927120Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887406; continuing to delete attempt.
+2026-07-21T17:31:00.2802529Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887405.
+2026-07-21T17:31:00.2822076Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887405; continuing to delete attempt.
+2026-07-21T17:31:00.9103063Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887404.
+2026-07-21T17:31:00.9124628Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887404; continuing to delete attempt.
+2026-07-21T17:31:01.5087068Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887403.
+2026-07-21T17:31:01.5109676Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887403; continuing to delete attempt.
+2026-07-21T17:31:02.1018517Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887402.
+2026-07-21T17:31:02.1040531Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887402; continuing to delete attempt.
+2026-07-21T17:31:02.7087798Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887401.
+2026-07-21T17:31:02.7114847Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887401; continuing to delete attempt.
+2026-07-21T17:31:03.5003330Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887400.
+2026-07-21T17:31:03.5027021Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887400; continuing to delete attempt.
+2026-07-21T17:31:04.3277481Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887399.
+2026-07-21T17:31:04.3301370Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887399; continuing to delete attempt.
+2026-07-21T17:31:05.1519288Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887398.
+2026-07-21T17:31:05.1540952Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887398; continuing to delete attempt.
+2026-07-21T17:31:05.8139215Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887397.
+2026-07-21T17:31:05.8158136Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887397; continuing to delete attempt.
+2026-07-21T17:31:06.3957334Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887396.
+2026-07-21T17:31:06.3981975Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887396; continuing to delete attempt.
+2026-07-21T17:31:06.9808500Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887395.
+2026-07-21T17:31:06.9830542Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887395; continuing to delete attempt.
+2026-07-21T17:31:07.5725949Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887394.
+2026-07-21T17:31:07.5759399Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887394; continuing to delete attempt.
+2026-07-21T17:31:08.1757720Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887393.
+2026-07-21T17:31:08.1780170Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887393; continuing to delete attempt.
+2026-07-21T17:31:08.7636329Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887392.
+2026-07-21T17:31:08.7655585Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887392; continuing to delete attempt.
+2026-07-21T17:31:09.3525006Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887390.
+2026-07-21T17:31:09.3547484Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887390; continuing to delete attempt.
+2026-07-21T17:31:09.9381295Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887389.
+2026-07-21T17:31:09.9401561Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887389; continuing to delete attempt.
+2026-07-21T17:31:10.5246878Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887388.
+2026-07-21T17:31:10.5273427Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887388; continuing to delete attempt.
+2026-07-21T17:31:11.1948318Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887387.
+2026-07-21T17:31:11.1969728Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887387; continuing to delete attempt.
+2026-07-21T17:31:11.7770000Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887386.
+2026-07-21T17:31:11.7792030Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887386; continuing to delete attempt.
+2026-07-21T17:31:12.3659253Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887385.
+2026-07-21T17:31:12.3681384Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887385; continuing to delete attempt.
+2026-07-21T17:31:12.9969108Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887383.
+2026-07-21T17:31:12.9990835Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887383; continuing to delete attempt.
+2026-07-21T17:31:13.5934820Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887382.
+2026-07-21T17:31:13.5966849Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887382; continuing to delete attempt.
+2026-07-21T17:31:14.1731636Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887380.
+2026-07-21T17:31:14.1751018Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887380; continuing to delete attempt.
+2026-07-21T17:31:14.7565213Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887379.
+2026-07-21T17:31:14.7586160Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887379; continuing to delete attempt.
+2026-07-21T17:31:15.3590029Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887361.
+2026-07-21T17:31:15.3616662Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887361; continuing to delete attempt.
+2026-07-21T17:31:15.9649170Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887360.
+2026-07-21T17:31:15.9668908Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887360; continuing to delete attempt.
+2026-07-21T17:31:16.5484010Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887359.
+2026-07-21T17:31:16.5507889Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887359; continuing to delete attempt.
+2026-07-21T17:31:17.1466120Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887358.
+2026-07-21T17:31:17.1486198Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887358; continuing to delete attempt.
+2026-07-21T17:31:17.7717568Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887356.
+2026-07-21T17:31:17.7737881Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887356; continuing to delete attempt.
+2026-07-21T17:31:18.3554314Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887355.
+2026-07-21T17:31:18.3576247Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887355; continuing to delete attempt.
+2026-07-21T17:31:18.9547145Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887354.
+2026-07-21T17:31:18.9565872Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887354; continuing to delete attempt.
+2026-07-21T17:31:19.5383201Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887353.
+2026-07-21T17:31:19.5408496Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887353; continuing to delete attempt.
+2026-07-21T17:31:20.1208796Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887352.
+2026-07-21T17:31:20.1241479Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887352; continuing to delete attempt.
+2026-07-21T17:31:20.7114656Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887351.
+2026-07-21T17:31:20.7136809Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887351; continuing to delete attempt.
+2026-07-21T17:31:21.3554749Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887350.
+2026-07-21T17:31:21.3578536Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887350; continuing to delete attempt.
+2026-07-21T17:31:21.9368678Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887349.
+2026-07-21T17:31:21.9388650Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887349; continuing to delete attempt.
+2026-07-21T17:31:22.5343913Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887347.
+2026-07-21T17:31:22.5377347Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887347; continuing to delete attempt.
+2026-07-21T17:31:23.1233809Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887346.
+2026-07-21T17:31:23.1253241Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887346; continuing to delete attempt.
+2026-07-21T17:31:23.7121605Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887345.
+2026-07-21T17:31:23.7142968Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887345; continuing to delete attempt.
+2026-07-21T17:31:24.6236395Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887321.
+2026-07-21T17:31:24.6256625Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887321; continuing to delete attempt.
+2026-07-21T17:31:25.5561102Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887315.
+2026-07-21T17:31:25.5607999Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887315; continuing to delete attempt.
+2026-07-21T17:31:26.4983317Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887309.
+2026-07-21T17:31:26.5005687Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887309; continuing to delete attempt.
+2026-07-21T17:31:27.4097382Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887300.
+2026-07-21T17:31:27.4122405Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887300; continuing to delete attempt.
+2026-07-21T17:31:28.3146672Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887289.
+2026-07-21T17:31:28.3174901Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887289; continuing to delete attempt.
+2026-07-21T17:31:28.9196783Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887287.
+2026-07-21T17:31:28.9258134Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887287; continuing to delete attempt.
+2026-07-21T17:31:29.5125088Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887286.
+2026-07-21T17:31:29.5147724Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887286; continuing to delete attempt.
+2026-07-21T17:31:30.1350271Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887285.
+2026-07-21T17:31:30.1374989Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887285; continuing to delete attempt.
+2026-07-21T17:31:30.7448617Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887284.
+2026-07-21T17:31:30.7469184Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887284; continuing to delete attempt.
+2026-07-21T17:31:31.3716098Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887283.
+2026-07-21T17:31:31.3736116Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887283; continuing to delete attempt.
+2026-07-21T17:31:31.9645499Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887282.
+2026-07-21T17:31:31.9663322Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887282; continuing to delete attempt.
+2026-07-21T17:31:32.5551342Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887281.
+2026-07-21T17:31:32.5582347Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887281; continuing to delete attempt.
+2026-07-21T17:31:33.1407594Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887441.
+2026-07-21T17:31:33.1429810Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887441; continuing to delete attempt.
+2026-07-21T17:31:33.7187119Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887440.
+2026-07-21T17:31:33.7209089Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887440; continuing to delete attempt.
+2026-07-21T17:31:34.3088431Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887439.
+2026-07-21T17:31:34.3108691Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887439; continuing to delete attempt.
+2026-07-21T17:31:34.8957910Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887438.
+2026-07-21T17:31:34.8981597Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887438; continuing to delete attempt.
+2026-07-21T17:31:35.4957025Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887437.
+2026-07-21T17:31:35.4980680Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887437; continuing to delete attempt.
+2026-07-21T17:31:36.0852227Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887436.
+2026-07-21T17:31:36.0879119Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887436; continuing to delete attempt.
+2026-07-21T17:31:36.6677789Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887435.
+2026-07-21T17:31:36.6700929Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887435; continuing to delete attempt.
+2026-07-21T17:31:37.2643688Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887434.
+2026-07-21T17:31:37.2664032Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887434; continuing to delete attempt.
+2026-07-21T17:31:37.8611178Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887433.
+2026-07-21T17:31:37.8628737Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887433; continuing to delete attempt.
+2026-07-21T17:31:38.4482278Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887432.
+2026-07-21T17:31:38.4503552Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887432; continuing to delete attempt.
+2026-07-21T17:31:39.0391678Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887431.
+2026-07-21T17:31:39.0416042Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887431; continuing to delete attempt.
+2026-07-21T17:31:39.6418109Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887430.
+2026-07-21T17:31:39.6450309Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887430; continuing to delete attempt.
+2026-07-21T17:31:40.2504019Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887429.
+2026-07-21T17:31:40.2544315Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887429; continuing to delete attempt.
+2026-07-21T17:31:40.8492651Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887428.
+2026-07-21T17:31:40.8515460Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887428; continuing to delete attempt.
+2026-07-21T17:31:41.4923157Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887427.
+2026-07-21T17:31:41.4945503Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887427; continuing to delete attempt.
+2026-07-21T17:31:42.0851393Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887426.
+2026-07-21T17:31:42.0890691Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887426; continuing to delete attempt.
+2026-07-21T17:31:42.6856503Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887425.
+2026-07-21T17:31:42.6873811Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887425; continuing to delete attempt.
+2026-07-21T17:31:43.2783779Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887424.
+2026-07-21T17:31:43.2802614Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887424; continuing to delete attempt.
+2026-07-21T17:31:43.8744121Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887423.
+2026-07-21T17:31:43.8769267Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887423; continuing to delete attempt.
+2026-07-21T17:31:44.4723329Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887421.
+2026-07-21T17:31:44.4749465Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887421; continuing to delete attempt.
+2026-07-21T17:31:45.0669486Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887420.
+2026-07-21T17:31:45.0688767Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887420; continuing to delete attempt.
+2026-07-21T17:31:45.6532233Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887419.
+2026-07-21T17:31:45.6553063Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887419; continuing to delete attempt.
+2026-07-21T17:31:46.2355949Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887416.
+2026-07-21T17:31:46.2374357Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887416; continuing to delete attempt.
+2026-07-21T17:31:46.8257763Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887415.
+2026-07-21T17:31:46.8280672Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887415; continuing to delete attempt.
+2026-07-21T17:31:47.4091245Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887414.
+2026-07-21T17:31:47.4120401Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887414; continuing to delete attempt.
+2026-07-21T17:31:47.9912108Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887413.
+2026-07-21T17:31:47.9936611Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887413; continuing to delete attempt.
+2026-07-21T17:31:48.5853694Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887411.
+2026-07-21T17:31:48.5872238Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887411; continuing to delete attempt.
+2026-07-21T17:31:49.4505092Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887410.
+2026-07-21T17:31:49.4531755Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887410; continuing to delete attempt.
+2026-07-21T17:31:50.0376448Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887409.
+2026-07-21T17:31:50.0398285Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887409; continuing to delete attempt.
+2026-07-21T17:31:50.6318275Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887408.
+2026-07-21T17:31:50.6353140Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887408; continuing to delete attempt.
+2026-07-21T17:31:51.5821747Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887391.
+2026-07-21T17:31:51.5846310Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887391; continuing to delete attempt.
+2026-07-21T17:31:52.4679241Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887384.
+2026-07-21T17:31:52.4705411Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887384; continuing to delete attempt.
+2026-07-21T17:31:53.3500038Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887381.
+2026-07-21T17:31:53.3523384Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887381; continuing to delete attempt.
+2026-07-21T17:31:54.2363796Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887378.
+2026-07-21T17:31:54.2384979Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887378; continuing to delete attempt.
+2026-07-21T17:31:55.1350606Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887348.
+2026-07-21T17:31:55.1390293Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887348; continuing to delete attempt.
+2026-07-21T17:31:56.4049254Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887342.
+2026-07-21T17:31:56.4069582Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887342; continuing to delete attempt.
+2026-07-21T17:31:57.3170579Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887288.
+2026-07-21T17:31:57.3195339Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887288; continuing to delete attempt.
+2026-07-21T17:31:58.2018233Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887280.
+2026-07-21T17:31:58.2042292Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887280; continuing to delete attempt.
+2026-07-21T17:31:59.0902327Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887418.
+2026-07-21T17:31:59.0922335Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887418; continuing to delete attempt.
+2026-07-21T17:31:59.9619128Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887412.
+2026-07-21T17:31:59.9641093Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887412; continuing to delete attempt.
+2026-07-21T17:32:00.8370741Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887407.
+2026-07-21T17:32:00.8391324Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887407; continuing to delete attempt.
+2026-07-21T17:32:01.7131187Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19887279.
+2026-07-21T17:32:01.7153090Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19887279; continuing to delete attempt.
+2026-07-21T17:32:02.3016214Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849166.
+2026-07-21T17:32:02.3043914Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849166; continuing to delete attempt.
+2026-07-21T17:32:02.8887273Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849165.
+2026-07-21T17:32:02.8907642Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849165; continuing to delete attempt.
+2026-07-21T17:32:03.4879021Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849164.
+2026-07-21T17:32:03.4915704Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849164; continuing to delete attempt.
+2026-07-21T17:32:04.0898248Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849163.
+2026-07-21T17:32:04.0917001Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849163; continuing to delete attempt.
+2026-07-21T17:32:04.6731377Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849162.
+2026-07-21T17:32:04.6753351Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849162; continuing to delete attempt.
+2026-07-21T17:32:05.2633306Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849161.
+2026-07-21T17:32:05.2655972Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849161; continuing to delete attempt.
+2026-07-21T17:32:05.8549113Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849160.
+2026-07-21T17:32:05.8571240Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849160; continuing to delete attempt.
+2026-07-21T17:32:06.4478259Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849159.
+2026-07-21T17:32:06.4502670Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849159; continuing to delete attempt.
+2026-07-21T17:32:07.0377433Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849158.
+2026-07-21T17:32:07.0402178Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849158; continuing to delete attempt.
+2026-07-21T17:32:07.6217454Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849157.
+2026-07-21T17:32:07.6245281Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849157; continuing to delete attempt.
+2026-07-21T17:32:08.2190250Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849156.
+2026-07-21T17:32:08.2213246Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849156; continuing to delete attempt.
+2026-07-21T17:32:08.8075812Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849155.
+2026-07-21T17:32:08.8100703Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849155; continuing to delete attempt.
+2026-07-21T17:32:09.3991121Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849154.
+2026-07-21T17:32:09.4012748Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849154; continuing to delete attempt.
+2026-07-21T17:32:10.0670301Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849153.
+2026-07-21T17:32:10.0694055Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849153; continuing to delete attempt.
+2026-07-21T17:32:10.6565994Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849152.
+2026-07-21T17:32:10.6587209Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849152; continuing to delete attempt.
+2026-07-21T17:32:11.2458211Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849151.
+2026-07-21T17:32:11.2486234Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849151; continuing to delete attempt.
+2026-07-21T17:32:11.8890189Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849150.
+2026-07-21T17:32:11.8914509Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849150; continuing to delete attempt.
+2026-07-21T17:32:12.4655643Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849149.
+2026-07-21T17:32:12.4676275Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849149; continuing to delete attempt.
+2026-07-21T17:32:13.0530883Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849148.
+2026-07-21T17:32:13.0551130Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849148; continuing to delete attempt.
+2026-07-21T17:32:13.6500701Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849147.
+2026-07-21T17:32:13.6519791Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849147; continuing to delete attempt.
+2026-07-21T17:32:14.2436975Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849146.
+2026-07-21T17:32:14.2455730Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849146; continuing to delete attempt.
+2026-07-21T17:32:14.8363170Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849145.
+2026-07-21T17:32:14.8384106Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849145; continuing to delete attempt.
+2026-07-21T17:32:15.5127493Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849144.
+2026-07-21T17:32:15.5153387Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849144; continuing to delete attempt.
+2026-07-21T17:32:16.1004968Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849143.
+2026-07-21T17:32:16.1026220Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849143; continuing to delete attempt.
+2026-07-21T17:32:16.6860010Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849142.
+2026-07-21T17:32:16.6903038Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849142; continuing to delete attempt.
+2026-07-21T17:32:17.2792303Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849141.
+2026-07-21T17:32:17.2817122Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849141; continuing to delete attempt.
+2026-07-21T17:32:17.8626386Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849140.
+2026-07-21T17:32:17.8648195Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849140; continuing to delete attempt.
+2026-07-21T17:32:18.4572643Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849139.
+2026-07-21T17:32:18.4607712Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849139; continuing to delete attempt.
+2026-07-21T17:32:19.0527542Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849138.
+2026-07-21T17:32:19.0545576Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849138; continuing to delete attempt.
+2026-07-21T17:32:19.6333280Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849137.
+2026-07-21T17:32:19.6357441Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849137; continuing to delete attempt.
+2026-07-21T17:32:20.2185173Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849136.
+2026-07-21T17:32:20.2210883Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849136; continuing to delete attempt.
+2026-07-21T17:32:20.8093923Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849135.
+2026-07-21T17:32:20.8118085Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849135; continuing to delete attempt.
+2026-07-21T17:32:21.4031927Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849134.
+2026-07-21T17:32:21.4049057Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849134; continuing to delete attempt.
+2026-07-21T17:32:22.0456206Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849133.
+2026-07-21T17:32:22.0481613Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849133; continuing to delete attempt.
+2026-07-21T17:32:22.8931984Z	Warning	App	[JamaConnect] Unlock attempts exhausted for item 19849078.
+2026-07-21T17:32:22.8952146Z	Warning	App	[JamaConnect] Unlock pre-pass failed for item 19849078; continuing to delete attempt.
+2026-07-21T17:32:22.9932357Z	Warning	App	[JamaConnect] Delete failed for item 19887341: Forbidden - {"meta":{"status":"Forbidden","timestamp":"2026-07-21T17:32:22.980+0000","message":"Item has been locked as part of a workflow transition"}}
+2026-07-21T17:37:57.6548070Z	Information	Microsoft.Hosting.Lifetime	Application is shutting down...
+2026-07-21T17:37:57.6596052Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-21T17:37:57.6615806Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-21T17:37:57.6634381Z	Information	TestCaseEditorApp.MVVM.ViewModels.MainViewModel	MainViewModel disposing
+2026-07-21T17:37:57.6688806Z	Information	TestCaseEditorApp.Services.RequirementAnalysisCache	[AnalysisCache] Disposed cache with 0 hits, 0 misses, 0ms saved

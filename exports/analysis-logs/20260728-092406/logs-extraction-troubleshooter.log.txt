@@ -1,0 +1,196 @@
+[09:20:55] Requirement Extraction Log
+------------------------------------------------------------------------
+[09:20:55] Started attachment search.
+[09:20:55] Scan progress 0/1: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | quick scan
+[09:21:06] Scan progress 0/20: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | quick scan 0% | 0 attachments found
+[09:21:06] Scan progress 1/20: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | quick scan 5% | 0 attachments found
+[09:21:07] Scan progress 6/20: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | quick scan 30% | 0 attachments found
+[09:21:07] Scan progress 11/20: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | quick scan 55% | 0 attachments found
+[09:21:08] Scan progress 16/20: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | quick scan 80% | 0 attachments found
+[09:21:08] Scan progress 18/20: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | quick scan 90% | 0 attachments found
+[09:21:09] Scan progress 20/20: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | quick scan 100% | 0 attachments found
+[09:21:09] Scan progress 20/20: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | quick scan complete | 0 attachments found
+[09:21:09] Scan progress 0/1: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | full scan
+[09:21:19] Scan progress 1/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 0% complete | 0 attachments found
+[09:21:20] Scan progress 5/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 0% complete | 0 attachments found
+[09:21:20] Exporting analysis logs to diagnostics report.
+[09:21:21] Scan progress 9/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 0% complete | 0 attachments found
+[09:21:21] Scan progress 13/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 0% complete | 0 attachments found
+[09:21:22] Scan progress 16/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 1% complete | 0 attachments found
+[09:21:22] Scan progress 20/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 1% complete | 0 attachments found
+[09:21:23] Scan progress 24/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 1% complete | 0 attachments found
+[09:21:23] Scan progress 27/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 2% complete | 2 attachments found
+[09:21:24] Scan progress 30/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 2% complete | 4 attachments found
+[09:21:25] Scan progress 34/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 2% complete | 5 attachments found
+[09:21:25] Scan progress 36/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 2% complete | 5 attachments found
+[09:21:26] Scan progress 40/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 2% complete | 5 attachments found
+[09:21:26] Scan progress 44/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 3% complete | 5 attachments found
+[09:21:27] Scan progress 48/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 3% complete | 5 attachments found
+[09:21:28] Scan progress 52/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 3% complete | 5 attachments found
+[09:21:28] Scan progress 56/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 4% complete | 5 attachments found
+[09:21:29] Scan progress 60/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 4% complete | 5 attachments found
+[09:21:30] Scan progress 64/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 4% complete | 5 attachments found
+[09:21:30] Scan progress 68/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 5% complete | 5 attachments found
+[09:21:31] Scan progress 72/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 5% complete | 5 attachments found
+[09:21:32] Analysis logs exported and git sync attempted.
+[09:21:32] Scan progress 74/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 5% complete | 5 attachments found
+[09:21:32] Scan progress 77/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 5% complete | 5 attachments found
+[09:21:33] Scan progress 81/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 6% complete | 5 attachments found
+[09:21:34] Scan progress 84/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 6% complete | 5 attachments found
+[09:21:34] Scan progress 88/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 6% complete | 5 attachments found
+[09:21:35] Scan progress 92/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 6% complete | 5 attachments found
+[09:21:35] Scan progress 96/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 7% complete | 5 attachments found
+[09:21:36] Scan progress 100/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 7% complete | 5 attachments found
+[09:21:37] Scan progress 104/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 7% complete | 5 attachments found
+[09:21:37] Scan progress 108/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 8% complete | 5 attachments found
+[09:21:38] Scan progress 112/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 8% complete | 5 attachments found
+[09:21:39] Scan progress 116/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 8% complete | 5 attachments found
+[09:21:39] Scan progress 120/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 8% complete | 5 attachments found
+[09:21:40] Scan progress 124/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 9% complete | 5 attachments found
+[09:21:40] Scan progress 128/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 9% complete | 5 attachments found
+[09:21:41] Scan progress 132/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 9% complete | 5 attachments found
+[09:21:42] Scan progress 136/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 10% complete | 5 attachments found
+[09:21:42] Scan progress 140/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 10% complete | 5 attachments found
+[09:21:43] Scan progress 144/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 10% complete | 5 attachments found
+[09:21:44] Scan progress 148/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 11% complete | 5 attachments found
+[09:21:44] Scan progress 152/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 11% complete | 5 attachments found
+[09:21:45] Scan progress 156/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 11% complete | 5 attachments found
+[09:21:45] Scan progress 160/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 11% complete | 5 attachments found
+[09:21:46] Scan progress 164/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 12% complete | 5 attachments found
+[09:21:47] Scan progress 168/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 12% complete | 5 attachments found
+[09:21:47] Scan progress 172/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 12% complete | 5 attachments found
+[09:21:48] Scan progress 176/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 13% complete | 5 attachments found
+[09:21:48] Scan progress 180/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 13% complete | 5 attachments found
+[09:21:49] Scan progress 184/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 13% complete | 5 attachments found
+[09:21:50] Scan progress 188/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 14% complete | 5 attachments found
+[09:21:50] Scan progress 192/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 14% complete | 5 attachments found
+[09:21:51] Scan progress 196/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 14% complete | 5 attachments found
+[09:21:52] Scan progress 200/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 14% complete | 5 attachments found
+[09:21:52] Scan progress 204/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 15% complete | 5 attachments found
+[09:21:53] Scan progress 207/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 15% complete | 5 attachments found
+[09:21:53] Scan progress 211/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 15% complete | 5 attachments found
+[09:21:54] Scan progress 215/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 16% complete | 5 attachments found
+[09:21:55] Scan progress 219/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 16% complete | 5 attachments found
+[09:21:55] Scan progress 223/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 16% complete | 5 attachments found
+[09:21:56] Scan progress 227/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 16% complete | 5 attachments found
+[09:21:56] Scan progress 231/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 17% complete | 5 attachments found
+[09:21:57] Scan progress 235/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 17% complete | 5 attachments found
+[09:21:58] Scan progress 239/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 17% complete | 5 attachments found
+[09:21:58] Scan progress 243/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 18% complete | 5 attachments found
+[09:21:59] Scan progress 246/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 18% complete | 5 attachments found
+[09:22:00] Scan progress 250/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 18% complete | 5 attachments found
+[09:22:00] Scan progress 254/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 18% complete | 5 attachments found
+[09:22:01] Scan progress 258/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 19% complete | 5 attachments found
+[09:22:01] Scan progress 262/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 19% complete | 5 attachments found
+[09:22:02] Scan progress 266/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 19% complete | 5 attachments found
+[09:22:03] Scan progress 269/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 20% complete | 5 attachments found
+[09:22:03] Scan progress 273/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 20% complete | 5 attachments found
+[09:22:04] Scan progress 277/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 20% complete | 5 attachments found
+[09:22:04] Scan progress 281/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 20% complete | 5 attachments found
+[09:22:05] Scan progress 285/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 21% complete | 5 attachments found
+[09:22:06] Scan progress 289/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 21% complete | 5 attachments found
+[09:22:06] Scan progress 293/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 21% complete | 5 attachments found
+[09:22:07] Scan progress 297/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 22% complete | 5 attachments found
+[09:22:08] Scan progress 301/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 22% complete | 5 attachments found
+[09:22:08] Scan progress 305/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 22% complete | 5 attachments found
+[09:22:09] Scan progress 309/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 23% complete | 5 attachments found
+[09:22:09] Scan progress 313/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 23% complete | 5 attachments found
+[09:22:10] Scan progress 317/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 23% complete | 5 attachments found
+[09:22:11] Scan progress 321/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 23% complete | 5 attachments found
+[09:22:11] Scan progress 325/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 24% complete | 5 attachments found
+[09:22:12] Scan progress 329/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 24% complete | 5 attachments found
+[09:22:13] Scan progress 331/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 24% complete | 5 attachments found
+[09:22:13] Scan progress 333/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 24% complete | 5 attachments found
+[09:22:14] Scan progress 337/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 25% complete | 5 attachments found
+[09:22:14] Scan progress 341/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 25% complete | 5 attachments found
+[09:22:15] Scan progress 345/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 25% complete | 5 attachments found
+[09:22:16] Scan progress 349/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 26% complete | 5 attachments found
+[09:22:16] Scan progress 353/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 26% complete | 5 attachments found
+[09:22:17] Scan progress 357/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 26% complete | 5 attachments found
+[09:22:17] Scan progress 361/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 26% complete | 5 attachments found
+[09:22:18] Scan progress 365/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 27% complete | 5 attachments found
+[09:22:19] Scan progress 369/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 27% complete | 5 attachments found
+[09:22:19] Scan progress 373/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 27% complete | 5 attachments found
+[09:22:20] Scan progress 377/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 28% complete | 5 attachments found
+[09:22:21] Scan progress 381/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 28% complete | 5 attachments found
+[09:22:21] Scan progress 385/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 28% complete | 5 attachments found
+[09:22:22] Scan progress 389/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 28% complete | 5 attachments found
+[09:22:22] Scan progress 393/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 29% complete | 5 attachments found
+[09:22:23] Scan progress 397/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 29% complete | 5 attachments found
+[09:22:24] Scan progress 400/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 29% complete | 5 attachments found
+[09:22:24] Scan progress 404/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 30% complete | 5 attachments found
+[09:22:25] Scan progress 408/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 30% complete | 5 attachments found
+[09:22:25] Scan progress 412/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 30% complete | 5 attachments found
+[09:22:26] Scan progress 416/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 30% complete | 5 attachments found
+[09:22:27] Scan progress 420/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 31% complete | 5 attachments found
+[09:22:27] Scan progress 424/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 31% complete | 5 attachments found
+[09:22:28] Scan progress 428/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 31% complete | 5 attachments found
+[09:22:29] Scan progress 432/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 32% complete | 5 attachments found
+[09:22:29] Scan progress 436/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 32% complete | 5 attachments found
+[09:22:30] Scan progress 440/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 32% complete | 5 attachments found
+[09:22:30] Scan progress 444/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 33% complete | 5 attachments found
+[09:22:31] Scan progress 448/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 33% complete | 5 attachments found
+[09:22:32] Scan progress 452/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 33% complete | 5 attachments found
+[09:22:32] Scan progress 456/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 33% complete | 5 attachments found
+[09:22:33] Scan progress 460/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 34% complete | 5 attachments found
+[09:22:33] Scan progress 464/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 34% complete | 5 attachments found
+[09:22:34] Scan progress 468/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 34% complete | 5 attachments found
+[09:22:35] Scan progress 472/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 35% complete | 5 attachments found
+[09:22:35] Scan progress 476/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 35% complete | 5 attachments found
+[09:22:36] Scan progress 480/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 35% complete | 5 attachments found
+[09:22:37] Scan progress 484/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 36% complete | 5 attachments found
+[09:22:37] Scan progress 488/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 36% complete | 5 attachments found
+[09:22:38] Scan progress 492/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 36% complete | 5 attachments found
+[09:22:38] Scan progress 496/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 36% complete | 5 attachments found
+[09:22:39] Scan progress 500/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 37% complete | 5 attachments found
+[09:22:40] Scan progress 504/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 37% complete | 5 attachments found
+[09:22:40] Scan progress 508/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 37% complete | 5 attachments found
+[09:22:41] Scan progress 512/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 38% complete | 5 attachments found
+[09:22:42] Scan progress 516/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 38% complete | 5 attachments found
+[09:22:42] Scan progress 520/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 38% complete | 5 attachments found
+[09:22:43] Scan progress 524/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 39% complete | 5 attachments found
+[09:22:43] Scan progress 528/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 39% complete | 5 attachments found
+[09:22:44] Scan progress 531/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 39% complete | 5 attachments found
+[09:22:45] Scan progress 535/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 39% complete | 5 attachments found
+[09:22:45] Scan progress 539/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 40% complete | 5 attachments found
+[09:22:46] Scan progress 543/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 40% complete | 5 attachments found
+[09:22:46] Scan progress 547/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 40% complete | 5 attachments found
+[09:22:47] Scan progress 551/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 41% complete | 5 attachments found
+[09:22:48] Scan progress 555/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 41% complete | 5 attachments found
+[09:22:48] Scan progress 559/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 41% complete | 5 attachments found
+[09:22:49] Scan progress 563/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 41% complete | 5 attachments found
+[09:22:49] Scan progress 567/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 42% complete | 5 attachments found
+[09:22:50] Scan progress 571/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 42% complete | 5 attachments found
+[09:22:51] Scan progress 575/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 42% complete | 5 attachments found
+[09:22:52] Scan progress 576/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 42% complete | 5 attachments found
+[09:22:52] Scan progress 580/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 43% complete | 5 attachments found
+[09:22:53] Scan progress 584/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 43% complete | 5 attachments found
+[09:22:53] Scan progress 588/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 43% complete | 5 attachments found
+[09:22:54] Scan progress 591/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 44% complete | 5 attachments found
+[09:22:54] Scan progress 595/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 44% complete | 5 attachments found
+[09:22:55] Scan progress 599/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 44% complete | 5 attachments found
+[09:22:56] Scan progress 603/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 44% complete | 5 attachments found
+[09:22:56] Scan progress 607/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 45% complete | 5 attachments found
+[09:22:57] Scan progress 611/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 45% complete | 5 attachments found
+[09:22:57] Scan progress 615/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 45% complete | 5 attachments found
+[09:22:58] Scan progress 619/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 46% complete | 5 attachments found
+[09:22:59] Scan progress 623/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 46% complete | 5 attachments found
+[09:22:59] Scan progress 627/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 46% complete | 5 attachments found
+[09:23:00] Scan progress 631/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 47% complete | 5 attachments found
+[09:23:01] Scan progress 635/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 47% complete | 5 attachments found
+[09:23:01] Scan progress 639/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 47% complete | 5 attachments found
+[09:23:02] Scan progress 643/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 47% complete | 5 attachments found
+[09:23:02] Scan progress 647/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 48% complete | 5 attachments found
+[09:23:03] Scan progress 651/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 48% complete | 5 attachments found
+[09:23:04] Scan progress 655/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 48% complete | 5 attachments found
+[09:23:04] Scan progress 658/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 49% complete | 5 attachments found
+[09:23:05] Scan progress 662/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 49% complete | 5 attachments found
+[09:23:05] Scan progress 665/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 49% complete | 5 attachments found
+[09:23:06] Scan progress 669/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 49% complete | 5 attachments found
+[09:23:07] Scan progress 673/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 50% complete | 5 attachments found
+[09:23:07] Scan progress 677/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 50% complete | 5 attachments found
+[09:23:08] Scan progress 681/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 50% complete | 5 attachments found
+[09:23:08] Scan progress 685/1342: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | 51% complete | 5 attachments found
+[09:23:09] Scan progress 1/1: Searching QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution for attachments | full scan timed out after 2 minutes
+[09:23:09] No attachments found for this project.
+[09:24:06] Exporting analysis logs to diagnostics report.
