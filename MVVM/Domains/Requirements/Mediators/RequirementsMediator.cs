@@ -1370,7 +1370,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     });
 
                     using var fullScanTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                    fullScanTimeoutCts.CancelAfter(TimeSpan.FromMinutes(2));
+                    // Increased from 2 to 10 minutes for large projects (e.g., 1300+ items = 65+ seconds of delays alone)
+                    fullScanTimeoutCts.CancelAfter(TimeSpan.FromMinutes(10));
 
                     // Fallback to full scan when quick scan yields no results
                     try
@@ -1395,9 +1396,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     }
                     catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && fullScanTimeoutCts.IsCancellationRequested)
                     {
-                        _logger.LogWarning("[RequirementsMediator] Full scan timed out for project {ProjectId} after {TimeoutMinutes} minutes", projectId, 2);
+                        _logger.LogWarning("[RequirementsMediator] Full scan timed out for project {ProjectId} after {TimeoutMinutes} minutes", projectId, 10);
 
-                        var timeoutMessage = $"Searching {projectName} for attachments | full scan timed out after 2 minutes";
+                        var timeoutMessage = $"Searching {projectName} for attachments | full scan timed out after 10 minutes";
                         progress?.Report(new AttachmentScanProgressData
                         {
                             Current = 1,
@@ -1412,7 +1413,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                         });
 
                         scanTimedOut = true;
-                        completionErrorMessage = "Full scan timed out after 2 minutes. The project may still contain attachments beyond the preview scan.";
+                        completionErrorMessage = "Full scan timed out after 10 minutes. The project may still contain attachments beyond the preview scan.";
                         attachments = new List<JamaAttachment>();
                     }
                 }
