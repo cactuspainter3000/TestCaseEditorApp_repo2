@@ -658,6 +658,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 var statusBuffer = "Starting fast deterministic extraction...";
                 AttachmentScraperStatusText = statusBuffer;
                 AppendAttachmentLog($"Started fast deterministic extraction for attachment {SelectedScraperAttachment.Id} ({SelectedScraperAttachment.FileName}).");
+                AppendAttachmentLog($"Selection proof: DisplayName='{SelectedScraperAttachment.DisplayName}', AttachmentId={SelectedScraperAttachment.Id}, ItemId={SelectedScraperAttachment.Item}");
                 UpdateExtractionProgressFromMessage(statusBuffer);
 
                 var requirements = await _jamaDocumentParserService.ParseAttachmentDeterministicAsync(

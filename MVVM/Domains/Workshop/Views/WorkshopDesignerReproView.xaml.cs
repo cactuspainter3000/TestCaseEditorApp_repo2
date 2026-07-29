@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using System.Globalization;
+using TestCaseEditorApp.Services;
 using TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels;
 
 namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
@@ -91,10 +92,21 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.Views
 
         private void ExtractionAttachmentList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Mirror Jama Object navigation behavior: auto-close after selection.
-            if (ExtractionAttachmentDropdownButton?.IsChecked == true && e.AddedItems.Count > 0)
+            if (sender is ListBox listBox &&
+                DataContext is WorkshopReproViewModel vm &&
+                e.AddedItems.Count > 0)
             {
-                ExtractionAttachmentDropdownButton.IsChecked = false;
+                // Force commit of the selected attachment to the VM before closing popup.
+                vm.SelectedScraperAttachment = e.AddedItems[0] as JamaAttachment;
+
+                // Close on dispatcher to avoid racing WPF binding updates.
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (ExtractionAttachmentDropdownButton?.IsChecked == true)
+                    {
+                        ExtractionAttachmentDropdownButton.IsChecked = false;
+                    }
+                }), DispatcherPriority.Background);
             }
         }
 

@@ -1515,7 +1515,7 @@
                                                 MinWidth="{Binding ActualWidth, ElementName=ExtractionAttachmentDropdownButton}"
                                                 MaxHeight="340">
                                             <ListBox ItemsSource="{Binding AvailableScraperAttachments}"
-                                                     SelectedItem="{Binding SelectedScraperAttachment, Mode=TwoWay}"
+                                                     SelectedItem="{Binding SelectedScraperAttachment, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                      SelectionChanged="ExtractionAttachmentList_SelectionChanged"
                                                      BorderThickness="0"
                                                      Background="Transparent"
