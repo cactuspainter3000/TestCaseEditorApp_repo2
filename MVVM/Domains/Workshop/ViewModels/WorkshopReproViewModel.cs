@@ -35,6 +35,12 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
         [ObservableProperty]
         private bool isSelected = true;
+
+        [ObservableProperty]
+        private string aiProcessingStatus = "Not processed";
+
+        [ObservableProperty]
+        private bool aiProcessed;
     }
 
     public enum RequirementLifecycleStage
@@ -617,21 +623,242 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             }
         }
 
+        [RelayCommand(CanExecute = nameof(CanExtractSelectedAttachmentFast))]
+        private async Task ExtractSelectedAttachmentFastAsync()
+        {
+            if (SelectedScraperAttachment == null)
+            {
+                AttachmentScraperStatusText = "Analyze Source Document: select an attachment first.";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+                return;
+            }
+
+            if (!SelectedScraperAttachment.IsSupportedDocument)
+            {
+                AttachmentScraperStatusText = $"Unsupported document type: {SelectedScraperAttachment.MimeType}";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+                return;
+            }
+
+            try
+            {
+                _attachmentScraperCts?.Cancel();
+                _attachmentScraperCts?.Dispose();
+                _attachmentScraperCts = new CancellationTokenSource();
+
+                IsAttachmentScraping = true;
+                ExtractionOverallProgress = 0;
+                ExtractionCurrentStepProgress = 0;
+                ExtractionOverallLabel = "Overall Completeness: 0%";
+                ExtractionCurrentStepLabel = "Current Process: deterministic extraction";
+                ScrapedRequirements.Clear();
+                OnPropertyChanged(nameof(HasScrapedRequirements));
+                OnPropertyChanged(nameof(AttachmentScraperSummary));
+
+                var statusBuffer = "Starting fast deterministic extraction...";
+                AttachmentScraperStatusText = statusBuffer;
+                AppendAttachmentLog($"Started fast deterministic extraction for attachment {SelectedScraperAttachment.Id} ({SelectedScraperAttachment.FileName}).");
+                UpdateExtractionProgressFromMessage(statusBuffer);
+
+                var requirements = await _jamaDocumentParserService.ParseAttachmentDeterministicAsync(
+                    SelectedScraperAttachment,
+                    progressCallback: message =>
+                    {
+                        statusBuffer = message;
+                        Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                        {
+                            UpdateExtractionProgressFromMessage(statusBuffer);
+                            AppendAttachmentLog(statusBuffer);
+                        }));
+                    },
+                    cancellationToken: _attachmentScraperCts.Token);
+
+                foreach (var requirement in requirements)
+                {
+                    var candidate = new ScrapedRequirementCandidate
+                    {
+                        Requirement = requirement,
+                        IsSelected = true
+                    };
+                    candidate.PropertyChanged += OnScrapedCandidatePropertyChanged;
+                    ScrapedRequirements.Add(candidate);
+                }
+
+                AttachmentScraperStatusText = $"Fast extraction complete: {ScrapedRequirements.Count} candidate(s) found.";
+                ExtractionOverallProgress = 100;
+                ExtractionCurrentStepProgress = 100;
+                ExtractionOverallLabel = "Overall Completeness: 100%";
+                ExtractionCurrentStepLabel = "Current Process: deterministic extraction complete";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+                AppendAttachmentLog(BuildScraperOutputText(ScrapedRequirements.Select(c => c.Requirement)), force: true);
+                OnPropertyChanged(nameof(HasScrapedRequirements));
+                OnPropertyChanged(nameof(SelectedScrapedRequirementCount));
+                OnPropertyChanged(nameof(HasSelectedScrapedRequirements));
+                OnPropertyChanged(nameof(AttachmentScraperSummary));
+            }
+            catch (OperationCanceledException)
+            {
+                AttachmentScraperStatusText = "Fast extraction canceled.";
+                ExtractionCurrentStepLabel = "Current Process: canceled";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+            }
+            catch (Exception ex)
+            {
+                AttachmentScraperStatusText = $"Fast extraction failed: {ex.Message}";
+                ExtractionCurrentStepLabel = "Current Process: failed";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+            }
+            finally
+            {
+                IsAttachmentScraping = false;
+            }
+        }
+
         private bool CanExtractLocalDocument() => !IsAttachmentScanning && !IsAttachmentScraping;
+
+        private bool CanExtractSelectedAttachmentFast() =>
+            !IsAttachmentScanning && !IsAttachmentScraping && SelectedScraperAttachment != null;
+
+        [RelayCommand(CanExecute = nameof(CanProcessSelectedCandidatesWithAi))]
+        private async Task ProcessSelectedCandidatesWithAiAsync()
+        {
+            if (!HasScrapedRequirements)
+            {
+                AttachmentScraperStatusText = "No requirement candidates available. Run 'Extract All Candidates' first.";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+                return;
+            }
+
+            var selectedCandidates = ScrapedRequirements.Where(c => c.IsSelected).ToList();
+            if (selectedCandidates.Count == 0)
+            {
+                AttachmentScraperStatusText = "No candidates selected for AI processing.";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+                return;
+            }
+
+            try
+            {
+                _attachmentScraperCts?.Cancel();
+                _attachmentScraperCts?.Dispose();
+                _attachmentScraperCts = new CancellationTokenSource();
+
+                IsAttachmentScraping = true;
+                ExtractionOverallProgress = 0;
+                ExtractionCurrentStepProgress = 0;
+                ExtractionOverallLabel = "Overall Completeness: 0%";
+                ExtractionCurrentStepLabel = "Current Process: AI candidate processing";
+
+                foreach (var candidate in ScrapedRequirements.Where(c => !c.IsSelected))
+                {
+                    candidate.AiProcessingStatus = "Skipped (not selected)";
+                }
+
+                var total = selectedCandidates.Count;
+                var successCount = 0;
+
+                for (var i = 0; i < total; i++)
+                {
+                    _attachmentScraperCts.Token.ThrowIfCancellationRequested();
+
+                    var candidate = selectedCandidates[i];
+                    candidate.AiProcessingStatus = "Processing with advanced AI...";
+
+                    var requirementId = string.IsNullOrWhiteSpace(candidate.Requirement.Item)
+                        ? candidate.Requirement.GlobalId ?? $"REQ-{i + 1}"
+                        : candidate.Requirement.Item;
+
+                    AttachmentScraperStatusText = $"Processing candidate {i + 1}/{total}: {requirementId}";
+                    AppendAttachmentLog(AttachmentScraperStatusText);
+
+                    var ok = await _mediator.AnalyzeRequirementAsync(candidate.Requirement);
+                    if (ok)
+                    {
+                        successCount++;
+                        candidate.AiProcessed = true;
+                        candidate.AiProcessingStatus = BuildAiCandidateSummary(candidate.Requirement);
+                    }
+                    else
+                    {
+                        candidate.AiProcessed = false;
+                        var error = candidate.Requirement.Analysis?.ErrorMessage;
+                        candidate.AiProcessingStatus = string.IsNullOrWhiteSpace(error)
+                            ? "AI analysis failed"
+                            : $"AI analysis failed: {error}";
+                    }
+
+                    var percent = ((i + 1) / (double)total) * 100.0;
+                    ExtractionCurrentStepProgress = percent;
+                    ExtractionOverallProgress = percent;
+                    ExtractionOverallLabel = $"Overall Completeness: {percent:F0}%";
+                    ExtractionCurrentStepLabel = $"Current Process: AI processing ({i + 1}/{total})";
+
+                    OnPropertyChanged(nameof(ScrapedRequirements));
+                }
+
+                AttachmentScraperStatusText = $"AI processing complete: {successCount}/{total} candidate(s) analyzed.";
+                ExtractionOverallProgress = 100;
+                ExtractionCurrentStepProgress = 100;
+                ExtractionOverallLabel = "Overall Completeness: 100%";
+                ExtractionCurrentStepLabel = "Current Process: AI processing complete";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+            }
+            catch (OperationCanceledException)
+            {
+                AttachmentScraperStatusText = "AI candidate processing canceled.";
+                ExtractionCurrentStepLabel = "Current Process: canceled";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+            }
+            catch (Exception ex)
+            {
+                AttachmentScraperStatusText = $"AI candidate processing failed: {ex.Message}";
+                ExtractionCurrentStepLabel = "Current Process: failed";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+            }
+            finally
+            {
+                IsAttachmentScraping = false;
+            }
+        }
+
+        private static string BuildAiCandidateSummary(Requirement requirement)
+        {
+            var analysis = requirement.Analysis;
+            if (analysis == null)
+            {
+                return "AI completed (no analysis details returned)";
+            }
+
+            if (!analysis.IsAnalyzed)
+            {
+                return string.IsNullOrWhiteSpace(analysis.ErrorMessage)
+                    ? "AI analysis returned no result"
+                    : $"AI analysis failed: {analysis.ErrorMessage}";
+            }
+
+            var issueCount = analysis.Issues?.Count ?? 0;
+            var recCount = analysis.Recommendations?.Count ?? 0;
+            return $"AI done | Score {analysis.OriginalQualityScore}/10 | Issues {issueCount} | Recommendations {recCount}";
+        }
+
+        private bool CanProcessSelectedCandidatesWithAi() =>
+            HasSelectedScrapedRequirements &&
+            !IsAttachmentScanning &&
+            !IsAttachmentScraping;
 
         private string? ResolvePreferredLocalExtractionPath()
         {
-            if (!string.IsNullOrWhiteSpace(_lastLocalExtractionPath) && File.Exists(_lastLocalExtractionPath))
-            {
-                AppendAttachmentLog($"Using last local source document: {_lastLocalExtractionPath}");
-                return _lastLocalExtractionPath;
-            }
-
             var knownAtpPath = ResolveKnownAtpPathFromRepo();
             if (!string.IsNullOrWhiteSpace(knownAtpPath) && File.Exists(knownAtpPath))
             {
-                AppendAttachmentLog($"Using default ATP source document: {knownAtpPath}");
+                AppendAttachmentLog($"Using pinned ATP source document: {knownAtpPath}");
                 return knownAtpPath;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_lastLocalExtractionPath) && File.Exists(_lastLocalExtractionPath))
+            {
+                AppendAttachmentLog($"Pinned ATP source document not found. Falling back to last local source document: {_lastLocalExtractionPath}");
+                return _lastLocalExtractionPath;
             }
 
             return _fileDialogService.ShowOpenFile(
@@ -1516,6 +1743,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         {
             SearchAttachmentsCommand.NotifyCanExecuteChanged();
             ExtractLocalDocumentCommand.NotifyCanExecuteChanged();
+            ExtractSelectedAttachmentFastCommand.NotifyCanExecuteChanged();
+            ProcessSelectedCandidatesWithAiCommand.NotifyCanExecuteChanged();
             ScrapeSelectedAttachmentCommand.NotifyCanExecuteChanged();
             ImportScrapedRequirementsCommand.NotifyCanExecuteChanged();
             CancelAttachmentScraperCommand.NotifyCanExecuteChanged();

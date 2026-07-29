@@ -42,6 +42,21 @@ namespace TestCaseEditorApp.Services
         Task<List<Requirement>> ParseLocalDocumentAsync(string filePath, System.Action<string>? progressCallback = null, System.Action<Requirement>? onRequirementDiscovered = null, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Parse a Jama attachment using deterministic local extraction stages (no AI workspace).
+        /// Useful for fast candidate generation from a selected Jama attachment.
+        /// </summary>
+        /// <param name="attachment">Jama attachment metadata object</param>
+        /// <param name="progressCallback">Optional callback for progress updates</param>
+        /// <param name="onRequirementDiscovered">Optional callback for real-time requirement streaming as they are discovered</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>List of extracted requirement candidates</returns>
+        Task<List<Requirement>> ParseAttachmentDeterministicAsync(
+            JamaAttachment attachment,
+            System.Action<string>? progressCallback = null,
+            System.Action<Requirement>? onRequirementDiscovered = null,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Check if the service is properly configured
         /// </summary>
         bool IsConfigured { get; }

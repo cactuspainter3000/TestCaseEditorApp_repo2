@@ -1538,17 +1538,31 @@
                                     </Popup>
                                 </Grid>
 
-                                <Button Grid.Column="1"
-                                        Content="Extract Candidates"
-                                        Command="{Binding ScrapeSelectedAttachmentCommand}"
-                                    Style="{StaticResource HoverBorderOnlyButtonStyle}"
-                                        Margin="10,0,0,0"
-                                        Padding="10,4"
-                                        FontSize="11"
-                                        Background="{StaticResource Brush.Background.Pill.Selected}"
-                                        Foreground="{StaticResource Brush.Accent.Primary}"
-                                        BorderBrush="{StaticResource Brush.Border.Accent}"
-                                        BorderThickness="1"/>
+                                <StackPanel Grid.Column="1"
+                                            Orientation="Horizontal"
+                                            Margin="10,0,0,0">
+                                    <Button Content="Extract All Candidates"
+                                            Command="{Binding ExtractSelectedAttachmentFastCommand}"
+                                        Style="{StaticResource HoverBorderOnlyButtonStyle}"
+                                            Padding="10,4"
+                                            FontSize="11"
+                                            Background="{StaticResource Brush.Background.Pill.Selected}"
+                                            Foreground="{StaticResource Brush.Accent.Primary}"
+                                            BorderBrush="{StaticResource Brush.Border.Accent}"
+                                            BorderThickness="1"
+                                        ToolTip="Build candidate requirements from the selected attachment using deterministic extraction (no AI workspace)."/>
+                                    <Button Content="Process Selected with Advanced AI"
+                                        Command="{Binding ProcessSelectedCandidatesWithAiCommand}"
+                                        Style="{StaticResource HoverBorderOnlyButtonStyle}"
+                                            Margin="8,0,0,0"
+                                            Padding="10,4"
+                                            FontSize="11"
+                                            Background="{StaticResource Brush.Background.Pill.Selected}"
+                                            Foreground="{StaticResource Brush.Accent.Primary}"
+                                            BorderBrush="{StaticResource Brush.Border.Accent}"
+                                            BorderThickness="1"
+                                        ToolTip="Run advanced AI analysis on only the checked candidates from qualification review."/>
+                                </StackPanel>
                             </Grid>
                         </Border>
 
@@ -1699,6 +1713,11 @@
                                                                MaxHeight="48"
                                                                TextTrimming="CharacterEllipsis"
                                                                Foreground="{StaticResource Brush.Text.Secondary}"/>
+                                                    <TextBlock Text="{Binding AiProcessingStatus}"
+                                                               Margin="0,4,0,0"
+                                                               FontSize="10"
+                                                               TextWrapping="Wrap"
+                                                               Foreground="{StaticResource Brush.Accent.Primary}"/>
                                                 </StackPanel>
                                             </Border>
                                         </DataTemplate>

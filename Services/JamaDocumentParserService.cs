@@ -309,6 +309,98 @@ namespace TestCaseEditorApp.Services
             }
         }
 
+        public async Task<List<Requirement>> ParseAttachmentDeterministicAsync(
+            JamaAttachment attachment,
+            System.Action<string>? progressCallback = null,
+            System.Action<Requirement>? onRequirementDiscovered = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (attachment == null)
+                {
+                    progressCallback?.Invoke("❌ No attachment selected.");
+                    return new List<Requirement>();
+                }
+
+                if (!attachment.IsSupportedDocument)
+                {
+                    progressCallback?.Invoke($"❌ Unsupported attachment type: {attachment.MimeType}");
+                    return new List<Requirement>();
+                }
+
+                progressCallback?.Invoke($"📥 Downloading selected attachment '{attachment.FileName}'...");
+                var fileBytes = await _jamaService.DownloadAttachmentAsync(attachment.Id, cancellationToken);
+                if (fileBytes == null || fileBytes.Length == 0)
+                {
+                    progressCallback?.Invoke("❌ Failed to download selected attachment.");
+                    return new List<Requirement>();
+                }
+
+                progressCallback?.Invoke("🔎 Extracting raw text from selected attachment...");
+                var documentContent = await ExtractAttachmentTextForIndexingAsync(attachment, fileBytes);
+                IReadOnlyDictionary<string, string>? structuralSectionHints = null;
+                if (attachment.IsWord)
+                {
+                    try
+                    {
+                        structuralSectionHints = await BuildWordClauseSectionHintMapAsync(fileBytes);
+                    }
+                    catch (Exception ex)
+                    {
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[DeterministicExtraction] Failed to build Word section hints for {attachment.FileName}: {ex.Message}");
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(documentContent))
+                {
+                    documentContent = attachment.MimeType?.StartsWith("text/", StringComparison.OrdinalIgnoreCase) == true
+                        ? System.Text.Encoding.UTF8.GetString(fileBytes)
+                        : string.Empty;
+                }
+
+                if (string.IsNullOrWhiteSpace(documentContent))
+                {
+                    progressCallback?.Invoke("❌ No extractable text found in the selected attachment.");
+                    return new List<Requirement>();
+                }
+
+                progressCallback?.Invoke("🧱 Standardizing ATP content for deterministic extraction...");
+                documentContent = await StandardizeLocalExtractionContentAsync(
+                    documentContent,
+                    attachment,
+                    progressCallback,
+                    cancellationToken);
+
+                progressCallback?.Invoke("🧭 Extracting requirement clauses from selected attachment...");
+
+                const int localProjectId = -1;
+                var requirements = await BuildLocalRequirementsFromDocumentAsync(
+                    documentContent,
+                    attachment,
+                    localProjectId,
+                    progressCallback,
+                    onRequirementDiscovered,
+                    cancellationToken,
+                    structuralSectionHints);
+
+                if (requirements.Count == 0)
+                {
+                    progressCallback?.Invoke("⚠️ No requirement-like clauses were found in the selected attachment.");
+                    return requirements;
+                }
+
+                progressCallback?.Invoke($"✅ Deterministic extraction produced {requirements.Count} requirements.");
+                return requirements;
+            }
+            catch (Exception ex)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Error in deterministic attachment extraction for {attachment?.Id}: {ex.Message}");
+                progressCallback?.Invoke($"❌ Deterministic extraction failed: {ex.Message}");
+                return new List<Requirement>();
+            }
+        }
+
         private async Task<string> StandardizeLocalExtractionContentAsync(
             string documentContent,
             JamaAttachment attachment,
