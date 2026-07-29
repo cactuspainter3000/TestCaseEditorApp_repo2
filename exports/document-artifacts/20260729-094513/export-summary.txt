@@ -1,0 +1,10 @@
+TestCaseEditorApp Selected Document Artifact Export
+Created: 2026-07-29T09:45:13.3187673-05:00
+Source machine: USM246425
+Source file: C:\Users\e10653214\Downloads\946-4C45-001A.docx
+Destination artifact: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\exports\document-artifacts\20260729-094513\946-4C45-001A.docx
+Repo folder: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\exports\document-artifacts\20260729-094513
+DetectedRoot: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp
+RootResolution: Found .git from candidate 'C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\'
+AppBaseDirectory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\
+CurrentDirectory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows
