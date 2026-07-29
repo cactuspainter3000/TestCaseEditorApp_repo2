@@ -2320,33 +2320,38 @@ namespace TestCaseEditorApp.Services
                     // Step 1: Get all items in the project using abstract items endpoint
                     // This is the correct approach according to the cookbook
                     var items = await GetAbstractItemsForProjectAsync(projectId, cancellationToken);
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Found {items.Count} items in project {projectId}, checking each for attachments");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Found {items.Count} items in project {projectId}, checking for attachments (parallel, max 5 concurrent)");
                     
-                    // Step 2: For each item, check for attachments using the proper endpoint
+                    // Step 2: Check items in parallel to avoid 50ms per-item delays
+                    // Use SemaphoreSlim to limit concurrent requests (5 at a time)
                     var itemsWithAttachments = 0;
-                    var currentItemIndex = 0;
+                    var processedCount = 0;
                     var displayName = string.IsNullOrEmpty(projectName) ? $"Project {projectId}" : projectName;
+                    var lockObj = new object();
+                    var semaphore = new System.Threading.SemaphoreSlim(5, 5); // Max 5 concurrent requests
                     
-                    foreach (var item in items)
+                    var tasks = items.Select(async item =>
                     {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        currentItemIndex++;
-                        var percentage = (int)((double)currentItemIndex / items.Count * 100);
-                        
-                        // Progress report with user-requested format
-                        progressCallback?.Invoke(currentItemIndex, items.Count, $"Searching {displayName} for attachments | {percentage}% complete | {attachments.Count} attachments found");
-                        
+                        await semaphore.WaitAsync(cancellationToken);
                         try
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            
                             var itemAttachments = await GetItemAttachmentsAsync(item.Id, cancellationToken);
-                            if (itemAttachments.Count > 0)
+                            
+                            lock (lockObj)
                             {
-                                attachments.AddRange(itemAttachments);
-                                itemsWithAttachments++;
+                                processedCount++;
+                                var percentage = (int)((double)processedCount / items.Count * 100);
                                 
-                                // Update progress with new attachment count
-                                progressCallback?.Invoke(currentItemIndex, items.Count, $"Searching {displayName} for attachments | {percentage}% complete | {attachments.Count} attachments found");
-                                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id} ({item.DocumentKey}) has {itemAttachments.Count} attachment(s) - Total: {attachments.Count}");
+                                if (itemAttachments.Count > 0)
+                                {
+                                    attachments.AddRange(itemAttachments);
+                                    itemsWithAttachments++;
+                                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Item {item.Id} ({item.DocumentKey}) has {itemAttachments.Count} attachment(s) - Total: {attachments.Count}");
+                                }
+                                
+                                progressCallback?.Invoke(processedCount, items.Count, $"Searching {displayName} for attachments | {percentage}% complete | {attachments.Count} attachments found");
                             }
                         }
                         catch (OperationCanceledException)
@@ -2357,10 +2362,13 @@ namespace TestCaseEditorApp.Services
                         {
                             TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed to check attachments for item {item.Id}: {ex.Message}");
                         }
-                        
-                        // Add small delay to avoid overwhelming the API
-                        await Task.Delay(50, cancellationToken);
-                    }
+                        finally
+                        {
+                            semaphore.Release();
+                        }
+                    }).ToList();
+                    
+                    await Task.WhenAll(tasks);
                     
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaConnect] Attachment discovery complete: {attachments.Count} attachments found across {itemsWithAttachments} items");
                 }
