@@ -2455,10 +2455,15 @@ namespace TestCaseEditorApp.Services
                         else
                         {
                             var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                            TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Direct attachment query failed for page {pageNumber}: {response.StatusCode} - {errorContent}");
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] ⚠️ Direct attachment query failed for page {pageNumber}: {response.StatusCode} - {errorContent}");
                             
-                            // If direct query fails, we could fall back to item-by-item checking, but for now just log and return what we have
+                            // Log the URL and response for debugging
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Failed URL: {url}");
+                            TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaConnect] Response status: {response.StatusCode}, Content length: {errorContent.Length}");
+                            
+                            // Treat any error as signal to fall back to legacy method
                             hasMore = false;
+                            throw new InvalidOperationException($"Direct attachment query failed: {response.StatusCode} - {errorContent}");
                         }
                     }
                     

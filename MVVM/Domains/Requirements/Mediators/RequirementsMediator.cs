@@ -1317,186 +1317,67 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                 var scanTimedOut = false;
                 string? completionErrorMessage = null;
 
-                // Attempt direct API query for all attachments in project (most efficient)
-                // This avoids the N+1 problem of checking each item individually
-                _logger.LogInformation("[RequirementsMediator] Attempting direct attachment query for project {ProjectId}", projectId);
+                // Scan project for attachments with timeout protection
+                _logger.LogInformation("[RequirementsMediator] Starting attachment scan for project {ProjectId}", projectId);
 
                 progress?.Report(new AttachmentScanProgressData
                 {
                     Current = 0,
                     Total = 1,
-                    ProgressText = $"Searching {projectName} for attachments | direct query"
+                    ProgressText = $"Searching {projectName} for attachments"
                 });
 
                 PublishEvent(new RequirementsEvents.AttachmentScanProgress
                 {
                     ProjectId = projectId,
-                    ProgressText = $"Searching {projectName} for attachments | direct query"
+                    ProgressText = $"Searching {projectName} for attachments"
                 });
+
+                using var scanTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                // 10 minute timeout for projects with 1000+ items (1342 items × 50ms delay = 67+ seconds just for delays)
+                scanTimeoutCts.CancelAfter(TimeSpan.FromMinutes(10));
 
                 List<JamaAttachment> attachments;
                 
                 try
                 {
-                    // Try direct query first (efficient single API call pattern)
-                    attachments = await _jamaConnectService.GetProjectAttachmentsDirectAsync(
-                        projectId,
-                        cancellationToken: cancellationToken,
-                        progressCallback: (current, total, progressData) =>
-                        {
-                            progress?.Report(new AttachmentScanProgressData
-                            {
-                                Current = current,
-                                Total = total,
-                                ProgressText = progressData
-                            });
-
-                            PublishEvent(new RequirementsEvents.AttachmentScanProgress
-                            {
-                                ProjectId = projectId,
-                                ProgressText = progressData
-                            });
-                        },
-                        projectName: projectName);
-                    
-                    if (attachments.Count > 0)
+                    attachments = await _jamaConnectService.GetProjectAttachmentsAsync(projectId, scanTimeoutCts.Token, (current, total, progressData) =>
                     {
-                        _logger.LogInformation("[RequirementsMediator] ✅ Direct query successful: found {Count} attachments", attachments.Count);
-                    }
-                    else
-                    {
-                        _logger.LogInformation("[RequirementsMediator] Direct query returned no results for project {ProjectId}; trying legacy scan method", projectId);
-                        
-                        // Fallback: try legacy item-by-item scan if direct query yields nothing
                         progress?.Report(new AttachmentScanProgressData
                         {
-                            Current = 0,
-                            Total = 1,
-                            ProgressText = $"Searching {projectName} for attachments | item scan"
+                            Current = current,
+                            Total = total,
+                            ProgressText = progressData
                         });
 
                         PublishEvent(new RequirementsEvents.AttachmentScanProgress
                         {
                             ProjectId = projectId,
-                            ProgressText = $"Searching {projectName} for attachments | item scan"
+                            ProgressText = progressData
                         });
-
-                        using var fallbackTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                        fallbackTimeoutCts.CancelAfter(TimeSpan.FromMinutes(10));
-
-                        try
-                        {
-                            attachments = await _jamaConnectService.GetProjectAttachmentsAsync(projectId, fallbackTimeoutCts.Token, (current, total, progressData) =>
-                            {
-                                progress?.Report(new AttachmentScanProgressData
-                                {
-                                    Current = current,
-                                    Total = total,
-                                    ProgressText = progressData
-                                });
-
-                                PublishEvent(new RequirementsEvents.AttachmentScanProgress
-                                {
-                                    ProjectId = projectId,
-                                    ProgressText = progressData
-                                });
-                            }, projectName);
-                            
-                            if (attachments.Count > 0)
-                            {
-                                _logger.LogInformation("[RequirementsMediator] Legacy item scan found {Count} attachments", attachments.Count);
-                            }
-                        }
-                        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && fallbackTimeoutCts.IsCancellationRequested)
-                        {
-                            _logger.LogWarning("[RequirementsMediator] Item scan timed out for project {ProjectId} after 10 minutes", projectId);
-
-                            var timeoutMessage = $"Searching {projectName} for attachments | item scan timed out after 10 minutes";
-                            progress?.Report(new AttachmentScanProgressData
-                            {
-                                Current = 1,
-                                Total = 1,
-                                ProgressText = timeoutMessage
-                            });
-
-                            PublishEvent(new RequirementsEvents.AttachmentScanProgress
-                            {
-                                ProjectId = projectId,
-                                ProgressText = timeoutMessage
-                            });
-
-                            scanTimedOut = true;
-                            completionErrorMessage = "Item scan timed out after 10 minutes. The project may still contain attachments beyond the scanned items.";
-                            attachments = new List<JamaAttachment>();
-                        }
-                    }
+                    }, projectName);
                 }
-                catch (Exception directQueryEx)
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && scanTimeoutCts.IsCancellationRequested)
                 {
-                    _logger.LogWarning(directQueryEx, "[RequirementsMediator] Direct attachment query failed for project {ProjectId}, falling back to item scan", projectId);
+                    _logger.LogWarning("[RequirementsMediator] Attachment scan timed out for project {ProjectId} after 10 minutes", projectId);
                     
-                    // Direct query failed - try fallback item scan
+                    var timeoutMessage = $"Searching {projectName} for attachments | scan timed out after 10 minutes";
                     progress?.Report(new AttachmentScanProgressData
                     {
-                        Current = 0,
+                        Current = 1,
                         Total = 1,
-                        ProgressText = $"Searching {projectName} for attachments | item scan (direct query failed)"
+                        ProgressText = timeoutMessage
                     });
 
                     PublishEvent(new RequirementsEvents.AttachmentScanProgress
                     {
                         ProjectId = projectId,
-                        ProgressText = $"Searching {projectName} for attachments | item scan (direct query failed)"
+                        ProgressText = timeoutMessage
                     });
 
-                    using var fallbackTimeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                    fallbackTimeoutCts.CancelAfter(TimeSpan.FromMinutes(10));
-
-                    try
-                    {
-                        attachments = await _jamaConnectService.GetProjectAttachmentsAsync(projectId, fallbackTimeoutCts.Token, (current, total, progressData) =>
-                        {
-                            progress?.Report(new AttachmentScanProgressData
-                            {
-                                Current = current,
-                                Total = total,
-                                ProgressText = progressData
-                            });
-
-                            PublishEvent(new RequirementsEvents.AttachmentScanProgress
-                            {
-                                ProjectId = projectId,
-                                ProgressText = progressData
-                            });
-                        }, projectName);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        _logger.LogWarning("[RequirementsMediator] Item scan timed out for project {ProjectId} after 10 minutes", projectId);
-
-                        var timeoutMessage = $"Searching {projectName} for attachments | item scan timed out after 10 minutes";
-                        progress?.Report(new AttachmentScanProgressData
-                        {
-                            Current = 1,
-                            Total = 1,
-                            ProgressText = timeoutMessage
-                        });
-
-                        PublishEvent(new RequirementsEvents.AttachmentScanProgress
-                        {
-                            ProjectId = projectId,
-                            ProgressText = timeoutMessage
-                        });
-
-                        scanTimedOut = true;
-                        completionErrorMessage = "Item scan timed out after 10 minutes. Please try again or contact support.";
-                        attachments = new List<JamaAttachment>();
-                    }
-                    catch (Exception itemScanEx)
-                    {
-                        _logger.LogError(itemScanEx, "[RequirementsMediator] Item scan also failed for project {ProjectId}", projectId);
-                        attachments = new List<JamaAttachment>();
-                    }
+                    scanTimedOut = true;
+                    completionErrorMessage = "Scan timed out after 10 minutes. The project may still contain attachments beyond what was scanned.";
+                    attachments = new List<JamaAttachment>();
                 }
 
                 var duration = DateTime.Now - startTime;

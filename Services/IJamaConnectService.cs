@@ -48,17 +48,8 @@ namespace TestCaseEditorApp.Services
         Task<bool> RefreshExpiredTokenAsync();
 
         /// <summary>
-        /// Get all attachments for a project using direct REST API query (most efficient)
-        /// Uses /attachments endpoint with project filtering to avoid N+1 queries
-        /// </summary>
-        Task<List<JamaAttachment>> GetProjectAttachmentsDirectAsync(
-            int projectId,
-            CancellationToken cancellationToken = default,
-            Action<int, int, string>? progressCallback = null,
-            string projectName = "");
-
-        /// <summary>
-        /// Get all attachments for a project (legacy item-by-item approach)
+        /// Get all attachments for a project using cookbook-compliant approach
+        /// Iterates through all items and checks each for attachments
         /// </summary>
         Task<List<JamaAttachment>> GetProjectAttachmentsAsync(int projectId, CancellationToken cancellationToken = default, Action<int, int, string>? progressCallback = null, string projectName = "");
 
