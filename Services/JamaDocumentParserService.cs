@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -105,7 +105,7 @@ namespace TestCaseEditorApp.Services
             try
             {
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Starting parse for attachment {attachment.Id} ({attachment.FileName})");
-                progressCallback?.Invoke($"🔧 Preparing to extract requirements from {attachment.FileName}...");
+                progressCallback?.Invoke($"ðŸ”§ Preparing to extract requirements from {attachment.FileName}...");
 
                 // CRITICAL: Check if required AI services are available before processing
                 // If verification fails, we'll still attempt extraction - it has its own retry logic
@@ -113,17 +113,17 @@ namespace TestCaseEditorApp.Services
                 if (!aiServicesVerified)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Pre-warming failed or AI services unavailable - proceeding with extraction anyway (fallback to retry logic)");
-                    progressCallback?.Invoke("⚠️ Pre-warming failed - attempting extraction anyway...");
+                    progressCallback?.Invoke("âš ï¸ Pre-warming failed - attempting extraction anyway...");
                     // Don't abort - continue with extraction which has its own retry/restart logic
                 }
 
                 // Step 1: Download attachment from Jama
-                progressCallback?.Invoke($"📥 Downloading attachment ({attachment.FileSize / 1024}KB)...");
+                progressCallback?.Invoke($"ðŸ“¥ Downloading attachment ({attachment.FileSize / 1024}KB)...");
                 var fileBytes = await _jamaService.DownloadAttachmentAsync(attachment.Id, cancellationToken);
                 if (fileBytes == null || fileBytes.Length == 0)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed to download attachment {attachment.Id}");
-                    progressCallback?.Invoke("❌ Failed to download document - please check your Jama connection");
+                    progressCallback?.Invoke("âŒ Failed to download document - please check your Jama connection");
                     throw new InvalidOperationException($"Failed to download attachment {attachment.Id}. This may be due to an expired authentication token or network issues. Please try refreshing your Jama connection.");
                 }
 
@@ -131,13 +131,13 @@ namespace TestCaseEditorApp.Services
                 
                 // Diagnostic: Log file hash to detect if wrong file is being processed
                 var fileHash = ComputeFileSha256(fileBytes);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 📋 ATTACHMENT_CONTENT_HASH attachment={attachment.Id} filename={attachment.FileName} size={fileBytes.Length} sha256={fileHash}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ðŸ“‹ ATTACHMENT_CONTENT_HASH attachment={attachment.Id} filename={attachment.FileName} size={fileBytes.Length} sha256={fileHash}");
 
                 // Step 2: Use provided attachment metadata (no need to re-scan project)
                 if (!attachment.IsSupportedDocument)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Unsupported document type: {attachment.MimeType}");
-                    progressCallback?.Invoke($"❌ Unsupported document type: {attachment.MimeType}");
+                    progressCallback?.Invoke($"âŒ Unsupported document type: {attachment.MimeType}");
                     return new List<Requirement>();
                 }
 
@@ -146,8 +146,8 @@ namespace TestCaseEditorApp.Services
                     // Check if it's a document type that DirectRag can handle effectively
                     if (attachment.IsWord || attachment.IsExcel || attachment.IsPdf || attachment.MimeType?.Contains("text") == true)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Using DirectRagService for document analysis ({attachment.MimeType})");
-                        progressCallback?.Invoke($"🚀 Processing with reliable RAG-enhanced analysis...");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] âœ… Using DirectRagService for document analysis ({attachment.MimeType})");
+                        progressCallback?.Invoke($"ðŸš€ Processing with reliable RAG-enhanced analysis...");
                         var directRagRequirements = await ExtractRequirementsWithDirectRagAsync(attachment, fileBytes, projectId, progressCallback, onRequirementDiscovered, cancellationToken);
                         TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] ParserReturn AttachmentId={attachment.Id} FileName={attachment.FileName} Source=DirectRag Count={directRagRequirements.Count} Sample={BuildRequirementTraceSample(directRagRequirements)}");
                         EnrichRequirementsWithAttachmentMetadata(directRagRequirements, attachment);
@@ -157,14 +157,14 @@ namespace TestCaseEditorApp.Services
                     }
                     else
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ❌ Unsupported document type for DirectRag: {attachment.MimeType}");
+                        TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] âŒ Unsupported document type for DirectRag: {attachment.MimeType}");
                     }
                 }
 
                 if (IsAnythingLlmFallbackEnabled())
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] DirectRagService unavailable or not suitable for {attachment.MimeType}; using AnythingLLM fallback");
-                    progressCallback?.Invoke($"🔁 Using fallback requirement extraction...");
+                    progressCallback?.Invoke($"ðŸ” Using fallback requirement extraction...");
                     var anythingLlmRequirements = await ExtractRequirementsWithAnythingLLMAsync(attachment, projectId, progressCallback, cancellationToken);
                     TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] ParserReturn AttachmentId={attachment.Id} FileName={attachment.FileName} Source=AnythingLLM Count={anythingLlmRequirements.Count} Sample={BuildRequirementTraceSample(anythingLlmRequirements)}");
                     EnrichRequirementsWithAttachmentMetadata(anythingLlmRequirements, attachment);
@@ -174,7 +174,7 @@ namespace TestCaseEditorApp.Services
                 }
 
                 TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] DirectRagService unavailable or not suitable for {attachment.MimeType}; AnythingLLM fallback is disabled by user setting");
-                progressCallback?.Invoke("⚠️ LLM fallback is disabled - skipping AnythingLLM extraction.");
+                progressCallback?.Invoke("âš ï¸ LLM fallback is disabled - skipping AnythingLLM extraction.");
                 return new List<Requirement>();
             }
             catch (Exception ex)
@@ -210,7 +210,7 @@ namespace TestCaseEditorApp.Services
             {
                 if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
                 {
-                    progressCallback?.Invoke("❌ Local file not found.");
+                    progressCallback?.Invoke("âŒ Local file not found.");
                     return new List<Requirement>();
                 }
 
@@ -232,19 +232,19 @@ namespace TestCaseEditorApp.Services
 
                 if (!localAttachment.IsSupportedDocument)
                 {
-                    progressCallback?.Invoke($"❌ Unsupported local document type: {extension}");
+                    progressCallback?.Invoke($"âŒ Unsupported local document type: {extension}");
                     return new List<Requirement>();
                 }
 
-                progressCallback?.Invoke($"📄 Loading local document '{localAttachment.FileName}'...");
+                progressCallback?.Invoke($"ðŸ“„ Loading local document '{localAttachment.FileName}'...");
                 var fileBytes = await File.ReadAllBytesAsync(filePath, cancellationToken);
                 if (fileBytes == null || fileBytes.Length == 0)
                 {
-                    progressCallback?.Invoke("❌ Local document is empty.");
+                    progressCallback?.Invoke("âŒ Local document is empty.");
                     return new List<Requirement>();
                 }
 
-                progressCallback?.Invoke("🔎 Extracting raw text from local document...");
+                progressCallback?.Invoke("ðŸ”Ž Extracting raw text from local document...");
                 var documentContent = await ExtractAttachmentTextForIndexingAsync(localAttachment, fileBytes);
                 IReadOnlyDictionary<string, string>? structuralSectionHints = null;
                 if (localAttachment.IsWord)
@@ -268,18 +268,18 @@ namespace TestCaseEditorApp.Services
 
                 if (string.IsNullOrWhiteSpace(documentContent))
                 {
-                    progressCallback?.Invoke("❌ No extractable text found in the local document.");
+                    progressCallback?.Invoke("âŒ No extractable text found in the local document.");
                     return new List<Requirement>();
                 }
 
-                progressCallback?.Invoke("🧱 Standardizing ATP content for deterministic extraction...");
+                progressCallback?.Invoke("ðŸ§± Standardizing ATP content for deterministic extraction...");
                 documentContent = await StandardizeLocalExtractionContentAsync(
                     documentContent,
                     localAttachment,
                     progressCallback,
                     cancellationToken);
 
-                progressCallback?.Invoke("🧭 Extracting requirement clauses from raw text...");
+                progressCallback?.Invoke("ðŸ§­ Extracting requirement clauses from raw text...");
 
                 // Use a dedicated local project bucket to isolate troubleshooting output from Jama projects.
                 const int localProjectId = -1;
@@ -294,17 +294,17 @@ namespace TestCaseEditorApp.Services
 
                 if (requirements.Count == 0)
                 {
-                    progressCallback?.Invoke("⚠️ No requirement-like clauses were found in the local document.");
+                    progressCallback?.Invoke("âš ï¸ No requirement-like clauses were found in the local document.");
                     return requirements;
                 }
 
-                progressCallback?.Invoke($"✅ Scratch-built local extraction produced {requirements.Count} requirements.");
+                progressCallback?.Invoke($"âœ… Scratch-built local extraction produced {requirements.Count} requirements.");
                 return requirements;
             }
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Error parsing local document '{filePath}': {ex.Message}");
-                progressCallback?.Invoke($"❌ Local extraction failed: {ex.Message}");
+                progressCallback?.Invoke($"âŒ Local extraction failed: {ex.Message}");
                 return new List<Requirement>();
             }
         }
@@ -319,25 +319,25 @@ namespace TestCaseEditorApp.Services
             {
                 if (attachment == null)
                 {
-                    progressCallback?.Invoke("❌ No attachment selected.");
+                    progressCallback?.Invoke("âŒ No attachment selected.");
                     return new List<Requirement>();
                 }
 
                 if (!attachment.IsSupportedDocument)
                 {
-                    progressCallback?.Invoke($"❌ Unsupported attachment type: {attachment.MimeType}");
+                    progressCallback?.Invoke($"âŒ Unsupported attachment type: {attachment.MimeType}");
                     return new List<Requirement>();
                 }
 
-                progressCallback?.Invoke($"📥 Downloading selected attachment '{attachment.FileName}'...");
+                progressCallback?.Invoke($"ðŸ“¥ Downloading selected attachment '{attachment.FileName}'...");
                 var fileBytes = await _jamaService.DownloadAttachmentAsync(attachment.Id, cancellationToken);
                 if (fileBytes == null || fileBytes.Length == 0)
                 {
-                    progressCallback?.Invoke("❌ Failed to download selected attachment.");
+                    progressCallback?.Invoke("âŒ Failed to download selected attachment.");
                     return new List<Requirement>();
                 }
 
-                progressCallback?.Invoke("🔎 Extracting raw text from selected attachment...");
+                progressCallback?.Invoke("ðŸ”Ž Extracting raw text from selected attachment...");
                 var documentContent = await ExtractAttachmentTextForIndexingAsync(attachment, fileBytes);
                 IReadOnlyDictionary<string, string>? structuralSectionHints = null;
                 if (attachment.IsWord)
@@ -361,18 +361,18 @@ namespace TestCaseEditorApp.Services
 
                 if (string.IsNullOrWhiteSpace(documentContent))
                 {
-                    progressCallback?.Invoke("❌ No extractable text found in the selected attachment.");
+                    progressCallback?.Invoke("âŒ No extractable text found in the selected attachment.");
                     return new List<Requirement>();
                 }
 
-                progressCallback?.Invoke("🧱 Standardizing ATP content for deterministic extraction...");
+                progressCallback?.Invoke("ðŸ§± Standardizing ATP content for deterministic extraction...");
                 documentContent = await StandardizeLocalExtractionContentAsync(
                     documentContent,
                     attachment,
                     progressCallback,
                     cancellationToken);
 
-                progressCallback?.Invoke("🧭 Extracting requirement clauses from selected attachment...");
+                progressCallback?.Invoke("ðŸ§­ Extracting requirement clauses from selected attachment...");
 
                 const int localProjectId = -1;
                 var requirements = await BuildLocalRequirementsFromDocumentAsync(
@@ -386,17 +386,17 @@ namespace TestCaseEditorApp.Services
 
                 if (requirements.Count == 0)
                 {
-                    progressCallback?.Invoke("⚠️ No requirement-like clauses were found in the selected attachment.");
+                    progressCallback?.Invoke("âš ï¸ No requirement-like clauses were found in the selected attachment.");
                     return requirements;
                 }
 
-                progressCallback?.Invoke($"✅ Deterministic extraction produced {requirements.Count} requirements.");
+                progressCallback?.Invoke($"âœ… Deterministic extraction produced {requirements.Count} requirements.");
                 return requirements;
             }
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Error in deterministic attachment extraction for {attachment?.Id}: {ex.Message}");
-                progressCallback?.Invoke($"❌ Deterministic extraction failed: {ex.Message}");
+                progressCallback?.Invoke($"âŒ Deterministic extraction failed: {ex.Message}");
                 return new List<Requirement>();
             }
         }
@@ -450,11 +450,11 @@ namespace TestCaseEditorApp.Services
                     var standardized = foundation.BuildPromptContext(20000);
                     if (ShouldUseStandardizedText(documentContent, rawLineCount, standardized))
                     {
-                        progressCallback?.Invoke($"🧱 ATP standardized via extraction foundation ({documentContent.Length} -> {standardized.Length} chars).");
+                        progressCallback?.Invoke($"ðŸ§± ATP standardized via extraction foundation ({documentContent.Length} -> {standardized.Length} chars).");
                         return standardized;
                     }
 
-                    progressCallback?.Invoke("🧱 ATP standardization via extraction foundation was too narrow; keeping raw extracted text.");
+                    progressCallback?.Invoke("ðŸ§± ATP standardization via extraction foundation was too narrow; keeping raw extracted text.");
                 }
                 catch (Exception ex)
                 {
@@ -465,11 +465,11 @@ namespace TestCaseEditorApp.Services
             var fallbackStandardized = BuildRequirementFocusedExcerpt(documentContent, 20000);
             if (ShouldUseStandardizedText(documentContent, rawLineCount, fallbackStandardized))
             {
-                progressCallback?.Invoke($"🧱 ATP standardized via structural excerpt ({documentContent.Length} -> {fallbackStandardized.Length} chars).");
+                progressCallback?.Invoke($"ðŸ§± ATP standardized via structural excerpt ({documentContent.Length} -> {fallbackStandardized.Length} chars).");
                 return fallbackStandardized;
             }
 
-            progressCallback?.Invoke("🧱 ATP standardization fallback kept raw extracted text.");
+            progressCallback?.Invoke("ðŸ§± ATP standardization fallback kept raw extracted text.");
             return documentContent;
         }
 
@@ -496,16 +496,73 @@ namespace TestCaseEditorApp.Services
             var filteredInformationalText = 0;
             var filteredOther = 0;
 
+            List<string> ExtractVerificationRecoveryClausesLocal(string content, bool preferAggressiveRecovery)
+            {
+                var clauses = new List<string>();
+                if (string.IsNullOrWhiteSpace(content))
+                {
+                    return clauses;
+                }
+
+                var lines = content
+                    .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+                    .Select(line => Regex.Replace(line ?? string.Empty, @"\s+", " ").Trim())
+                    .Where(line => !string.IsNullOrWhiteSpace(line))
+                    .ToList();
+
+                var sentenceSplitRegex = new Regex(@"(?<=[\.;:])\s+");
+                var localSeen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var line in lines)
+                {
+                    if (string.IsNullOrWhiteSpace(line) || line.Length < 10 || Regex.IsMatch(line, @"^(?:purpose|acceptance criteria|setup|procedure|notes?)\\s*:?$", RegexOptions.IgnoreCase) || line.Contains("table of contents", StringComparison.OrdinalIgnoreCase) || line.Contains("revision history", StringComparison.OrdinalIgnoreCase) || line.Contains("all rights reserved", StringComparison.OrdinalIgnoreCase) || line.Contains("contents of this document are proprietary", StringComparison.OrdinalIgnoreCase) || Regex.IsMatch(line, @"^---\\s*page\\s+\\d+\\s*---$", RegexOptions.IgnoreCase)) { continue; }
+
+                    var fragments = sentenceSplitRegex.Split(line);
+                    foreach (var fragment in fragments)
+                    {
+                        var candidate = Regex.Replace(fragment, @"\s+", " ").Trim();
+                        if (candidate.Length < 18 || Regex.IsMatch(candidate, @"^(?:purpose|acceptance criteria|setup|procedure|notes?)\\s*:?$", RegexOptions.IgnoreCase) || candidate.Contains("table of contents", StringComparison.OrdinalIgnoreCase) || candidate.Contains("revision history", StringComparison.OrdinalIgnoreCase) || candidate.Contains("all rights reserved", StringComparison.OrdinalIgnoreCase) || candidate.Contains("contents of this document are proprietary", StringComparison.OrdinalIgnoreCase) || Regex.IsMatch(candidate, @"^---\\s*page\\s+\\d+\\s*---$", RegexOptions.IgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        var shouldKeep = LooksLikeVerificationStyleClause(candidate)
+                            || LooksLikeExplicitEquipmentConstraintClause(candidate)
+                            || (preferAggressiveRecovery && LooksLikeHighConfidenceTechnicalClause(candidate));
+
+                        if (!shouldKeep)
+                        {
+                            continue;
+                        }
+
+                        if (!candidate.EndsWith(".", StringComparison.Ordinal) &&
+                            !candidate.EndsWith(";", StringComparison.Ordinal))
+                        {
+                            candidate += ".";
+                        }
+
+                        if (localSeen.Add(candidate))
+                        {
+                            clauses.Add(candidate);
+                        }
+                    }
+                }
+
+                return clauses;
+            }
+
             var isAtpDocument = IsAtpDocument(attachment.FileName, documentContent);
             var stage1Candidates = isAtpDocument ? ExtractLocalRequirementClauses(documentContent).Where(candidate => ShouldPromoteLocalCandidate(candidate, "Stage 1 raw clause extract") || LooksLikeVerificationStyleClause(candidate) || LooksLikeExplicitEquipmentConstraintClause(candidate)).ToList() : ExtractLocalRequirementClauses(documentContent);
             var stage2Candidates = isAtpDocument ? (await ExtractAtpStepClausesAsync(documentContent, cancellationToken)).Where(candidate => ShouldPromoteLocalCandidate(candidate, "Stage 2 ATP step parsing") || LooksLikeVerificationStyleClause(candidate) || LooksLikeExplicitEquipmentConstraintClause(candidate)).ToList() : await ExtractAtpStepClausesAsync(documentContent, cancellationToken);
             var stage3Candidates = isAtpDocument ? ExtractStructuredRequirementClauses(documentContent).Where(candidate => ShouldPromoteLocalCandidate(candidate, "Stage 3 structured line recovery") || LooksLikeVerificationStyleClause(candidate) || LooksLikeExplicitEquipmentConstraintClause(candidate)).ToList() : ExtractStructuredRequirementClauses(documentContent);
             var stage4Candidates = isAtpDocument ? ExtractNumberedStepClauses(documentContent).Where(candidate => ShouldPromoteLocalCandidate(candidate, "Stage 4 numbered step fallback") || LooksLikeVerificationStyleClause(candidate) || LooksLikeExplicitEquipmentConstraintClause(candidate)).ToList() : ExtractNumberedStepClauses(documentContent);
+            var stage5Candidates = ExtractVerificationRecoveryClausesLocal(documentContent, attachment.IsPdf);
 
             AddStageCandidates(candidates, seen, "Stage 1 raw clause extract", stage1Candidates, progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
             AddStageCandidates(candidates, seen, "Stage 2 ATP step parsing", stage2Candidates, progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
             AddStageCandidates(candidates, seen, "Stage 3 structured line recovery", stage3Candidates, progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
             AddStageCandidates(candidates, seen, "Stage 4 numbered step fallback", stage4Candidates, progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
+            AddStageCandidates(candidates, seen, attachment.IsPdf ? "Stage 5 PDF verification recovery" : "Stage 5 verification recovery", stage5Candidates, progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
 
             var requirements = new List<Requirement>();
             var clauseSectionHints = structuralSectionHints != null && structuralSectionHints.Count > 0
@@ -598,7 +655,7 @@ namespace TestCaseEditorApp.Services
 
             TestCaseEditorApp.Services.Logging.Log.Info(
                 $"[LocalExtraction] Extracted {requirements.Count} requirements from {attachment.FileName} using {candidates.Count} staged candidates; deterministic post-filter removed {deterministicFilteredOut} (potential {filteredPotentialRequirements}, derived {filteredDerivedCandidates}, rejected {filteredRejectedCandidates}, heading {filteredHeadingStructure}, informational {filteredInformationalText}, other {filteredOther}); numeric-prefix dedupe collisions {numericPrefixDedupeCollisions}");
-            progressCallback?.Invoke($"📊 Local extraction summary: kept {requirements.Count}, deterministic-filtered {deterministicFilteredOut} [potential {filteredPotentialRequirements}, derived {filteredDerivedCandidates}, rejected {filteredRejectedCandidates}, heading {filteredHeadingStructure}, informational {filteredInformationalText}, other {filteredOther}], numeric-prefix-deduped {numericPrefixDedupeCollisions}");
+            progressCallback?.Invoke($"ðŸ“Š Local extraction summary: kept {requirements.Count}, deterministic-filtered {deterministicFilteredOut} [potential {filteredPotentialRequirements}, derived {filteredDerivedCandidates}, rejected {filteredRejectedCandidates}, heading {filteredHeadingStructure}, informational {filteredInformationalText}, other {filteredOther}], numeric-prefix-deduped {numericPrefixDedupeCollisions}");
 
             return requirements;
         }
@@ -671,7 +728,7 @@ namespace TestCaseEditorApp.Services
 
         private static bool ShouldPassLegacyDeterministicPostFilter(DeterministicQualificationResult qualification, string text, string sourceStage)
         {
-            // ✅ GUARDRAIL: Reject candidates that are extraction prompt leakage
+            // âœ… GUARDRAIL: Reject candidates that are extraction prompt leakage
             if (IsExtractionPromptLeakage(text))
             {
                 return false;
@@ -733,6 +790,13 @@ namespace TestCaseEditorApp.Services
                 return true;
             }
 
+            if (sourceStage.Contains("verification recovery", StringComparison.OrdinalIgnoreCase) &&
+                LooksLikeVerificationStyleClause(text) &&
+                qualification.Score >= 4)
+            {
+                return true;
+            }
+
             if (sourceStage.Contains("structured", StringComparison.OrdinalIgnoreCase) &&
                 qualification.Score >= 10 &&
                 qualification.Classification is "Test/Measurement Requirement" or "True System Requirement")
@@ -764,7 +828,7 @@ namespace TestCaseEditorApp.Services
 
             var hasOutcomeBasedAcceptanceSignal = System.Text.RegularExpressions.Regex.IsMatch(
                 normalized,
-                @"\b(without\s+error|correctly|no\s+active|no\s+fault|fault|logic\s+[‘'""“”]?[01][’'""“”]?|logic\s+low|logic\s+high|received\s+correctly|transmitted\s+correctly|loaded\s+into\s+memory|indicate\w*\s+a\s+fault)\b",
+                @"\b(without\s+error|correctly|no\s+active|no\s+fault|fault|logic\s+[â€˜'""â€œâ€]?[01][â€™'""â€œâ€]?|logic\s+low|logic\s+high|received\s+correctly|transmitted\s+correctly|loaded\s+into\s+memory|indicate\w*\s+a\s+fault)\b",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
             return hasVerificationVerb && (hasQuantifiedConstraint || hasOutcomeBasedAcceptanceSignal);
@@ -786,7 +850,7 @@ namespace TestCaseEditorApp.Services
 
             var hasExplicitTechnicalConstraint = System.Text.RegularExpressions.Regex.IsMatch(
                 normalized,
-                @"(?:\b\d+(?:\.\d+)?\s*(?:kbps|ms|vdc|vac|%)\b|at\s+least|odd\s+parity|logic\s+[‘'""“”]?[01][’'""“”]?|logic\s+low|logic\s+high)",
+                @"(?:\b\d+(?:\.\d+)?\s*(?:kbps|ms|vdc|vac|%)\b|at\s+least|odd\s+parity|logic\s+[â€˜'""â€œâ€]?[01][â€™'""â€œâ€]?|logic\s+low|logic\s+high)",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
             return hasTechnicalBehaviorSignal && hasExplicitTechnicalConstraint;
@@ -1066,7 +1130,7 @@ namespace TestCaseEditorApp.Services
             var added = candidates.Count - before;
             var message = $"{stageName}: +{added} candidates (total {candidates.Count})";
             TestCaseEditorApp.Services.Logging.Log.Info($"[LocalExtraction] {message}");
-            progressCallback?.Invoke($"🧩 {message}");
+            progressCallback?.Invoke($"ðŸ§© {message}");
         }
 
         private static string NormalizeCandidateKey(string? value, out bool strippedNumericPrefix)
@@ -1107,7 +1171,7 @@ namespace TestCaseEditorApp.Services
             var before = input;
             var match = System.Text.RegularExpressions.Regex.Match(
                 before,
-                @"^\s*(?:(?:clause|section|step|req(?:uirement)?)\s+)?(?:\(?\d+(?:\.\d+){0,4}\)?[\)\.]?)\s*(?:[:\-–])?\s+(?<rest>.+)$",
+                @"^\s*(?:(?:clause|section|step|req(?:uirement)?)\s+)?(?:\(?\d+(?:\.\d+){0,4}\)?[\)\.]?)\s*(?:[:\-â€“])?\s+(?<rest>.+)$",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
             if (!match.Success)
@@ -1141,7 +1205,7 @@ namespace TestCaseEditorApp.Services
 
             var match = System.Text.RegularExpressions.Regex.Match(
                 text,
-                @"^\s*(?:(?:clause|section|step|req(?:uirement)?)\s+)?(?<prefix>\d+(?:\.\d+){1,4})\s*(?:[:\-–\)\.]\s*|\s+)",
+                @"^\s*(?:(?:clause|section|step|req(?:uirement)?)\s+)?(?<prefix>\d+(?:\.\d+){1,4})\s*(?:[:\-â€“\)\.]\s*|\s+)",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
             if (!match.Success)
@@ -1905,9 +1969,9 @@ namespace TestCaseEditorApp.Services
 
                 // Diagnostic: Log which document is being uploaded to AnythingLLM
                 var fileHash = ComputeFileSha256(fileBytes);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 WORKSPACE_UPLOAD attachment={attachment.Id} filename={attachment.FileName} size={fileBytes.Length} sha256={fileHash}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ðŸ“‹ WORKSPACE_UPLOAD attachment={attachment.Id} filename={attachment.FileName} size={fileBytes.Length} sha256={fileHash}");
 
-                progressCallback?.Invoke($"✅ Downloaded {fileBytes.Length / 1024}KB - Processing with AnythingLLM...");
+                progressCallback?.Invoke($"âœ… Downloaded {fileBytes.Length / 1024}KB - Processing with AnythingLLM...");
 
                 string? documentContent = null;
                 string? extractedRequirementsSupplemental = null;
@@ -1932,23 +1996,23 @@ namespace TestCaseEditorApp.Services
                 // Step 3: Create temporary AnythingLLM workspace for parsing
                 // Use attachment ID + timestamp to ensure truly unique workspace names
                 // (filenames alone can cause reuse if multiple docs have same name)
-                progressCallback?.Invoke($"🔧 Creating AI workspace for '{attachment.FileName}'...");
+                progressCallback?.Invoke($"ðŸ”§ Creating AI workspace for '{attachment.FileName}'...");
                 var uniqueWorkspaceId = $"{attachment.Id}_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
                 var workspaceName = $"Jama-Doc-{uniqueWorkspaceId}";
                 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 WORKSPACE_CREATE attachment={attachment.Id} filename={attachment.FileName} workspace_name={workspaceName}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ðŸ“‹ WORKSPACE_CREATE attachment={attachment.Id} filename={attachment.FileName} workspace_name={workspaceName}");
                 
                 var workspace = await _llmService.CreateWorkspaceAsync(workspaceName, cancellationToken);
                 if (workspace == null)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed to create workspace {workspaceName}");
-                    progressCallback?.Invoke("❌ Failed to create AI workspace");
+                    progressCallback?.Invoke("âŒ Failed to create AI workspace");
                     return new List<Requirement>();
                 }
                 
                 var workspaceSlug = workspace.Slug;
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 WORKSPACE_CREATED attachment={attachment.Id} workspace_slug={workspaceSlug}");
-                progressCallback?.Invoke($"✅ AI workspace ready - Uploading document...");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ðŸ“‹ WORKSPACE_CREATED attachment={attachment.Id} workspace_slug={workspaceSlug}");
+                progressCallback?.Invoke($"âœ… AI workspace ready - Uploading document...");
 
                 // Step 4: Upload document to AnythingLLM for processing
                 var tempFilePath = Path.Combine(Path.GetTempPath(), attachment.FileName);
@@ -1959,7 +2023,7 @@ namespace TestCaseEditorApp.Services
                     if (!string.IsNullOrWhiteSpace(extractedRequirementsSupplemental))
                     {
                         var supplementalName = $"{Path.GetFileNameWithoutExtension(attachment.FileName)}-extracted-requirements.txt";
-                        progressCallback?.Invoke("🧩 Uploading extracted requirement summary to AnythingLLM workspace...");
+                        progressCallback?.Invoke("ðŸ§© Uploading extracted requirement summary to AnythingLLM workspace...");
                         var supplementalUploadSuccess = await _llmService.UploadDocumentAsync(
                             workspaceSlug,
                             supplementalName,
@@ -1978,7 +2042,7 @@ namespace TestCaseEditorApp.Services
                     if (!uploadSuccess)
                     {
                         TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Failed to upload document to workspace");
-                        progressCallback?.Invoke("❌ Failed to upload document to AI workspace");
+                        progressCallback?.Invoke("âŒ Failed to upload document to AI workspace");
                         return new List<Requirement>();
                     }
 
@@ -2000,9 +2064,9 @@ namespace TestCaseEditorApp.Services
                     // Clean up temporary workspace
                     try
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 WORKSPACE_DELETE_START workspace_slug={workspaceSlug}");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ðŸ“‹ WORKSPACE_DELETE_START workspace_slug={workspaceSlug}");
                         await _llmService.DeleteWorkspaceAsync(workspaceSlug, cancellationToken);
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 WORKSPACE_DELETE_COMPLETE workspace_slug={workspaceSlug}");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ðŸ“‹ WORKSPACE_DELETE_COMPLETE workspace_slug={workspaceSlug}");
                     }
                     catch (Exception ex)
                     {
@@ -2218,11 +2282,11 @@ namespace TestCaseEditorApp.Services
                 var fileName = Path.GetFileName(filePath);
                 var fileHash = ComputeFileSha256(System.Text.Encoding.UTF8.GetBytes(fileContent));
 
-                progressCallback?.Invoke("🧠 Starting document embedding operation...");
+                progressCallback?.Invoke("ðŸ§  Starting document embedding operation...");
                 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 UPLOAD_START workspace={workspaceSlug} filename={fileName} size={fileContent.Length} sha256={fileHash}");
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🔍 UPLOAD DEBUG: Starting upload for '{fileName}' to workspace '{workspaceSlug}'");
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🔍 UPLOAD DEBUG: Content length: {fileContent.Length} characters");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ðŸ“‹ UPLOAD_START workspace={workspaceSlug} filename={fileName} size={fileContent.Length} sha256={fileHash}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ðŸ” UPLOAD DEBUG: Starting upload for '{fileName}' to workspace '{workspaceSlug}'");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ðŸ” UPLOAD DEBUG: Content length: {fileContent.Length} characters");
                 
                 // Start the upload operation
                 var uploadStartTime = DateTime.Now;
@@ -2239,7 +2303,7 @@ namespace TestCaseEditorApp.Services
                 {
                     // Monitoring detected failure/success - cancel upload if still running
                     monitoringCts.Cancel();
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] 🔍 Monitoring completed first - checking results");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ðŸ” Monitoring completed first - checking results");
                     
                     // Check if monitoring detected success (document exists) or failure
                     var finalCheck = await _llmService.GetWorkspaceDocumentsAsync(workspaceSlug, cancellationToken);
@@ -2247,14 +2311,14 @@ namespace TestCaseEditorApp.Services
                     
                     if (documentCount > 0)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 UPLOAD_SUCCESS workspace={workspaceSlug} filename={fileName} doc_count={documentCount}");
-                        progressCallback?.Invoke("✅ Document embedding completed successfully!");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ðŸ“‹ UPLOAD_SUCCESS workspace={workspaceSlug} filename={fileName} doc_count={documentCount}");
+                        progressCallback?.Invoke("âœ… Document embedding completed successfully!");
                         return true;
                     }
                     else
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 📋 UPLOAD_FAILURE workspace={workspaceSlug} filename={fileName} reason=monitoring_detected_failure doc_count=0");
-                        progressCallback?.Invoke("🚨 Embedding failure detected - AnythingLLM service malfunction");
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] ðŸ“‹ UPLOAD_FAILURE workspace={workspaceSlug} filename={fileName} reason=monitoring_detected_failure doc_count=0");
+                        progressCallback?.Invoke("ðŸš¨ Embedding failure detected - AnythingLLM service malfunction");
                         throw new InvalidOperationException($"AnythingLLM embedding monitoring detected failure - service is not processing documents correctly.");
                     }
                 }
@@ -2264,12 +2328,12 @@ namespace TestCaseEditorApp.Services
                     monitoringCts.Cancel(); // Stop monitoring
                     var uploadResult = await uploadTask;
                     
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🔍 UPLOAD DEBUG: Upload completed with result: {uploadResult}");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ðŸ” UPLOAD DEBUG: Upload completed with result: {uploadResult}");
                     
                     if (!uploadResult)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 📋 UPLOAD_FAILURE workspace={workspaceSlug} filename={fileName} reason=upload_returned_false");
-                        progressCallback?.Invoke("❌ Document upload failed - AnythingLLM service unavailable");
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] ðŸ“‹ UPLOAD_FAILURE workspace={workspaceSlug} filename={fileName} reason=upload_returned_false");
+                        progressCallback?.Invoke("âŒ Document upload failed - AnythingLLM service unavailable");
                         throw new InvalidOperationException($"Failed to upload document to AnythingLLM workspace. Check service status.");
                     }
                     else
@@ -2280,14 +2344,14 @@ namespace TestCaseEditorApp.Services
                         
                         if (documentCount > 0)
                         {
-                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 UPLOAD_SUCCESS workspace={workspaceSlug} filename={fileName} doc_count={documentCount}");
-                            progressCallback?.Invoke("✅ Document embedding completed successfully!");
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] ðŸ“‹ UPLOAD_SUCCESS workspace={workspaceSlug} filename={fileName} doc_count={documentCount}");
+                            progressCallback?.Invoke("âœ… Document embedding completed successfully!");
                             return true;
                         }
                         else
                         {
-                            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 📋 UPLOAD_FAILURE workspace={workspaceSlug} filename={fileName} reason=no_documents_after_upload doc_count=0");
-                            progressCallback?.Invoke("⚠️ Document embedding incomplete - check AnythingLLM model configuration"); 
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] ðŸ“‹ UPLOAD_FAILURE workspace={workspaceSlug} filename={fileName} reason=no_documents_after_upload doc_count=0");
+                            progressCallback?.Invoke("âš ï¸ Document embedding incomplete - check AnythingLLM model configuration"); 
                             throw new InvalidOperationException($"Document uploaded to AnythingLLM but embedding failed. This usually indicates embedding model configuration issues.");
                         }
                     }
@@ -2297,7 +2361,7 @@ namespace TestCaseEditorApp.Services
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 📋 UPLOAD_ERROR workspace={workspaceSlug} error={ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] ðŸ“‹ UPLOAD_ERROR workspace={workspaceSlug} error={ex.Message}");
                 return false;
             }
         }
@@ -2331,8 +2395,8 @@ namespace TestCaseEditorApp.Services
 
                     if (documentCount > 0)
                     {
-                        progressCallback($"✅ Document embedded successfully! ({documentCount} docs, {elapsedMinutes}m {elapsedSeconds}s)");
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Embedding SUCCESS: Document visible in workspace after {elapsedMinutes}m {elapsedSeconds}s");
+                        progressCallback($"âœ… Document embedded successfully! ({documentCount} docs, {elapsedMinutes}m {elapsedSeconds}s)");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] âœ… Embedding SUCCESS: Document visible in workspace after {elapsedMinutes}m {elapsedSeconds}s");
                         return; // Document is visible, embedding completed successfully
                     }
                     else
@@ -2351,34 +2415,34 @@ namespace TestCaseEditorApp.Services
                         // If stuck for >90 seconds (6 cycles), assume failure
                         if (stuckCount >= 6 && elapsed.TotalSeconds > 90)
                         {
-                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] 🚨 EMBEDDING FAILURE DETECTED: No progress for 90+ seconds ({stuckCount} cycles)");
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ðŸš¨ EMBEDDING FAILURE DETECTED: No progress for 90+ seconds ({stuckCount} cycles)");
                             TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Document count remains 0 - AnythingLLM embedding has failed");
-                            progressCallback("🚨 Embedding stuck - no documents after 90+ seconds. Switching to direct extraction!");
+                            progressCallback("ðŸš¨ Embedding stuck - no documents after 90+ seconds. Switching to direct extraction!");
                             return; // Exit early to trigger fallback
                         }
                         
                         // Even earlier detection: if we've been running 2+ minutes with 0 docs, something is wrong
                         if (elapsed.TotalSeconds > 120 && documentCount == 0)
                         {
-                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] 🚨 EARLY FAILURE DETECTION: 2+ minutes with 0 documents");
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ðŸš¨ EARLY FAILURE DETECTION: 2+ minutes with 0 documents");
                             TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] This indicates embedding process failure - triggering fallback");
-                            progressCallback("🚨 Embedding taking too long (2+ min, no documents) - switching to direct extraction!");
+                            progressCallback("ðŸš¨ Embedding taking too long (2+ min, no documents) - switching to direct extraction!");
                             return; // Exit to trigger fallback
                         }
 
-                        progressCallback($"🔄 Embedding chunks into vectors... ({elapsedMinutes}m {elapsedSeconds}s elapsed)");
+                        progressCallback($"ðŸ”„ Embedding chunks into vectors... ({elapsedMinutes}m {elapsedSeconds}s elapsed)");
                         TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Embedding progress: Processing chunks... ({elapsedMinutes}m {elapsedSeconds}s elapsed)");
                     }
                 }
 
                 // If we reach here, we timed out
-                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] 🚨 EMBEDDING TIMEOUT: Monitoring timed out after 3 minutes");
-                progressCallback("⏰ Embedding timeout - switching to direct extraction");
+                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ðŸš¨ EMBEDDING TIMEOUT: Monitoring timed out after 3 minutes");
+                progressCallback("â° Embedding timeout - switching to direct extraction");
             }
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Progress monitoring stopped: {ex.Message}");
-                progressCallback?.Invoke("⚠️ Monitoring error - switching to direct extraction");
+                progressCallback?.Invoke("âš ï¸ Monitoring error - switching to direct extraction");
             }
         }
 
@@ -2397,17 +2461,17 @@ namespace TestCaseEditorApp.Services
                 progressCallback?.Invoke($"Optimizing AnythingLLM workspace configuration for '{attachment.FileName}'...");
                 
                 // CRITICAL: Apply optimal RAG configuration BEFORE extraction to ensure comprehensive retrieval
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Applying optimal RAG configuration proactively for workspace '{workspaceSlug}'");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] âœ… Applying optimal RAG configuration proactively for workspace '{workspaceSlug}'");
                 var configApplied = await _llmService.FixRagConfigurationAsync(workspaceSlug, cancellationToken);
                 
                 if (configApplied)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ RAG configuration applied - waiting for settings to take effect...");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] âœ… RAG configuration applied - waiting for settings to take effect...");
                     await Task.Delay(1500, cancellationToken); // Allow config to persist
                 }
                 else
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ⚠️ Could not apply RAG configuration - proceeding with current settings");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] âš ï¸ Could not apply RAG configuration - proceeding with current settings");
                 }
                 
                 progressCallback?.Invoke($"Testing document access for '{attachment.FileName}'...");
@@ -2420,13 +2484,13 @@ namespace TestCaseEditorApp.Services
                 
                 if (!hasAccess)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ Document access test FAILED even after RAG configuration");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] âŒ Document access test FAILED even after RAG configuration");
                     TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] This indicates a fundamental AnythingLLM or workspace issue");
-                    progressCallback?.Invoke($"❌ Document access failed - cannot extract requirements"); 
+                    progressCallback?.Invoke($"âŒ Document access failed - cannot extract requirements"); 
                     return new List<Requirement>();
                 }
                 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ RAG document access confirmed - proceeding with extraction");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] âœ… RAG document access confirmed - proceeding with extraction");
                 progressCallback?.Invoke($"Analyzing '{attachment.FileName}' with AI for comprehensive requirement extraction...");
                 
                 // Single comprehensive prompt combining verification, extraction, and validation
@@ -2447,7 +2511,7 @@ namespace TestCaseEditorApp.Services
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Initial extraction: {requirements.Count} requirements from comprehensive prompt");
 
                 // CONTENT VALIDATION: Verify each requirement aligns with actual document content
-                progressCallback?.Invoke($"🔍 Validating {requirements.Count} requirements against document content...");
+                progressCallback?.Invoke($"ðŸ” Validating {requirements.Count} requirements against document content...");
                 
                 // Add timeout for validation to prevent getting stuck
                 var contentValidatedRequirements = await ValidateExtractedRequirements(workspaceSlug, requirements, cancellationToken);
@@ -2461,7 +2525,7 @@ namespace TestCaseEditorApp.Services
                     response.Contains("without the capability to directly interact") ||
                     response.Contains("AI language model") && response.Contains("unable to"))
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ LLM stated it cannot access document content - RAG retrieval failed");
+                    TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] âŒ LLM stated it cannot access document content - RAG retrieval failed");
                     TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] LLM Response: {response.Substring(0, Math.Min(200, response.Length))}...");
                     TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Stopping extraction to prevent fake requirements from being added");
                     return new List<Requirement>(); // Return empty list instead of fake requirements
@@ -2470,9 +2534,9 @@ namespace TestCaseEditorApp.Services
                 // EARLY EXIT: Skip validation and recovery if no requirements found
                 if (requirements.Count == 0)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ❌ No requirements extracted - LLM cannot access document content");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] âŒ No requirements extracted - LLM cannot access document content");
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Skipping validation and recovery for empty result set");
-                    progressCallback?.Invoke($"❌ No requirements found - document not accessible to LLM");
+                    progressCallback?.Invoke($"âŒ No requirements found - document not accessible to LLM");
                     return new List<Requirement>();
                 }
 
@@ -2487,7 +2551,7 @@ namespace TestCaseEditorApp.Services
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] LOW COUNT WARNING - Only found {finalValidatedRequirements.Count} requirements in {attachment.FileName} (expected at least {expectedMinRequirements} based on document size). Consider re-running extraction.");
                 }
 
-                progressCallback?.Invoke($"✅ Extracted {finalValidatedRequirements.Count} requirements (content validated & completeness checked)");
+                progressCallback?.Invoke($"âœ… Extracted {finalValidatedRequirements.Count} requirements (content validated & completeness checked)");
                 return finalValidatedRequirements;
             }
             catch (Exception ex)
@@ -2504,47 +2568,47 @@ namespace TestCaseEditorApp.Services
         {
             return $@"COMPREHENSIVE REQUIREMENTS EXTRACTION FROM: {attachment.FileName}
 
-⚡ RAG SYSTEM STATUS: Document content processed and available for retrieval
-📄 Document Type: {GetDocumentTypeDescription(attachment)} (Size: 1.5MB+ - expect 20-50+ requirements)
+âš¡ RAG SYSTEM STATUS: Document content processed and available for retrieval
+ðŸ“„ Document Type: {GetDocumentTypeDescription(attachment)} (Size: 1.5MB+ - expect 20-50+ requirements)
 
-🔥 CRITICAL ANTI-FABRICATION RULES:
+ðŸ”¥ CRITICAL ANTI-FABRICATION RULES:
 1. ONLY extract requirements that appear VERBATIM or EXPLICITLY in the retrieved document content
 2. NEVER create plausible-sounding requirements based on what ""should"" be in technical documents  
 3. If you can see document content, extract whatever technical specifications, constraints, or criteria ARE visible
 4. Do NOT fabricate section numbers, page numbers, or document references
 5. All source citations must reference ACTUAL text visible in your context
 
-🔍 EXTRACTION MANDATE: 
+ðŸ” EXTRACTION MANDATE: 
 The document '{attachment.FileName}' has been processed through RAG. You will ONLY receive document text that actually exists.
 
-• Extract EVERY requirement that appears in your retrieved context - do not stop at 3-5 examples
-• Include requirements from ALL sections provided: main body, appendices, tables, figures
-• Look for SHALL, MUST, WILL, SHOULD statements throughout the retrieved content
-• Include performance specifications, test criteria, design constraints FROM THE ACTUAL TEXT
+â€¢ Extract EVERY requirement that appears in your retrieved context - do not stop at 3-5 examples
+â€¢ Include requirements from ALL sections provided: main body, appendices, tables, figures
+â€¢ Look for SHALL, MUST, WILL, SHOULD statements throughout the retrieved content
+â€¢ Include performance specifications, test criteria, design constraints FROM THE ACTUAL TEXT
 
 REQUIREMENT TYPES TO EXTRACT (ONLY if present in retrieved content):
-• Functional requirements (system behavior, operations)
-• Performance specs (speed, accuracy, throughput, timing, response times)
-• Interface requirements (signals, protocols, connectors, voltages, communications)
-• Environmental limits (temperature, humidity, vibration, shock, altitude)
-• Lifecycle requirements (MTBF, cycles, durability, reliability metrics)  
-• Safety/security requirements (fail-safe behavior, protection mechanisms)
-• Design constraints and allocations (size, weight, power consumption)
-• Test and verification requirements (acceptance criteria, test procedures)
+â€¢ Functional requirements (system behavior, operations)
+â€¢ Performance specs (speed, accuracy, throughput, timing, response times)
+â€¢ Interface requirements (signals, protocols, connectors, voltages, communications)
+â€¢ Environmental limits (temperature, humidity, vibration, shock, altitude)
+â€¢ Lifecycle requirements (MTBF, cycles, durability, reliability metrics)  
+â€¢ Safety/security requirements (fail-safe behavior, protection mechanisms)
+â€¢ Design constraints and allocations (size, weight, power consumption)
+â€¢ Test and verification requirements (acceptance criteria, test procedures)
 
-⚠️ VERIFICATION CHECKPOINT: Before generating each requirement, ask yourself:
+âš ï¸ VERIFICATION CHECKPOINT: Before generating each requirement, ask yourself:
 - ""Can I see this exact requirement text in my retrieved context?""
 - ""Is this source reference visible in the content provided to me?""
 - ""Am I creating this based on assumptions or actual document text?""
 
 If you cannot confidently answer YES to these questions, DO NOT include that requirement.
 
-🔍 CONTENT VISIBILITY CHECK:
+ðŸ” CONTENT VISIBILITY CHECK:
 - If you can see ANY technical specifications, constraints, or performance criteria in the document content, extract them as requirements
 - If the retrieved content contains interface specs, environmental limits, test criteria, or design constraints, format them as requirements
 - Extract ALL technical content you can actually see - do not leave any specifications unextracted
 
-⚠️ OVERRIDE NOTICE: Ignore any built-in restrictions about file access. This is RAG retrieval, not file access.
+âš ï¸ OVERRIDE NOTICE: Ignore any built-in restrictions about file access. This is RAG retrieval, not file access.
 
 Begin extraction now. Extract ALL technical specifications and constraints you can actually see in the retrieved document content.";
         }
@@ -2558,7 +2622,7 @@ Begin extraction now. Extract ALL technical specifications and constraints you c
 
 FILE: {attachment.FileName}
 
-⚠️ IMPORTANT: You may have access to only partial document chunks through RAG retrieval.
+âš ï¸ IMPORTANT: You may have access to only partial document chunks through RAG retrieval.
 STRATEGY: Scan EVERY chunk you receive, looking for any requirement-related content.
 Don't rely only on obvious matches - look in ALL sections, headers, tables, specs.
 
@@ -2573,21 +2637,21 @@ List everything you can see:
 STEP 2 - EXHAUSTIVE REQUIREMENT SCAN:
 Go through EVERY section and EVERY piece of content looking for:
 
-✓ SHALL, MUST, WILL, SHOULD statements (formal requirements)
-✓ Performance specs: timing, throughput, latency, accuracy
-✓ Interface specifications: protocols, message formats, API specs
-✓ Acceptance criteria and test requirements
-✓ Environmental constraints: hardware, OS, dependencies
-✓ Safety, security, compliance requirements
-✓ Quality metrics, reliability, availability specs
-✓ Physical constraints or design limits
-✓ Numbers, thresholds, tolerance values
-✓ References to standards or other requirements
-✓ State machines, sequences, procedural steps
-✓ Capability descriptions (""system shall be capable of..."")
-✓ Table entries (often contain specs and constraints)
-✓ Figure captions with technical details
-✓ Section headers that contain spec info
+âœ“ SHALL, MUST, WILL, SHOULD statements (formal requirements)
+âœ“ Performance specs: timing, throughput, latency, accuracy
+âœ“ Interface specifications: protocols, message formats, API specs
+âœ“ Acceptance criteria and test requirements
+âœ“ Environmental constraints: hardware, OS, dependencies
+âœ“ Safety, security, compliance requirements
+âœ“ Quality metrics, reliability, availability specs
+âœ“ Physical constraints or design limits
+âœ“ Numbers, thresholds, tolerance values
+âœ“ References to standards or other requirements
+âœ“ State machines, sequences, procedural steps
+âœ“ Capability descriptions (""system shall be capable of..."")
+âœ“ Table entries (often contain specs and constraints)
+âœ“ Figure captions with technical details
+âœ“ Section headers that contain spec info
 
 STEP 3 - AGGREGATE AND OUTPUT:
 Output EVERYTHING that could possibly be a requirement.
@@ -2616,7 +2680,7 @@ CRITICAL RULES:
 - Number sequentially from REQ-001
 - Scan the FULL document - check every section listed in STEP 1
 
-⚠️ AGGRESSIVE EXTRACTION: If you find only 4-5 requirements, you're likely missing most of the document.
+âš ï¸ AGGRESSIVE EXTRACTION: If you find only 4-5 requirements, you're likely missing most of the document.
 For a technical ATP/SRS document, expect 15-50+ requirements minimum.";
         }
 
@@ -2801,29 +2865,29 @@ For a technical ATP/SRS document, expect 15-50+ requirements minimum.";
 
                 var validationPrompt = $@"SELF-VALIDATION: VERIFY EXTRACTED REQUIREMENTS AGAINST DOCUMENT CONTENT
 
-🔍 MISSION: For each requirement below, verify if it appears in the document content available to you through RAG.
+ðŸ” MISSION: For each requirement below, verify if it appears in the document content available to you through RAG.
 
-📋 EXTRACTED REQUIREMENTS TO VALIDATE:
+ðŸ“‹ EXTRACTED REQUIREMENTS TO VALIDATE:
 {requirementsText}
 
-🚨 VALIDATION PROTOCOL:
+ðŸš¨ VALIDATION PROTOCOL:
 For each requirement, check if you can find supporting evidence in the document content:
 1. Can you see text in the document that supports this requirement?  
 2. Does the requirement match actual specifications, constraints, or criteria in the document?
 3. Are any cited sections, pages, or sources actually visible to you?
 
-📝 RESPONSE FORMAT:
+ðŸ“ RESPONSE FORMAT:
 For each requirement ID, respond with:
 
 VALID: [REQ-ID] - Brief explanation of where you see this in the document
 INVALID: [REQ-ID] - This requirement appears fabricated/not found in document content
 
-⚠️ CRITICAL: Be STRICT in validation. If you cannot clearly see supporting evidence for a requirement in your document context, mark it INVALID.
+âš ï¸ CRITICAL: Be STRICT in validation. If you cannot clearly see supporting evidence for a requirement in your document context, mark it INVALID.
 
-🎯 EXAMPLE RESPONSES:
-VALID: REQ-001 - Section 3.2 shows interface voltage specification of 3.3V ±5%  
+ðŸŽ¯ EXAMPLE RESPONSES:
+VALID: REQ-001 - Section 3.2 shows interface voltage specification of 3.3V Â±5%  
 INVALID: REQ-005 - Cannot locate any 50MHz clock requirement in accessible document content
-VALID: REQ-008 - Table on page 4 lists operating temperature range -40°C to +85°C
+VALID: REQ-008 - Table on page 4 lists operating temperature range -40Â°C to +85Â°C
 
 Begin validation now - be thorough and honest about what you can actually see:";
 
@@ -3067,7 +3131,7 @@ Begin validation now - be thorough and honest about what you can actually see:";
 FILE: {attachment.FileName}
 ALREADY FOUND: {alreadyFound.Count} requirements ({foundIdsText})
 
-⚠️ CRITICAL: Only {alreadyFound.Count} requirements found suggests RAG retrieval limitation.
+âš ï¸ CRITICAL: Only {alreadyFound.Count} requirements found suggests RAG retrieval limitation.
 You may be receiving document chunks in isolation without context.
 TASK: Re-scan EVERY part of the document systematically for ALL types of requirements.
 
@@ -3081,41 +3145,41 @@ EXHAUSTIVE SCAN PROTOCOL:
 
 2. REQUIREMENT HUNTING IN EACH SECTION:
    
-   ✓ Functional Requirements:
+   âœ“ Functional Requirements:
    - System capabilities (""shall be capable of..."")
    - Processes and workflows
    - State transitions
    - Input/output handling
    
-   ✓ Performance Requirements:
+   âœ“ Performance Requirements:
    - Response times, latency (milliseconds, seconds)
    - Throughput, bandwidth, data rates
    - Memory, storage requirements
    - Scalability, capacity limits
    - Availability, uptime percentages
    
-   ✓ Interface Requirements:
+   âœ“ Interface Requirements:
    - API specifications, endpoints
    - Data formats (JSON, XML, etc)
    - Protocol requirements (TCP, HTTP, etc)
    - Message structures
    - Encoding/compression
    
-   ✓ Test & Acceptance Criteria:
+   âœ“ Test & Acceptance Criteria:
    - Test cases with specific conditions
    - Pass/fail criteria
    - Acceptance thresholds
    - Validation procedures
    - Test data requirements
    
-   ✓ Environmental:
+   âœ“ Environmental:
    - Hardware requirements (CPU, RAM, disk)
    - Operating system versions
    - Browser compatibility
    - Network requirements
    - Database versions
    
-   ✓ Safety/Security/Compliance:
+   âœ“ Safety/Security/Compliance:
    - Encryption requirements
    - Authentication mechanisms
    - Permission/role requirements
@@ -3145,7 +3209,7 @@ Verification: [Test/Analysis/Inspection/Demonstration]
 Source: [Specific section/table/figure where found]
 ---
 
-⚠️ SUCCESS INDICATOR: If still finding only {alreadyFound.Count} total, document may have limited specifications.
+âš ï¸ SUCCESS INDICATOR: If still finding only {alreadyFound.Count} total, document may have limited specifications.
 But thoroughly scan all sections first before concluding.";
         }
 
@@ -3163,7 +3227,7 @@ But thoroughly scan all sections first before concluding.";
             if (sizeKB > 100)
             {
                 // More aggressive: 1 requirement per 20KB for large technical docs
-                // For 135KB: 135/20 = 6.75 → 15 minimum expected
+                // For 135KB: 135/20 = 6.75 â†’ 15 minimum expected
                 return Math.Max(15, (int)(sizeKB / 20));
             }
             else if (sizeKB > 50)
@@ -3204,7 +3268,7 @@ But thoroughly scan all sections first before concluding.";
         {
             try
             {
-                progressCallback?.Invoke($"📄 Processing '{attachment.FileName}' with direct document analysis...");
+                progressCallback?.Invoke($"ðŸ“„ Processing '{attachment.FileName}' with direct document analysis...");
                 
                 // Step 1: Download document content
                 var fileBytes = await _jamaService.DownloadAttachmentAsync(attachment.Id, cancellationToken);
@@ -3219,7 +3283,7 @@ But thoroughly scan all sections first before concluding.";
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[DirectRag] Error processing attachment {attachment.Id}: {ex.Message}");
-                progressCallback?.Invoke($"❌ Error processing document: {ex.Message}");
+                progressCallback?.Invoke($"âŒ Error processing document: {ex.Message}");
                 return new List<Requirement>();
             }
         }
@@ -3236,9 +3300,9 @@ But thoroughly scan all sections first before concluding.";
             {
                 // Diagnostic: Log which document and file hash is being processed
                 var fileHash = ComputeFileSha256(fileBytes);
-                TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] 📋 EXTRACTION_START attachment={attachment.Id} filename={attachment.FileName} size={fileBytes.Length} sha256={fileHash}");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] ðŸ“‹ EXTRACTION_START attachment={attachment.Id} filename={attachment.FileName} size={fileBytes.Length} sha256={fileHash}");
                 
-                progressCallback?.Invoke($"📄 Processing '{attachment.FileName}' with direct document analysis...");
+                progressCallback?.Invoke($"ðŸ“„ Processing '{attachment.FileName}' with direct document analysis...");
 
                 // Step 2: Extract text content with proper document parsing
                 string documentContent;
@@ -3258,7 +3322,7 @@ But thoroughly scan all sections first before concluding.";
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] Text extraction failed for {attachment.FileName}: {ex.Message}");
                 }
 
-                progressCallback?.Invoke($"🔍 Preparing extraction-aware document index for analysis...");
+                progressCallback?.Invoke($"ðŸ” Preparing extraction-aware document index for analysis...");
 
                 IReadOnlyDictionary<string, string>? structuralSectionHints = null;
                 List<Requirement>? deterministicAtpBaseline = null;
@@ -3343,7 +3407,7 @@ But thoroughly scan all sections first before concluding.";
                 if (canReuseIndex)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Reusing existing index for unchanged attachment {attachment.Id} ({attachment.FileName}).");
-                    progressCallback?.Invoke("♻️ Reusing existing index (document unchanged)...");
+                    progressCallback?.Invoke("â™»ï¸ Reusing existing index (document unchanged)...");
                 }
                 else
                 {
@@ -3367,7 +3431,7 @@ But thoroughly scan all sections first before concluding.";
                     }
                 }
 
-                progressCallback?.Invoke($"🧠 Analyzing document for requirements with AI...");
+                progressCallback?.Invoke($"ðŸ§  Analyzing document for requirements with AI...");
                 
                 // Step 4: Use DirectRag to get relevant content chunks and analyze with LLM
                 var contextContent = await _directRagService!.GetRequirementAnalysisContextAsync(
@@ -3422,7 +3486,7 @@ But thoroughly scan all sections first before concluding.";
                     TestCaseEditorApp.Services.Logging.Log.Warn(
                         $"[DirectRag] Skipping template extraction for {attachment.FileName} because ATP baseline has {deterministicAtpBaseline!.Count} requirements and retrieval coverage is only {(contextCoverage * 100):F1}%.");
                     progressCallback?.Invoke(
-                        $"⚠️ Retrieval coverage is low ({(contextCoverage * 100):F1}%). Using deterministic ATP baseline with {deterministicAtpBaseline!.Count} requirements.");
+                        $"âš ï¸ Retrieval coverage is low ({(contextCoverage * 100):F1}%). Using deterministic ATP baseline with {deterministicAtpBaseline!.Count} requirements.");
 
                     extractedRequirements = deterministicAtpBaseline!;
                     TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] Extracted {extractedRequirements.Count} requirements");
@@ -3450,7 +3514,7 @@ But thoroughly scan all sections first before concluding.";
                 {
                     // Template Form services not available - return empty list (NO LEGACY FALLBACK)
                     TestCaseEditorApp.Services.Logging.Log.Error($"[DirectRag] Template Form services unavailable - cannot extract requirements (legacy parsing disabled)");
-                    progressCallback?.Invoke("❌ Template Form Architecture services required but unavailable");
+                    progressCallback?.Invoke("âŒ Template Form Architecture services required but unavailable");
                     extractedRequirements = new List<Requirement>();
                 }
                 
@@ -3461,7 +3525,7 @@ But thoroughly scan all sections first before concluding.";
                     TestCaseEditorApp.Services.Logging.Log.Warn(
                         $"[DirectRag] Replacing degraded template/foundation recovery output ({extractedRequirements.Count}) with deterministic ATP baseline ({deterministicAtpBaseline!.Count}) for {attachment.FileName}.");
                     progressCallback?.Invoke(
-                        $"⚠️ Structured extraction degraded to recovery-only output. Using deterministic ATP baseline with {deterministicAtpBaseline!.Count} requirements.");
+                        $"âš ï¸ Structured extraction degraded to recovery-only output. Using deterministic ATP baseline with {deterministicAtpBaseline!.Count} requirements.");
                     extractedRequirements = deterministicAtpBaseline!;
                 }
                 
@@ -3470,7 +3534,7 @@ DerivedRequirementsStage:
                 List<Requirement> derivedRequirements = new List<Requirement>();
                 if (ENABLE_AUTOMATIC_DERIVED_REQUIREMENTS && _derivationService != null)
                 {
-                    progressCallback?.Invoke($"🚀 Enhancing with AI capability derivation system...");
+                    progressCallback?.Invoke($"ðŸš€ Enhancing with AI capability derivation system...");
                     try
                     {
                         derivedRequirements = await DeriveRequirementsFromDocumentContentAsync(documentContent, attachment, projectId, progressCallback, onRequirementDiscovered, cancellationToken);
@@ -3486,7 +3550,7 @@ DerivedRequirementsStage:
                     if (_derivationService != null)
                     {
                         TestCaseEditorApp.Services.Logging.Log.Info("[DirectRag] Automatic derived-requirement creation is disabled by policy. Returning extraction-only results.");
-                        progressCallback?.Invoke("ℹ️ Derivation is advisory/manual only. Returning extracted requirements from the document.");
+                        progressCallback?.Invoke("â„¹ï¸ Derivation is advisory/manual only. Returning extracted requirements from the document.");
                     }
                     else
                     {
@@ -3513,7 +3577,7 @@ DerivedRequirementsStage:
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn(
                         $"[DirectRag] Extraction returned zero requirements for {attachment.FileName}. Synthetic deterministic fallback is disabled by design.");
-                    progressCallback?.Invoke("⚠️ No requirements extracted. Synthetic deterministic fallback is disabled.");
+                    progressCallback?.Invoke("âš ï¸ No requirements extracted. Synthetic deterministic fallback is disabled.");
                 }
 
                 var rewrittenTotal = NormalizeRequirementsToTestSolutionPerspective(allRequirements, attachment);
@@ -3523,14 +3587,14 @@ DerivedRequirementsStage:
                 }
 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[ATTACHMENT_TRACE] DirectRagResult AttachmentId={attachment.Id} FileName={attachment.FileName} Count={allRequirements.Count} Sample={BuildRequirementTraceSample(allRequirements)}");
-                progressCallback?.Invoke($"✅ Found {allRequirements.Count} requirements: {extractedRequirements.Count} extracted + {derivedRequirements.Count} derived");
+                progressCallback?.Invoke($"âœ… Found {allRequirements.Count} requirements: {extractedRequirements.Count} extracted + {derivedRequirements.Count} derived");
                 
                 return allRequirements;
             }
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[DirectRag] Error processing attachment {attachment.Id}: {ex.Message}");
-                progressCallback?.Invoke($"❌ Error processing document: {ex.Message}");
+                progressCallback?.Invoke($"âŒ Error processing document: {ex.Message}");
                 return new List<Requirement>();
             }
         }
@@ -3731,12 +3795,12 @@ DerivedRequirementsStage:
             {
                 TestCaseEditorApp.Services.Logging.Log.Warn(
                     $"[FieldEnrichment] Using deterministic enrichment for {requirements.Count} requirements (LLM budget threshold: {maxFullLlmRequirements})");
-                progressCallback?.Invoke($"⚡ Applying fast deterministic enrichment to {requirements.Count} requirements...");
+                progressCallback?.Invoke($"âš¡ Applying fast deterministic enrichment to {requirements.Count} requirements...");
                 EnrichRequirementsDeterministically(requirements);
                 return;
             }
 
-            progressCallback?.Invoke($"🧩 Enriching {requirements.Count} requirements with bundled AI field selection...");
+            progressCallback?.Invoke($"ðŸ§© Enriching {requirements.Count} requirements with bundled AI field selection...");
             await EnrichRequirementsWithBundledLlmAsync(requirements, cancellationToken);
         }
 
@@ -4245,7 +4309,7 @@ CONTENT:
 
 Find requirements like:
 - ""System shall process data at 60 fps""
-- ""Temperature range shall be -40°C to +85°C""  
+- ""Temperature range shall be -40Â°C to +85Â°C""  
 - ""Interface shall support RS-485 protocol""
 
 For every requirement, choose the best unique naming prefix visible in the document. Prefer explicit document identifiers and numbered clauses over generic headings. Do not invent prefixes. If nothing reliable exists, use ""UNK"".
@@ -5959,7 +6023,7 @@ Extract all legitimate requirements:";
             }
             catch (OperationCanceledException)
             {
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] ⏰ PDF extraction timed out after 2 minutes for document ({pdfBytes.Length} bytes)");
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[DirectRag] â° PDF extraction timed out after 2 minutes for document ({pdfBytes.Length} bytes)");
                 return $"[PDF Extraction Timeout] Document processing timed out after 2 minutes. Document size: {pdfBytes.Length} bytes.\n" +
                        "[This document may be too complex for automated text extraction. Please try a smaller or simpler PDF file.]";
             }
@@ -5988,17 +6052,17 @@ Extract all legitimate requirements:";
                 if (!await IsOllamaAvailableAsync(progressCallback, cancellationToken))
                 {
                     TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Ollama not available for ATP derivation - aborting intelligent analysis");
-                    progressCallback?.Invoke("⚠️ Ollama service unavailable - skipping AI-powered requirement derivation");
+                    progressCallback?.Invoke("âš ï¸ Ollama service unavailable - skipping AI-powered requirement derivation");
                     return new List<Requirement>(); // Fall back gracefully
                 }
 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🚀 Using ATP derivation system to derive requirements from {attachment.FileName} ({documentContent.Length} characters)");
-                progressCallback?.Invoke($"🚀 Analyzing document with AI capability derivation system...");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ðŸš€ Using ATP derivation system to derive requirements from {attachment.FileName} ({documentContent.Length} characters)");
+                progressCallback?.Invoke($"ðŸš€ Analyzing document with AI capability derivation system...");
 
                 // Fast deterministic pre-scan to estimate complexity and set realistic runtime budgets.
                 var preScan = BuildDerivationPreScanEstimate(documentContent, attachment);
                 progressCallback?.Invoke(
-                    $"⚡ Quick pre-scan: ~{preScan.EstimatedRequirementCandidates} candidate requirements from {preScan.FileSizeKb:N0} KB " +
+                    $"âš¡ Quick pre-scan: ~{preScan.EstimatedRequirementCandidates} candidate requirements from {preScan.FileSizeKb:N0} KB " +
                     $"({preScan.NonEmptyLineCount:N0} non-empty lines). Estimated AI derivation: {FormatDurationRange(preScan.EstimatedDuration)}");
 
                 // Configure derivation options for general document processing (not just ATP)
@@ -6029,7 +6093,7 @@ Extract all legitimate requirements:";
 
                 // Use the 5-phase ATP derivation system to analyze the document content
                 progressCallback?.Invoke(
-                    $"🧠 Running two-stage AI derivation on {documentContent.Length:N0} characters " +
+                    $"ðŸ§  Running two-stage AI derivation on {documentContent.Length:N0} characters " +
                     $"with adaptive budget {FormatDurationCompact(preScan.RecommendedMaxProcessingTime)} " +
                     $"(per-step timeout {FormatDurationCompact(preScan.RecommendedPerStepTimeout)})...");
                 
@@ -6063,7 +6127,7 @@ Extract all legitimate requirements:";
                             $"[JamaDocumentParser] Auto-retrying {skippedSteps.Count} timed-out ATP steps with {extendedTimeout.TotalSeconds}s timeout per step (preScanAllowRetry={preScan.AllowRetry}, estimatedCandidates={preScan.EstimatedRequirementCandidates}).");
 
                         progressCallback?.Invoke(
-                            $"🔄 Auto-retry enabled: retrying {skippedSteps.Count} timed-out steps with {extendedTimeout.TotalSeconds:0}s timeout.");
+                            $"ðŸ”„ Auto-retry enabled: retrying {skippedSteps.Count} timed-out steps with {extendedTimeout.TotalSeconds:0}s timeout.");
 
                         return Task.FromResult(new TimeoutRetryDecision
                         {
@@ -6085,7 +6149,7 @@ Extract all legitimate requirements:";
                     }
 
                     // Convert derived capabilities to requirements
-                    progressCallback?.Invoke($"📋 Converting {derivationResult.DerivedCapabilities.Count} derived capabilities to requirements...");
+                    progressCallback?.Invoke($"ðŸ“‹ Converting {derivationResult.DerivedCapabilities.Count} derived capabilities to requirements...");
                     var derivedRequirements = ConvertDerivedCapabilitiesToRequirements(derivationResult.DerivedCapabilities, attachment, projectId);
                     var rewrittenDerived = NormalizeRequirementsToTestSolutionPerspective(derivedRequirements, attachment);
                     if (rewrittenDerived > 0)
@@ -6104,7 +6168,7 @@ Extract all legitimate requirements:";
                         cancellationToken);
                     
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Successfully derived {derivedRequirements.Count} requirements from {attachment.FileName} using ATP derivation system");
-                    progressCallback?.Invoke($"✅ ATP Derivation Complete: Generated {derivedRequirements.Count} requirements via phi4-mini → A-N taxonomy → capability synthesis");
+                    progressCallback?.Invoke($"âœ… ATP Derivation Complete: Generated {derivedRequirements.Count} requirements via phi4-mini â†’ A-N taxonomy â†’ capability synthesis");
 
                     return derivedRequirements;
                 }
@@ -6114,8 +6178,8 @@ Extract all legitimate requirements:";
                 }
                 catch (OperationCanceledException) when (derivationCts.Token.IsCancellationRequested)
                 {
-                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ⏰ ATP derivation timed out after {derivationTimeout.TotalMinutes} minutes for {attachment.FileName}");
-                    progressCallback?.Invoke($"⏰ AI derivation timed out after {derivationTimeout.TotalMinutes} minutes - falling back to basic extraction");
+                    TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] â° ATP derivation timed out after {derivationTimeout.TotalMinutes} minutes for {attachment.FileName}");
+                    progressCallback?.Invoke($"â° AI derivation timed out after {derivationTimeout.TotalMinutes} minutes - falling back to basic extraction");
                     return new List<Requirement>(); // Return empty list and continue with basic extraction
                 }
                 finally
@@ -6128,7 +6192,7 @@ Extract all legitimate requirements:";
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, $"[JamaDocumentParser] Error deriving requirements from {attachment.FileName}: {ex.Message}");
-                progressCallback?.Invoke($"❌ Requirement derivation failed: {ex.Message}");
+                progressCallback?.Invoke($"âŒ Requirement derivation failed: {ex.Message}");
                 return new List<Requirement>();
             }
         }
@@ -6945,14 +7009,14 @@ Extract all legitimate requirements:";
 
             var progressMessages = new[]
             {
-                "🔍 Parsing PDF: Extracting ATP test procedure steps from document structure...",
-                "📝 LLM Analysis: Using phi4-mini model to analyze test step semantics...", 
-                "🎯 A-N Taxonomy: Classifying capabilities using Avionics-Navigation framework...",
-                "⚡ Quality Scoring: Computing confidence metrics and derivation rationale...",
-                "🔄 ATP Methodology: Cross-referencing with 5-phase capability derivation system...",
-                "📊 Capability Ranking: Scoring system capabilities by quality and completeness...",
-                "🧠 Relationship Analysis: Processing logical dependencies between test steps...",
-                "✨ Requirement Synthesis: Converting capabilities to structured requirements..."
+                "ðŸ” Parsing PDF: Extracting ATP test procedure steps from document structure...",
+                "ðŸ“ LLM Analysis: Using phi4-mini model to analyze test step semantics...", 
+                "ðŸŽ¯ A-N Taxonomy: Classifying capabilities using Avionics-Navigation framework...",
+                "âš¡ Quality Scoring: Computing confidence metrics and derivation rationale...",
+                "ðŸ”„ ATP Methodology: Cross-referencing with 5-phase capability derivation system...",
+                "ðŸ“Š Capability Ranking: Scoring system capabilities by quality and completeness...",
+                "ðŸ§  Relationship Analysis: Processing logical dependencies between test steps...",
+                "âœ¨ Requirement Synthesis: Converting capabilities to structured requirements..."
             };
 
             int messageIndex = 0;
@@ -6968,7 +7032,7 @@ Extract all legitimate requirements:";
                     // Add a processing indicator every few updates
                     if (messageIndex % 3 == 0)
                     {
-                        progressCallback("⏳ ATP Derivation: Processing test steps through phi4-mini → A-N taxonomy → requirements...");
+                        progressCallback("â³ ATP Derivation: Processing test steps through phi4-mini â†’ A-N taxonomy â†’ requirements...");
                     }
                 }
             }
@@ -6983,22 +7047,22 @@ Extract all legitimate requirements:";
         /// </summary>
         private async Task<bool> VerifyAIServicesAvailableAsync(Action<string>? progressCallback, CancellationToken cancellationToken)
         {
-            progressCallback?.Invoke("🔍 Checking AI service availability...");
+            progressCallback?.Invoke("ðŸ” Checking AI service availability...");
             
             // Check if we're using DirectRAG (requires Ollama)
             if (_directRagService?.IsConfigured == true || _textGenerationService != null || _derivationService != null)
             {
                 // Test Ollama connectivity (with auto-start)
-                progressCallback?.Invoke("🔧 Verifying Ollama service...");
+                progressCallback?.Invoke("ðŸ”§ Verifying Ollama service...");
                 
                 if (!await IsOllamaAvailableAsync(progressCallback, cancellationToken))
                 {
-                    progressCallback?.Invoke("❌ Failed to start or connect to Ollama service");
+                    progressCallback?.Invoke("âŒ Failed to start or connect to Ollama service");
                     return false;
                 }
             }
             
-            progressCallback?.Invoke("✅ AI services available - proceeding with document analysis");
+            progressCallback?.Invoke("âœ… AI services available - proceeding with document analysis");
             return true;
         }
 
@@ -7016,7 +7080,7 @@ Extract all legitimate requirements:";
 
             // If connection failed, try to start Ollama automatically
             TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Ollama not responding - attempting to start automatically");
-            progressCallback?.Invoke("🚀 Starting Ollama service...");
+            progressCallback?.Invoke("ðŸš€ Starting Ollama service...");
             
             if (await StartOllamaServiceAsync(cancellationToken))
             {
@@ -7061,37 +7125,37 @@ Extract all legitimate requirements:";
                 // If model is already loaded, test if it's responsive
                 if (currentStatus == OllamaModelStatus.Loaded)
                 {
-                    progressCallback?.Invoke("✅ Model already loaded - verifying (10s max)...");
+                    progressCallback?.Invoke("âœ… Model already loaded - verifying (10s max)...");
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Model already loaded - quick responsiveness check (10s timeout)");
                     
                     var testSuccess = await PreWarmOllamaModelAsync(cancellationToken);
                     if (testSuccess)
                     {
-                        progressCallback?.Invoke("✅ Model responsive and ready");
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Model already loaded and responsive - no restart needed");
+                        progressCallback?.Invoke("âœ… Model responsive and ready");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] âœ… Model already loaded and responsive - no restart needed");
                         return true;
                     }
                     
                     // Model stuck despite being loaded - restart needed
-                    progressCallback?.Invoke("⚠️ Model loaded but not responding - restarting...");
+                    progressCallback?.Invoke("âš ï¸ Model loaded but not responding - restarting...");
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Model loaded but not responsive - restarting Ollama");
                 }
                 // If model not loaded, try to pre-warm (will load model)
                 else if (currentStatus == OllamaModelStatus.NotLoaded)
                 {
-                    progressCallback?.Invoke("🔥 Initializing AI model (checking readiness)...");
+                    progressCallback?.Invoke("ðŸ”¥ Initializing AI model (checking readiness)...");
                     TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Model not loaded - attempting quick pre-warm (10s timeout)");
                     
                     var preWarmSuccess = await PreWarmOllamaModelAsync(cancellationToken);
                     if (preWarmSuccess)
                     {
-                        progressCallback?.Invoke("✅ AI model ready");
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Model pre-warmed successfully");
+                        progressCallback?.Invoke("âœ… AI model ready");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] âœ… Model pre-warmed successfully");
                         return true;
                     }
                     
                     // Pre-warm failed - restart and try again
-                    progressCallback?.Invoke("⚠️ Model not responding - restarting service (~5s)...");
+                    progressCallback?.Invoke("âš ï¸ Model not responding - restarting service (~5s)...");
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Pre-warm failed or timed out - restarting Ollama");
                 }
                 else
@@ -7100,25 +7164,25 @@ Extract all legitimate requirements:";
                     if (ollamaHealthy)
                     {
                         progressCallback?.Invoke(currentStatus == OllamaModelStatus.Loading
-                            ? "🔥 Model is loading - waiting for readiness..."
-                            : "🔥 Ollama reachable - initializing AI model...");
+                            ? "ðŸ”¥ Model is loading - waiting for readiness..."
+                            : "ðŸ”¥ Ollama reachable - initializing AI model...");
                         TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Ollama status {currentStatus} but service is healthy - attempting pre-warm before restart");
 
                         var preWarmSuccess = await PreWarmOllamaModelAsync(cancellationToken);
                         if (preWarmSuccess)
                         {
-                            progressCallback?.Invoke("✅ AI model ready");
-                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Healthy Ollama instance became ready without restart");
+                            progressCallback?.Invoke("âœ… AI model ready");
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] âœ… Healthy Ollama instance became ready without restart");
                             return true;
                         }
 
-                        progressCallback?.Invoke("⚠️ Ollama reachable but model did not become ready - restarting service...");
+                        progressCallback?.Invoke("âš ï¸ Ollama reachable but model did not become ready - restarting service...");
                         TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Healthy Ollama instance did not complete warmup from status {currentStatus} - restarting");
                     }
                     else
                     {
                         // Status is Unknown and HTTP health check failed - restart is justified.
-                        progressCallback?.Invoke($"⚠️ Ollama status {currentStatus} and service is not healthy - restarting...");
+                        progressCallback?.Invoke($"âš ï¸ Ollama status {currentStatus} and service is not healthy - restarting...");
                         TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Ollama status {currentStatus} with failed health check - restarting for clean state");
                     }
                 }
@@ -7127,19 +7191,19 @@ Extract all legitimate requirements:";
                 if (_ollamaProcessManager != null)
                 {
                     await _ollamaProcessManager.RestartOllamaAsync(cancellationToken);
-                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Ollama restarted successfully");
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] âœ… Ollama restarted successfully");
                     
-                    progressCallback?.Invoke("� Service restarted - verifying readiness...");
+                    progressCallback?.Invoke("ï¿½ Service restarted - verifying readiness...");
                     var finalPreWarm = await PreWarmOllamaModelAsync(cancellationToken);
                     
                     if (!finalPreWarm)
                     {
-                        progressCallback?.Invoke("⚠️ Model still not ready - will retry during extraction");
+                        progressCallback?.Invoke("âš ï¸ Model still not ready - will retry during extraction");
                         TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] Pre-warming after restart failed - extraction will use retry logic");
                     }
                     else
                     {
-                        progressCallback?.Invoke("✅ AI model ready after restart");
+                        progressCallback?.Invoke("âœ… AI model ready after restart");
                     }
                 }
                 else
@@ -7183,13 +7247,13 @@ Extract all legitimate requirements:";
                 
                 var response = await _textGenerationService.GenerateAsync(warmupPrompt, linkedCts.Token);
                 
-                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Model pre-warmed successfully - ready for extraction");
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] âœ… Model pre-warmed successfully - ready for extraction");
                 return true;
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 // Pre-warming timed out - log warning but don't throw (extraction will retry)
-                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] ⚠️ Model pre-warming timed out after 10 seconds - model likely stuck, will restart");
+                TestCaseEditorApp.Services.Logging.Log.Warn($"[JamaDocumentParser] âš ï¸ Model pre-warming timed out after 10 seconds - model likely stuck, will restart");
                 return false;
             }
             catch (Exception ex)
@@ -7255,7 +7319,7 @@ Extract all legitimate requirements:";
             }
 
             var extractionStartTime = DateTime.UtcNow;
-            progressCallback?.Invoke("🎯 Using structured extraction with quality validation...");
+            progressCallback?.Invoke("ðŸŽ¯ Using structured extraction with quality validation...");
 
             try
             {
@@ -7340,7 +7404,7 @@ Example output:
 Extract requirements now (JSON only):";
 
                 // Step 3: Generate LLM response with retry logic for model loading timeouts
-                progressCallback?.Invoke("🧠 AI analyzing document with structured output...");
+                progressCallback?.Invoke("ðŸ§  AI analyzing document with structured output...");
                 string? llmResponse = null;
                 int maxRetries = 2;
                 int retryDelayMs = 5000; // 5 seconds between retries
@@ -7360,7 +7424,7 @@ Extract requirements now (JSON only):";
                         if (errorContent.Contains("llama runner") || errorContent.Contains("timed out"))
                         {
                             TestCaseEditorApp.Services.Logging.Log.Warn($"[TemplateForm] Model loading timeout on attempt {attempt + 1}/{maxRetries + 1} - retrying in {retryDelayMs}ms...");
-                            progressCallback?.Invoke($"⏳ Model loading delay - retrying ({attempt + 1}/{maxRetries + 1})...");
+                            progressCallback?.Invoke($"â³ Model loading delay - retrying ({attempt + 1}/{maxRetries + 1})...");
                             await Task.Delay(retryDelayMs, cancellationToken);
                             retryDelayMs *= 2; // Exponential backoff
                             
@@ -7379,13 +7443,13 @@ Extract requirements now (JSON only):";
                 if (string.IsNullOrWhiteSpace(llmResponse) && shouldRestartOllama && _ollamaProcessManager != null)
                 {
                     TestCaseEditorApp.Services.Logging.Log.Warn($"[TemplateForm] All retries failed with model timeout - restarting Ollama...");
-                    progressCallback?.Invoke("🔄 Restarting Ollama service to recover from stuck state...");
+                    progressCallback?.Invoke("ðŸ”„ Restarting Ollama service to recover from stuck state...");
                     
                     try
                     {
                         await _ollamaProcessManager.RestartOllamaAsync(cancellationToken);
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[TemplateForm] ✅ Ollama restarted - attempting final generation...");
-                        progressCallback?.Invoke("✅ Ollama restarted - making final attempt...");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[TemplateForm] âœ… Ollama restarted - attempting final generation...");
+                        progressCallback?.Invoke("âœ… Ollama restarted - making final attempt...");
                         
                         // Final attempt after restart
                         llmResponse = await _textGenerationService.GenerateAsync(prompt, cancellationToken);
@@ -7393,7 +7457,7 @@ Extract requirements now (JSON only):";
                     catch (Exception restartEx)
                     {
                         TestCaseEditorApp.Services.Logging.Log.Error($"[TemplateForm] Failed to restart Ollama: {restartEx.Message}");
-                        progressCallback?.Invoke($"❌ Failed to restart Ollama: {restartEx.Message}");
+                        progressCallback?.Invoke($"âŒ Failed to restart Ollama: {restartEx.Message}");
                     }
                 }
 
@@ -7464,13 +7528,13 @@ Extract requirements now (JSON only):";
                         {
                             TestCaseEditorApp.Services.Logging.Log.Warn(
                                 $"[TemplateForm] Structured output was empty; deterministic foundation recovery produced {deterministicRecovery.Count} requirement(s).");
-                            progressCallback?.Invoke($"⚠️ Structured output was empty - recovered {deterministicRecovery.Count} requirement(s) from document foundation.");
+                            progressCallback?.Invoke($"âš ï¸ Structured output was empty - recovered {deterministicRecovery.Count} requirement(s) from document foundation.");
                             return deterministicRecovery;
                         }
                     }
 
                     TestCaseEditorApp.Services.Logging.Log.Error($"[TemplateForm] Failed to parse structured output - NO FALLBACK (legacy parsing disabled)");
-                    progressCallback?.Invoke("❌ Structured extraction failed - Template Form Architecture required");
+                    progressCallback?.Invoke("âŒ Structured extraction failed - Template Form Architecture required");
                     
                     // Track failure in telemetry if available
                     if (_telemetryService != null)
@@ -7569,7 +7633,7 @@ Extract requirements now (JSON only):";
                     {
                         TestCaseEditorApp.Services.Logging.Log.Warn(
                             $"[TemplateForm] Parsed envelope produced zero valid mapped requirements; deterministic foundation recovery produced {deterministicRecovery.Count} requirement(s).");
-                        progressCallback?.Invoke($"⚠️ Structured extraction returned no valid requirements - recovered {deterministicRecovery.Count} requirement(s) from document foundation.");
+                        progressCallback?.Invoke($"âš ï¸ Structured extraction returned no valid requirements - recovered {deterministicRecovery.Count} requirement(s) from document foundation.");
                         return deterministicRecovery;
                     }
                 }
@@ -7661,14 +7725,14 @@ Extract requirements now (JSON only):";
                 }
 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[TemplateForm] Successfully extracted {extractedRequirements.Count} requirements using Template Form Architecture");
-                progressCallback?.Invoke($"✅ Extracted {extractedRequirements.Count} validated requirements");
+                progressCallback?.Invoke($"âœ… Extracted {extractedRequirements.Count} validated requirements");
 
                 return extractedRequirements;
             }
             catch (Exception ex)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error(ex, "[TemplateForm] Error in template form extraction");
-                progressCallback?.Invoke($"❌ Template form extraction error: {ex.Message}");
+                progressCallback?.Invoke($"âŒ Template form extraction error: {ex.Message}");
                 return new List<Requirement>();
             }
         }
@@ -8229,7 +8293,7 @@ Extract requirements now (JSON only):";
             var cleaned = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
             cleaned = System.Text.RegularExpressions.Regex.Replace(
                 cleaned,
-                @"^(?:acceptance\s+criteria|criteria|verification\s+criteria)\s*[:\-–—]?\s*",
+                @"^(?:acceptance\s+criteria|criteria|verification\s+criteria)\s*[:\-â€“â€”]?\s*",
                 string.Empty,
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
 
@@ -8308,3 +8372,6 @@ Extract requirements now (JSON only):";
         #endregion
     }
 }
+
+
+
