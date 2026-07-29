@@ -128,6 +128,10 @@ namespace TestCaseEditorApp.Services
                 }
 
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Downloaded {fileBytes.Length} bytes for attachment {attachment.Id}");
+                
+                // Diagnostic: Log file hash to detect if wrong file is being processed
+                var fileHash = ComputeFileSha256(fileBytes);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 📋 ATTACHMENT_CONTENT_HASH attachment={attachment.Id} filename={attachment.FileName} size={fileBytes.Length} sha256={fileHash}");
 
                 // Step 2: Use provided attachment metadata (no need to re-scan project)
                 if (!attachment.IsSupportedDocument)
@@ -177,6 +181,26 @@ namespace TestCaseEditorApp.Services
             {
                 TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Error parsing attachment {attachment.Id}: {ex.Message}");
                 return new List<Requirement>();
+            }
+        }
+
+        /// <summary>
+        /// Compute SHA256 hash of file bytes for diagnostic logging
+        /// Helps detect if wrong file content is being extracted
+        /// </summary>
+        private string ComputeFileSha256(byte[] fileBytes)
+        {
+            try
+            {
+                using (var sha256 = System.Security.Cryptography.SHA256.Create())
+                {
+                    var hash = sha256.ComputeHash(fileBytes);
+                    return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+                }
+            }
+            catch
+            {
+                return "<hash-error>";
             }
         }
 
@@ -1787,6 +1811,10 @@ namespace TestCaseEditorApp.Services
                     return new List<Requirement>();
                 }
 
+                // Diagnostic: Log which document is being uploaded to AnythingLLM
+                var fileHash = ComputeFileSha256(fileBytes);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 WORKSPACE_UPLOAD attachment={attachment.Id} filename={attachment.FileName} size={fileBytes.Length} sha256={fileHash}");
+
                 progressCallback?.Invoke($"✅ Downloaded {fileBytes.Length / 1024}KB - Processing with AnythingLLM...");
 
                 string? documentContent = null;
@@ -3105,6 +3133,10 @@ But thoroughly scan all sections first before concluding.";
         {
             try
             {
+                // Diagnostic: Log which document and file hash is being processed
+                var fileHash = ComputeFileSha256(fileBytes);
+                TestCaseEditorApp.Services.Logging.Log.Info($"[DirectRag] 📋 EXTRACTION_START attachment={attachment.Id} filename={attachment.FileName} size={fileBytes.Length} sha256={fileHash}");
+                
                 progressCallback?.Invoke($"📄 Processing '{attachment.FileName}' with direct document analysis...");
 
                 // Step 2: Extract text content with proper document parsing
