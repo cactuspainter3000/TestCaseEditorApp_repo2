@@ -1838,8 +1838,13 @@ namespace TestCaseEditorApp.Services
                 }
 
                 // Step 3: Create temporary AnythingLLM workspace for parsing
+                // Use attachment ID + timestamp to ensure truly unique workspace names
+                // (filenames alone can cause reuse if multiple docs have same name)
                 progressCallback?.Invoke($"🔧 Creating AI workspace for '{attachment.FileName}'...");
-                var workspaceName = $"Jama Document Parse: {attachment.FileName}";
+                var uniqueWorkspaceId = $"{attachment.Id}_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+                var workspaceName = $"Jama-Doc-{uniqueWorkspaceId}";
+                
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 WORKSPACE_CREATE attachment={attachment.Id} filename={attachment.FileName} workspace_name={workspaceName}");
                 
                 var workspace = await _llmService.CreateWorkspaceAsync(workspaceName, cancellationToken);
                 if (workspace == null)
@@ -1850,6 +1855,7 @@ namespace TestCaseEditorApp.Services
                 }
                 
                 var workspaceSlug = workspace.Slug;
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 WORKSPACE_CREATED attachment={attachment.Id} workspace_slug={workspaceSlug}");
                 progressCallback?.Invoke($"✅ AI workspace ready - Uploading document...");
 
                 // Step 4: Upload document to AnythingLLM for processing
@@ -1902,8 +1908,9 @@ namespace TestCaseEditorApp.Services
                     // Clean up temporary workspace
                     try
                     {
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 WORKSPACE_DELETE_START workspace_slug={workspaceSlug}");
                         await _llmService.DeleteWorkspaceAsync(workspaceSlug, cancellationToken);
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] Cleaned up temporary workspace {workspaceSlug}");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 WORKSPACE_DELETE_COMPLETE workspace_slug={workspaceSlug}");
                     }
                     catch (Exception ex)
                     {
@@ -2117,9 +2124,11 @@ namespace TestCaseEditorApp.Services
                 // Read file content
                 var fileContent = await File.ReadAllTextAsync(filePath, cancellationToken);
                 var fileName = Path.GetFileName(filePath);
+                var fileHash = ComputeFileSha256(System.Text.Encoding.UTF8.GetBytes(fileContent));
 
                 progressCallback?.Invoke("🧠 Starting document embedding operation...");
                 
+                TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 UPLOAD_START workspace={workspaceSlug} filename={fileName} size={fileContent.Length} sha256={fileHash}");
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🔍 UPLOAD DEBUG: Starting upload for '{fileName}' to workspace '{workspaceSlug}'");
                 TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] 🔍 UPLOAD DEBUG: Content length: {fileContent.Length} characters");
                 
@@ -2146,13 +2155,13 @@ namespace TestCaseEditorApp.Services
                     
                     if (documentCount > 0)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Monitoring detected successful embedding - {documentCount} documents found");
+                        TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 UPLOAD_SUCCESS workspace={workspaceSlug} filename={fileName} doc_count={documentCount}");
                         progressCallback?.Invoke("✅ Document embedding completed successfully!");
                         return true;
                     }
                     else
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] 🚨 Monitoring detected embedding failure - AnythingLLM not working");
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 📋 UPLOAD_FAILURE workspace={workspaceSlug} filename={fileName} reason=monitoring_detected_failure doc_count=0");
                         progressCallback?.Invoke("🚨 Embedding failure detected - AnythingLLM service malfunction");
                         throw new InvalidOperationException($"AnythingLLM embedding monitoring detected failure - service is not processing documents correctly.");
                     }
@@ -2167,7 +2176,7 @@ namespace TestCaseEditorApp.Services
                     
                     if (!uploadResult)
                     {
-                        TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ❌ Document upload to AnythingLLM failed");
+                        TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 📋 UPLOAD_FAILURE workspace={workspaceSlug} filename={fileName} reason=upload_returned_false");
                         progressCallback?.Invoke("❌ Document upload failed - AnythingLLM service unavailable");
                         throw new InvalidOperationException($"Failed to upload document to AnythingLLM workspace. Check service status.");
                     }
@@ -2179,13 +2188,13 @@ namespace TestCaseEditorApp.Services
                         
                         if (documentCount > 0)
                         {
-                            TestCaseEditorApp.Services.Logging.Log.Info($"[JamaDocumentParser] ✅ Upload and embedding both successful - {documentCount} documents");
+                            TestCaseEditorApp.Services.Logging.Log.Info($"[AnythingLLM] 📋 UPLOAD_SUCCESS workspace={workspaceSlug} filename={fileName} doc_count={documentCount}");
                             progressCallback?.Invoke("✅ Document embedding completed successfully!");
                             return true;
                         }
                         else
                         {
-                            TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] ⚠️ Upload succeeded but embedding failed - 0 documents in workspace");
+                            TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 📋 UPLOAD_FAILURE workspace={workspaceSlug} filename={fileName} reason=no_documents_after_upload doc_count=0");
                             progressCallback?.Invoke("⚠️ Document embedding incomplete - check AnythingLLM model configuration"); 
                             throw new InvalidOperationException($"Document uploaded to AnythingLLM but embedding failed. This usually indicates embedding model configuration issues.");
                         }
@@ -2196,7 +2205,7 @@ namespace TestCaseEditorApp.Services
             }
             catch (Exception ex)
             {
-                TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Error uploading file: {ex.Message}");
+                TestCaseEditorApp.Services.Logging.Log.Error($"[AnythingLLM] 📋 UPLOAD_ERROR workspace={workspaceSlug} error={ex.Message}");
                 return false;
             }
         }
