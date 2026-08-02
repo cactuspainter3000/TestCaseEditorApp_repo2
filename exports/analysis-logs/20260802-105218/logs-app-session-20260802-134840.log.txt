@@ -1,0 +1,149 @@
+﻿2026-08-02T13:48:40.4629455Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-02T13:48:40.4812389Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-02T13:48:40.5194755Z	Information	App	[OllamaProcessManager] Environment variables configured: LOAD_TIMEOUT=10m, KEEP_ALIVE=20m
+2026-08-02T13:48:40.8372023Z	Information	App	[OllamaProcessManager] ✅ Ollama is running and healthy
+2026-08-02T13:48:40.8471674Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-02T13:48:40.8524970Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-02T13:48:40.8556782Z	Information	App	[OllamaEmbedding] Initialized with model: mxbai-embed-large:335m-v1-fp16, dimensions: 1024
+2026-08-02T13:48:40.8616249Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Service initialized with storage path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\DocumentIndexes
+2026-08-02T13:48:40.8763682Z	Information	TestCaseEditorApp.Services.SystemCapabilityDerivationService	SystemCapabilityDerivationService initialized with Template Form Architecture with taxonomy containing 14 categories
+2026-08-02T13:48:40.8873608Z	Information	App	[JamaConnect] FromConfiguration called
+2026-08-02T13:48:40.8890932Z	Information	App	[JamaConnect] Base URL: https://jama02.rockwellcollins.com/contour
+2026-08-02T13:48:40.8905283Z	Information	App	[JamaConnect] API Token: NOT SET
+2026-08-02T13:48:40.8922525Z	Information	App	[JamaConnect] Client ID: hpytk1ocbt0p01u
+2026-08-02T13:48:40.8938241Z	Information	App	[JamaConnect] Client Secret: SET
+2026-08-02T13:48:40.8956036Z	Information	App	[JamaConnect] Creating service with OAuth
+2026-08-02T13:48:40.8982295Z	Information	App	[JamaConnect] OAuth constructor - Base URL: https://jama02.rockwellcollins.com/contour
+2026-08-02T13:48:40.8999489Z	Information	App	[JamaConnect] OAuth constructor - Client ID: hpytk1ocbt0p01u
+2026-08-02T13:48:40.9014724Z	Information	App	[JamaConnect] OAuth constructor - Client Secret: SET
+2026-08-02T13:48:40.9036421Z	Information	App	[JamaConnect] OCR service configured for image text extraction
+2026-08-02T13:48:40.9112838Z	Information	App	[OllamaStatusMonitor] HTTP timeout configured: 8s
+2026-08-02T13:48:40.9134684Z	Information	App	[OllamaStatusMonitor] Max supported Ollama version: 0.5.13
+2026-08-02T13:48:40.9160746Z	Information	App	[JamaDocumentParser] Initialized with Template Form Architecture: Envelope=True, Quality=True, Compliance=True, ABTest=True, Telemetry=True, OllamaManager=True, OllamaMonitor=True
+2026-08-02T13:48:40.9340836Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-08-02T13:48:40.9365737Z	Information	App	[ServiceMonitor] MEDIATOR DEBUG: NotifyStatusChange for AnythingLLM - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-02T13:48:40.9450713Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-02T13:48:40.9559953Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-02T13:48:40.9643889Z	Information	App	[ServiceMonitor] AnythingLLM status changed - Available: True, Message: AnythingLLM service is available
+2026-08-02T13:48:40.9664800Z	Information	App	[AnythingLLMMediator] Broadcasting last known status via NotifyStatusUpdated: Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-02T13:48:40.9683873Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-02T13:48:40.9711196Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-02T13:48:40.9806554Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-08-02T13:48:40.9814712Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-08-02T13:48:40.9870212Z	Information	App	[AnythingLLM] Availability check result: True
+2026-08-02T13:48:40.9890171Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
+2026-08-02T13:48:40.9914125Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=True, Message=Checking AnythingLLM status...
+2026-08-02T13:48:40.9932759Z	Information	App	[AnythingLLM] Availability check result: True
+2026-08-02T13:48:40.9949513Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: True, Starting: True
+2026-08-02T13:48:40.9970246Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-08-02T13:48:41.0000558Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-02T13:48:41.0118102Z	Information	App	[RecentFiles] Load() called, path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\recent-files.json
+2026-08-02T13:48:41.0403873Z	Information	App	[RecentFiles] Loaded JSON: [
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B sandbox.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B Test workshop.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B TL Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Top Level C4B Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD-268C4B.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\CMP-6000.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Decagon.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\RTU-42XX.tcex.json"
+]
+2026-08-02T13:48:41.2333688Z	Information	App	[TesseractOCR] Initializing with tessdata path: C:\Users\e10653214\AppData\Local\Programs\Tesseract-OCR\tessdata
+2026-08-02T13:48:41.3756482Z	Information	App	[RecentFiles] Deserialized 10 files
+2026-08-02T13:48:41.4006053Z	Information	App	[RecentFiles] After filtering non-existent: 10 files
+2026-08-02T13:48:41.5435395Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-08-02T13:48:41.8363519Z	Information	App	[TesseractOCR] Tesseract OCR engine initialized successfully
+2026-08-02T13:48:41.8386371Z	Information	App	[JamaConnect] OCR engine availability: Available
+2026-08-02T13:48:42.0632468Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-08-02T13:48:42.9047326Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-02T13:48:42.9074426Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-02T13:48:47.5666829Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-08-02T13:48:47.7055173Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaProject field: '686' (null: False)
+2026-08-02T13:48:47.7077692Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaTestPlan field: 'QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution' (null: False)
+2026-08-02T13:48:47.7096084Z	Information	App	[Load] 🔍 JAMA DEBUG: ImportSource: 'Jama'
+2026-08-02T13:48:47.7137314Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Total GeneratedTestCases loaded: 0
+2026-08-02T13:48:47.7155348Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Requirements with GeneratedTestCases: 0/377
+2026-08-02T13:48:47.7556002Z	Information	App	[Save] 🔍 PERSISTENCE DEBUG: Serializing 0 total GeneratedTestCases
+2026-08-02T13:48:47.7581631Z	Information	App	[Save] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-08-02T13:48:47.7601821Z	Information	App	[Save] Workspace identity: Project='C4B sandbox.tcex', AnythingLLMName='C4B Sandbox', AnythingLLMSlug='c4b-sandbox', JamaProjectId=686, JamaProjectName='QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution'
+2026-08-02T13:48:47.8249985Z	Warning	WorkspaceService	[Save] Wrote fallback copies to: C:\Users\e10653214\AppData\Local\Temp\TestCaseEditorApp
+2026-08-02T13:48:47.8305564Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-08-02T13:48:47.8537085Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-08-02T13:48:47.9130593Z	Information	App	[RecentFiles] AddRecentFile called with: C:\Users\e10653214\Test Case Editor Projects\C4B sandbox.tcex.json
+2026-08-02T13:48:47.9151551Z	Information	App	[RecentFiles] Current count before: 10
+2026-08-02T13:48:47.9184736Z	Information	App	[RecentFiles] Current count after: 10
+2026-08-02T13:48:47.9205712Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B sandbox.tcex.json
+2026-08-02T13:48:47.9225516Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-08-02T13:48:47.9249071Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B Test workshop.tcex.json
+2026-08-02T13:48:47.9263415Z	Information	App	[RequirementAnalysisService] Workspace context set to: C4B sandbox
+2026-08-02T13:48:47.9277613Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B TL Project.tcex.json
+2026-08-02T13:48:47.9293478Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level Project.tcex.json
+2026-08-02T13:48:47.9310658Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\Top Level C4B Project.tcex.json
+2026-08-02T13:48:47.9327827Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD-268C4B.tcex.json
+2026-08-02T13:48:47.9344422Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Desktop\testing import\CMP-6000.tcex.json
+2026-08-02T13:48:47.9359762Z	Information	App	[RAG Sync] Checking if RAG documents need sync for workspace: C4B sandbox
+2026-08-02T13:48:47.9373943Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\Decagon.tcex.json
+2026-08-02T13:48:47.9396454Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Desktop\testing import\RTU-42XX.tcex.json
+2026-08-02T13:48:47.9465824Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-08-02T13:48:47.9675871Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-08-02T13:48:48.0170673Z	Information	App	[RAG DIAGNOSTICS] Found workspaces: 'FOMAX8', 'CMP-6250', 'CMP-6000', 'new CMP', 'new cmp 6250', 'Common Requirements Workspace', 'Common Requirements Project', 'Decagon', 'RTU-42XX', 'decagon 3', 'Decagon 5', 'Decagon 6', 'Decagon Prime', 'test2', 'great', 'Decagon Latest', 'May 6th - test 1', 'May 6th - test 2', 'test one', 'testing the way', 'test a new', 'what is up', 'new testing', 'CDU-7000', 'testing yet again', 'new workspace 11:35', 'Testing RAG', 'New Testing RAG', 'Rag Testing 1', 'Testing RAG version 3', 'Testing RAG version 4', 'Testing Rag version6', 'Testing Rag version7', 'testing RAG version 8', 'testing RAG again', 'embedding test', 'ding', 'new logging', 'logging test', 'logging at its finest', 'latest logging adventure', 'log with embed', '7b1095a', 'blah', 'this is the one', 'Matrix', 'Home Again', 'New Edition', 'embed is the way', 'Hope', 'Analysis 1', 'MFDC4B CCA', 'MFD268C4B Top Level', 'C4B TL', 'testing a new interface', 'new interface test', 'C4B Testing', 'C4B Test workshop', 'C4B Sandbox'
+2026-08-02T13:48:48.0221719Z	Information	App	[RAG DIAGNOSTICS] Searching for workspace matching project: 'C4B sandbox'...
+2026-08-02T13:48:48.0374894Z	Information	App	[RAG] Using existing workspace: C4B Sandbox
+2026-08-02T13:48:48.0439093Z	Information	App	[AnythingLLM] Configuring optimal settings for workspace 'c4b-sandbox' using official documentation guidelines
+2026-08-02T13:48:48.0762877Z	Information	App	[AnythingLLM] Using chat model 'phi4-mini:3.8b-q4_K_M' for workspace 'c4b-sandbox'
+2026-08-02T13:48:48.1236835Z	Information	App	[AnythingLLM] ✅ Successfully configured workspace settings for 'c4b-sandbox' using POST: http://localhost:3001/api/v1/workspace/c4b-sandbox/update
+2026-08-02T13:48:48.1257372Z	Information	App	[AnythingLLM] 🔍 DEBUG: API Response: {"workspace":{"id":79,"name":"C4B Sandbox","slug":"c4b-sandbox","vectorTag":null,"createdAt":"2026-07-09T15:28:09.377Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-07-09T15:28:09.377Z","op
+2026-08-02T13:48:48.1289530Z	Information	App	[RAG] Successfully updated workspace settings for: C4B Sandbox
+2026-08-02T13:48:48.1549422Z	Information	App	[RAG Sync] Most recent file: 2026-05-07 09:17:09, Last sync: 2026-07-09 10:33:50, Update needed: False
+2026-08-02T13:48:57.3634111Z	Information	App	[JamaConnect] Getting OAuth token from: https://jama02.rockwellcollins.com/contour/rest/oauth/token
+2026-08-02T13:48:57.3663981Z	Information	App	[JamaConnect] Sending OAuth request...
+2026-08-02T13:48:57.5445814Z	Error	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	[RequirementsMediator] Network connectivity error - cannot resolve Jama server hostname for project 686	EX:System.Net.Http.HttpRequestException: No such host is known. (jama02.rockwellcollins.com:443)
+ ---> System.Net.Sockets.SocketException (11001): No such host is known.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.HttpConnectionWaiter`1.WaitForConnectionWithTelemetryAsync(HttpRequestMessage request, HttpConnectionPool pool, Boolean async, CancellationToken requestCancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TestCaseEditorApp.Services.JamaConnectService.GetOAuthTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 249
+   at TestCaseEditorApp.Services.JamaConnectService.EnsureAccessTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 208
+   at TestCaseEditorApp.Services.JamaConnectService.<>c__DisplayClass56_0.<<GetProjectAttachmentsAsync>b__0>d.MoveNext() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 2312
+--- End of stack trace from previous location ---
+   at TestCaseEditorApp.Services.JamaConnectService.WithRetryAsync[T](Func`1 operation, Int32 maxRetries) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 2847
+   at TestCaseEditorApp.Services.JamaConnectService.GetProjectAttachmentsAsync(Int32 projectId, CancellationToken cancellationToken, Action`3 progressCallback, String projectName) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 2310
+   at TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator.ScanProjectAttachmentsAsync(Int32 projectId, IProgress`1 progress, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\Requirements\Mediators\RequirementsMediator.cs:line 1344
+2026-08-02T13:49:06.3748459Z	Information	App	[JamaConnect] Getting OAuth token from: https://jama02.rockwellcollins.com/contour/rest/oauth/token
+2026-08-02T13:49:06.3773108Z	Information	App	[JamaConnect] Sending OAuth request...
+2026-08-02T13:49:06.5092621Z	Error	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	[RequirementsMediator] Network connectivity error - cannot resolve Jama server hostname for project 686	EX:System.Net.Http.HttpRequestException: No such host is known. (jama02.rockwellcollins.com:443)
+ ---> System.Net.Sockets.SocketException (11001): No such host is known.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.HttpConnectionWaiter`1.WaitForConnectionWithTelemetryAsync(HttpRequestMessage request, HttpConnectionPool pool, Boolean async, CancellationToken requestCancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TestCaseEditorApp.Services.JamaConnectService.GetOAuthTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 249
+   at TestCaseEditorApp.Services.JamaConnectService.EnsureAccessTokenAsync() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 208
+   at TestCaseEditorApp.Services.JamaConnectService.<>c__DisplayClass56_0.<<GetProjectAttachmentsAsync>b__0>d.MoveNext() in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 2312
+--- End of stack trace from previous location ---
+   at TestCaseEditorApp.Services.JamaConnectService.WithRetryAsync[T](Func`1 operation, Int32 maxRetries) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 2847
+   at TestCaseEditorApp.Services.JamaConnectService.GetProjectAttachmentsAsync(Int32 projectId, CancellationToken cancellationToken, Action`3 progressCallback, String projectName) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\JamaConnectService.cs:line 2310
+   at TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator.ScanProjectAttachmentsAsync(Int32 projectId, IProgress`1 progress, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\Requirements\Mediators\RequirementsMediator.cs:line 1344
