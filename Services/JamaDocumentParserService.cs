@@ -494,6 +494,8 @@ namespace TestCaseEditorApp.Services
             var filteredHeadingStructure = 0;
             var filteredInformationalText = 0;
             var filteredOther = 0;
+            var outcomeHistogram = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var stageOutcomeHistogram = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
             List<string> ExtractVerificationRecoveryClausesLocal(string content, bool preferAggressiveRecovery)
             {
@@ -590,15 +592,21 @@ namespace TestCaseEditorApp.Services
 
                 var candidate = candidates[i];
                 var clause = candidate.Text;
-                if (!ShouldPromoteLocalCandidate(clause, candidate.StageName))
+                var promotionDecision = EvaluateLocalCandidatePromotionDecision(clause, candidate.StageName);
+                if (!promotionDecision.ShouldPromote)
                 {
+                    IncrementHistogramCount(outcomeHistogram, $"promotion-gate-reject:{promotionDecision.Reason}");
+                    IncrementHistogramCount(stageOutcomeHistogram, $"{candidate.StageName} -> promotion-gate-reject:{promotionDecision.Reason}");
                     continue;
                 }
 
                 var qualification = QualifyDeterministicRequirementCandidate(clause);
-                if (!ShouldPassLegacyDeterministicPostFilter(qualification, clause, candidate.StageName))
+                var deterministicRejectionReason = TryGetLegacyDeterministicPostFilterRejectionReason(qualification, clause, candidate.StageName);
+                if (!string.IsNullOrWhiteSpace(deterministicRejectionReason))
                 {
                     deterministicFilteredOut++;
+                    IncrementHistogramCount(outcomeHistogram, $"deterministic-post-filter-reject:{deterministicRejectionReason}");
+                    IncrementHistogramCount(stageOutcomeHistogram, $"{candidate.StageName} -> deterministic-post-filter-reject:{deterministicRejectionReason}");
 
                     switch (qualification.Classification)
                     {
@@ -653,7 +661,17 @@ namespace TestCaseEditorApp.Services
                     contextualSourcePrefix,
                     contextualSectionTitle);
                 requirements.Add(requirement);
+                IncrementHistogramCount(outcomeHistogram, "accepted:requirement-created");
+                IncrementHistogramCount(stageOutcomeHistogram, $"{candidate.StageName} -> accepted:requirement-created");
                 onRequirementDiscovered?.Invoke(requirement);
+            }
+
+            if (candidates.Count > 0)
+            {
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[LocalExtraction] Candidate outcome histogram for {attachment.FileName}: {FormatHistogram(outcomeHistogram)}");
+                TestCaseEditorApp.Services.Logging.Log.Info(
+                    $"[LocalExtraction] Candidate stage-outcome histogram for {attachment.FileName}: {FormatHistogram(stageOutcomeHistogram, 40)}");
             }
 
             TestCaseEditorApp.Services.Logging.Log.Info(
@@ -661,6 +679,33 @@ namespace TestCaseEditorApp.Services
             progressCallback?.Invoke($"📊 Local extraction summary: kept {requirements.Count}, deterministic-filtered {deterministicFilteredOut} [potential {filteredPotentialRequirements}, derived {filteredDerivedCandidates}, rejected {filteredRejectedCandidates}, heading {filteredHeadingStructure}, informational {filteredInformationalText}, other {filteredOther}], numeric-prefix-deduped {numericPrefixDedupeCollisions}");
 
             return requirements;
+        }
+
+        private static void IncrementHistogramCount(Dictionary<string, int> histogram, string key)
+        {
+            if (histogram == null || string.IsNullOrWhiteSpace(key))
+            {
+                return;
+            }
+
+            histogram.TryGetValue(key, out var current);
+            histogram[key] = current + 1;
+        }
+
+        private static string FormatHistogram(Dictionary<string, int> histogram, int maxEntries = 25)
+        {
+            if (histogram == null || histogram.Count == 0)
+            {
+                return "<empty>";
+            }
+
+            return string.Join(
+                "; ",
+                histogram
+                    .OrderByDescending(kvp => kvp.Value)
+                    .ThenBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase)
+                    .Take(Math.Max(1, maxEntries))
+                    .Select(kvp => $"{kvp.Key}={kvp.Value}"));
         }
 
         private static Dictionary<string, string> BuildClauseSectionHintMap(string documentContent)
@@ -731,25 +776,32 @@ namespace TestCaseEditorApp.Services
 
         private static bool ShouldPassLegacyDeterministicPostFilter(DeterministicQualificationResult qualification, string text, string sourceStage)
         {
+            return string.IsNullOrWhiteSpace(TryGetLegacyDeterministicPostFilterRejectionReason(qualification, text, sourceStage));
+        }
+
+        private static string? TryGetLegacyDeterministicPostFilterRejectionReason(DeterministicQualificationResult qualification, string text, string sourceStage)
+        {
             // ✅ GUARDRAIL: Reject candidates that are extraction prompt leakage
             if (IsExtractionPromptLeakage(text))
             {
-                return false;
+                return "extraction-prompt-leakage";
             }
 
             if (IsDocumentStructureNarrativeClause(text))
             {
-                return false;
+                return "document-structure-narrative";
             }
 
             if (qualification.IsPromoted)
             {
                 if (qualification.Classification == "Test/Measurement Requirement")
                 {
-                    return IsStrongVerificationPromotionCandidate(text, qualification);
+                    return IsStrongVerificationPromotionCandidate(text, qualification)
+                        ? null
+                        : "promoted-test-measurement-not-strong-enough";
                 }
 
-                return true;
+                return null;
             }
 
             if (qualification.Classification == "Test/Measurement Requirement" &&
@@ -763,7 +815,7 @@ namespace TestCaseEditorApp.Services
 
                 if (hasStrongVerificationException)
                 {
-                    return true;
+                    return null;
                 }
             }
 
@@ -771,13 +823,13 @@ namespace TestCaseEditorApp.Services
                 qualification.Classification is "True System Requirement" or "Test/Measurement Requirement" &&
                 LooksLikeHighConfidenceTechnicalClause(text))
             {
-                return true;
+                return null;
             }
 
             if (qualification.Classification is "Potential Requirement" or "Test/Measurement Requirement" or "True System Requirement" &&
                 LooksLikeExplicitEquipmentConstraintClause(text))
             {
-                return true;
+                return null;
             }
 
             if (sourceStage.Contains("ATP", StringComparison.OrdinalIgnoreCase) &&
@@ -786,7 +838,7 @@ namespace TestCaseEditorApp.Services
             {
                 // For ATP documents, allow Potential Requirements with score >= 5 to pass.
                 // ATP step content may be structured/procedural without strong explicit signals.
-                return true;
+                return null;
             }
 
             if (sourceStage.Contains("ATP", StringComparison.OrdinalIgnoreCase) &&
@@ -795,31 +847,31 @@ namespace TestCaseEditorApp.Services
             {
                 // For ATP documents, also allow Informational Text with score >= 4.
                 // ATP content may have constraints without explicit modal verbs.
-                return true;
+                return null;
             }
 
             if (sourceStage.Contains("verification recovery", StringComparison.OrdinalIgnoreCase) &&
                 LooksLikeVerificationStyleClause(text) &&
                 qualification.Score >= 4)
             {
-                return true;
+                return null;
             }
 
             if (sourceStage.Contains("verification recovery", StringComparison.OrdinalIgnoreCase) &&
                 LooksLikeGeneralObligationClause(text) &&
                 qualification.Score >= 3)
             {
-                return true;
+                return null;
             }
 
             if (sourceStage.Contains("structured", StringComparison.OrdinalIgnoreCase) &&
                 qualification.Score >= 10 &&
                 qualification.Classification is "Test/Measurement Requirement" or "True System Requirement")
             {
-                return true;
+                return null;
             }
 
-            return false;
+            return $"qualification-failed:{qualification.Classification}:score={qualification.Score}";
         }
 
         private static bool LooksLikeVerificationStyleClause(string text)
@@ -1034,11 +1086,18 @@ namespace TestCaseEditorApp.Services
                 || (hasNarrativeVerb && hasForwardReference && lower.Contains("section", StringComparison.OrdinalIgnoreCase));
         }
 
+        private sealed record LocalCandidatePromotionDecision(bool ShouldPromote, string Reason);
+
         private static bool ShouldPromoteLocalCandidate(string text, string sourceStage)
+        {
+            return EvaluateLocalCandidatePromotionDecision(text, sourceStage).ShouldPromote;
+        }
+
+        private static LocalCandidatePromotionDecision EvaluateLocalCandidatePromotionDecision(string text, string sourceStage)
         {
             if (string.IsNullOrWhiteSpace(text))
             {
-                return false;
+                return new LocalCandidatePromotionDecision(false, "empty-text");
             }
 
             var normalized = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
@@ -1046,7 +1105,7 @@ namespace TestCaseEditorApp.Services
 
             if (normalized.Length < 12)
             {
-                return false;
+                return new LocalCandidatePromotionDecision(false, "too-short");
             }
 
             if (lowerText.Contains("table of contents") ||
@@ -1056,12 +1115,12 @@ namespace TestCaseEditorApp.Services
                 lowerText.StartsWith("note:") ||
                 lowerText.StartsWith("example:"))
             {
-                return false;
+                return new LocalCandidatePromotionDecision(false, "metadata-or-boilerplate");
             }
 
             if (IsDocumentStructureNarrativeClause(normalized))
             {
-                return false;
+                return new LocalCandidatePromotionDecision(false, "document-structure-narrative");
             }
 
             var weakShouldClause = System.Text.RegularExpressions.Regex.IsMatch(
@@ -1071,7 +1130,7 @@ namespace TestCaseEditorApp.Services
 
             if (weakShouldClause)
             {
-                return false;
+                return new LocalCandidatePromotionDecision(false, "weak-should-clause");
             }
 
             var guidanceStyleSignals = new[]
@@ -1089,7 +1148,7 @@ namespace TestCaseEditorApp.Services
 
             if (guidanceStyleSignals.Any(signal => normalized.Contains(signal, StringComparison.OrdinalIgnoreCase)))
             {
-                return false;
+                return new LocalCandidatePromotionDecision(false, "guidance-style-signal");
             }
 
             var hasMandatoryModalVerb = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(shall|must|required\s+to|is\s+to|will)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
@@ -1107,7 +1166,7 @@ namespace TestCaseEditorApp.Services
                 (hasRecommendationSignal && !hasMandatoryModalVerb) ||
                 (hasInstructionalGuidanceLead && (hasWeakRecommendationPattern || !hasMandatoryModalVerb)))
             {
-                return false;
+                return new LocalCandidatePromotionDecision(false, "recommendation-or-guidance-without-mandate");
             }
 
             var score = 0;
@@ -1130,7 +1189,10 @@ namespace TestCaseEditorApp.Services
 
             if (sourceStage.Contains("structured", StringComparison.OrdinalIgnoreCase))
             {
-                return score >= 4 && (hasStrongRequirementShape || hasAtrTechnicalRequirementShape);
+                var passed = score >= 4 && (hasStrongRequirementShape || hasAtrTechnicalRequirementShape);
+                return new LocalCandidatePromotionDecision(
+                    passed,
+                    passed ? "accepted-structured" : $"structured-score-shape-fail:score={score}");
             }
 
             if (sourceStage.Contains("raw", StringComparison.OrdinalIgnoreCase) &&
@@ -1138,7 +1200,7 @@ namespace TestCaseEditorApp.Services
                 normalized.Contains("VREF", StringComparison.OrdinalIgnoreCase) &&
                 LooksLikeVerificationStyleClause(normalized))
             {
-                return true;
+                return new LocalCandidatePromotionDecision(true, "accepted-raw-vref-verification");
             }
 
             if (sourceStage.Contains("ATP", StringComparison.OrdinalIgnoreCase))
@@ -1157,7 +1219,7 @@ namespace TestCaseEditorApp.Services
 
                 if (hasMeaningfulVerificationShape)
                 {
-                    return true;
+                    return new LocalCandidatePromotionDecision(true, "accepted-atp-meaningful-shape");
                 }
 
                 // Relaxed gate for ATP: promote if score >= 5 and has at least 2 of the key signals
@@ -1169,12 +1231,18 @@ namespace TestCaseEditorApp.Services
                 if (hasSystemIndicator) atpTechnicalSignalCount++;
                 if (hasAtrTechnicalRequirementSignal) atpTechnicalSignalCount++;
 
-                return score >= 5 && atpTechnicalSignalCount >= 2;
+                var passed = score >= 5 && atpTechnicalSignalCount >= 2;
+                return new LocalCandidatePromotionDecision(
+                    passed,
+                    passed ? "accepted-atp-relaxed-gate" : $"atp-relaxed-gate-fail:score={score}:signals={atpTechnicalSignalCount}");
             }
 
             if (sourceStage.Contains("numbered", StringComparison.OrdinalIgnoreCase))
             {
-                return score >= 4 && (hasStrongRequirementShape || hasAtrTechnicalRequirementShape);
+                var passed = score >= 4 && (hasStrongRequirementShape || hasAtrTechnicalRequirementShape);
+                return new LocalCandidatePromotionDecision(
+                    passed,
+                    passed ? "accepted-numbered" : $"numbered-score-shape-fail:score={score}");
             }
 
             var technicalSignalCount = 0;
@@ -1182,7 +1250,10 @@ namespace TestCaseEditorApp.Services
             if (hasConstraintIndicator) technicalSignalCount++;
             if (hasActionVerb) technicalSignalCount++;
 
-            return score >= 6 && hasModalVerb && technicalSignalCount >= 2;
+            var accepted = score >= 6 && hasModalVerb && technicalSignalCount >= 2;
+            return new LocalCandidatePromotionDecision(
+                accepted,
+                accepted ? "accepted-default" : $"default-gate-fail:score={score}:modal={hasModalVerb}:signals={technicalSignalCount}");
         }
 
         private static void AddStageCandidates(
