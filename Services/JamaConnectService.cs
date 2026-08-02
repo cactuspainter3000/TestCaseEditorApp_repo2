@@ -5478,6 +5478,14 @@ namespace TestCaseEditorApp.Services
                 var fieldName = missingField.Trim();
                 var candidateFieldName = ResolveExistingFieldNameForItemType(fields, fieldName, itemTypeId) ?? fieldName;
 
+                if (TryApplyExistingFieldValueForRequiredField(fields, fieldName, itemTypeId))
+                {
+                    repairedAny = true;
+                    TestCaseEditorApp.Services.Logging.Log.Info(
+                        $"[JamaConnect] Reused existing value for required field '{fieldName}' from item-type-specific mapping after create validation failure.");
+                    continue;
+                }
+
                 if (candidateFieldName.StartsWith("lookup", StringComparison.OrdinalIgnoreCase))
                 {
                     var replacementId = await GetFirstPicklistOptionIdAsync(projectId, itemTypeId, candidateFieldName, cancellationToken);
@@ -5576,6 +5584,33 @@ namespace TestCaseEditorApp.Services
             }
 
             return (false, null, null, null);
+        }
+
+        private static bool TryApplyExistingFieldValueForRequiredField(
+            Dictionary<string, object?> fields,
+            string missingFieldName,
+            int itemTypeId)
+        {
+            if (fields == null || string.IsNullOrWhiteSpace(missingFieldName))
+            {
+                return false;
+            }
+
+            var normalizedFieldName = missingFieldName.Trim();
+            var suffixedFieldName = $"{normalizedFieldName}${itemTypeId}";
+
+            if (fields.TryGetValue(suffixedFieldName, out var suffixedValue) && !string.IsNullOrWhiteSpace(suffixedValue?.ToString()))
+            {
+                fields[normalizedFieldName] = suffixedValue;
+                return true;
+            }
+
+            if (fields.TryGetValue(normalizedFieldName, out var bareValue) && !string.IsNullOrWhiteSpace(bareValue?.ToString()))
+            {
+                return false;
+            }
+
+            return false;
         }
 
         private static List<string> ParseMissingRequiredFieldNames(string errorContent)

@@ -32,6 +32,18 @@ public class JamaUpgradeBannerRetryTests
         return (bool)method.Invoke(null, new object?[] { message })!;
     }
 
+    private static bool CallTryApplyExistingFieldValueForRequiredField(
+        Dictionary<string, object?> fields,
+        string missingFieldName,
+        int itemTypeId)
+    {
+        var method = typeof(JamaConnectService).GetMethod(
+            "TryApplyExistingFieldValueForRequiredField",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.IsNotNull(method, "TryApplyExistingFieldValueForRequiredField method not found");
+        return (bool)method.Invoke(null, new object?[] { fields, missingFieldName, itemTypeId })!;
+    }
+
     [TestMethod]
     public void IsJamaUpgradeBanner_WithUpgradeHtml_ReturnsTrue()
     {
@@ -74,6 +86,20 @@ public class JamaUpgradeBannerRetryTests
     public void IsNonRetryable_WithItemTypeError_ReturnsTrue()
     {
         Assert.IsTrue(CallIsNonRetryable("No requirement item type found for this project"));
+    }
+
+    [TestMethod]
+    public void TryApplyExistingFieldValueForRequiredField_UsesItemTypeSuffixedValueForBareField()
+    {
+        var fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["lookup1$193"] = 1608
+        };
+
+        var applied = CallTryApplyExistingFieldValueForRequiredField(fields, "lookup1", 193);
+
+        Assert.IsTrue(applied);
+        Assert.AreEqual(1608, fields["lookup1"]);
     }
 
     [TestMethod]
