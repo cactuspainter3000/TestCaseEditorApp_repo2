@@ -1186,6 +1186,12 @@ namespace TestCaseEditorApp.Services
 
             var hasStrongRequirementShape = hasModalVerb && (hasConstraintIndicator || hasActionVerb || hasAtrTechnicalRequirementSignal || LooksLikeExplicitEquipmentConstraintClause(normalized));
             var hasAtrTechnicalRequirementShape = hasAtrTechnicalRequirementSignal && (hasModalVerb || hasConstraintIndicator || hasActionVerb);
+            var hasStrongNonModalTechnicalShape = !hasModalVerb &&
+                hasConstraintIndicator &&
+                (hasActionVerb || hasSystemIndicator || hasAtrTechnicalRequirementSignal) &&
+                (LooksLikeVerificationStyleClause(normalized) ||
+                 LooksLikeExplicitEquipmentConstraintClause(normalized) ||
+                 hasAtrTechnicalRequirementSignal);
 
             if (sourceStage.Contains("structured", StringComparison.OrdinalIgnoreCase))
             {
@@ -1239,10 +1245,13 @@ namespace TestCaseEditorApp.Services
 
             if (sourceStage.Contains("numbered", StringComparison.OrdinalIgnoreCase))
             {
-                var passed = score >= 4 && (hasStrongRequirementShape || hasAtrTechnicalRequirementShape);
+                var passed = (score >= 4 && (hasStrongRequirementShape || hasAtrTechnicalRequirementShape))
+                    || (score >= 4 && hasStrongNonModalTechnicalShape);
                 return new LocalCandidatePromotionDecision(
                     passed,
-                    passed ? "accepted-numbered" : $"numbered-score-shape-fail:score={score}");
+                    passed
+                        ? (hasStrongNonModalTechnicalShape ? "accepted-numbered-nonmodal-tech" : "accepted-numbered")
+                        : $"numbered-score-shape-fail:score={score}");
             }
 
             var technicalSignalCount = 0;
@@ -1250,10 +1259,14 @@ namespace TestCaseEditorApp.Services
             if (hasConstraintIndicator) technicalSignalCount++;
             if (hasActionVerb) technicalSignalCount++;
 
-            var accepted = score >= 6 && hasModalVerb && technicalSignalCount >= 2;
+            var acceptedDefault = score >= 6 && hasModalVerb && technicalSignalCount >= 2;
+            var acceptedNonModalTechnical = score >= 5 && hasStrongNonModalTechnicalShape && technicalSignalCount >= 2;
+            var accepted = acceptedDefault || acceptedNonModalTechnical;
             return new LocalCandidatePromotionDecision(
                 accepted,
-                accepted ? "accepted-default" : $"default-gate-fail:score={score}:modal={hasModalVerb}:signals={technicalSignalCount}");
+                accepted
+                    ? (acceptedNonModalTechnical ? "accepted-default-nonmodal-tech" : "accepted-default")
+                    : $"default-gate-fail:score={score}:modal={hasModalVerb}:signals={technicalSignalCount}");
         }
 
         private static void AddStageCandidates(
