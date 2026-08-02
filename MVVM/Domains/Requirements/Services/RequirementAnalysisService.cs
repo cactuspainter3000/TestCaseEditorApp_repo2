@@ -113,20 +113,10 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
             _currentWorkspaceSlug = null;
             TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Workspace context set to: {workspaceName ?? "<none>"}");
             
-            // Auto-sync RAG documents if workspace context is set (project opened)
+            // Do not auto-sync RAG documents during project open. Keep that as an explicit user action.
             if (!string.IsNullOrEmpty(workspaceName))
             {
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await EnsureRagDocumentsAreSyncedAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        TestCaseEditorApp.Services.Logging.Log.Warn($"[RequirementAnalysisService] Failed to auto-sync RAG documents: {ex.Message}");
-                    }
-                });
+                TestCaseEditorApp.Services.Logging.Log.Info($"[RequirementAnalysisService] Project workspace context set to '{workspaceName}'. RAG sync deferred until explicitly requested.");
             }
         }
 

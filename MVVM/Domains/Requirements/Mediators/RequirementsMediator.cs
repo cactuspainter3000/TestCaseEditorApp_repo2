@@ -1306,6 +1306,22 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
                     }
                 }
                 
+                if (!_jamaConnectService.IsConfigured)
+                {
+                    var message = "Jama Connect is not configured. Attachment scanning requires a live Jama connection.";
+                    _logger.LogWarning("[RequirementsMediator] {Message}", message);
+                    PublishEvent(new RequirementsEvents.AttachmentScanCompleted
+                    {
+                        ProjectId = projectId,
+                        AttachmentCount = 0,
+                        Success = false,
+                        ErrorMessage = message,
+                        Duration = TimeSpan.Zero,
+                        Attachments = new List<JamaAttachment>()
+                    });
+                    return new List<JamaAttachment>();
+                }
+
                 // Publish start event
                 PublishEvent(new RequirementsEvents.AttachmentScanStarted
                 {

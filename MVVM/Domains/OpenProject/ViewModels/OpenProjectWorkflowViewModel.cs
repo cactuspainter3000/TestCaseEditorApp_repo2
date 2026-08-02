@@ -332,23 +332,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.ViewModels
         {
             ProjectStatus = "Requirements Workshop opened successfully";
             ProjectName = eventData.WorkspaceName;
-            
-            // Automatically scan for Jama attachments after project opens
-            // Run in background with a small delay to allow workspace context to initialize
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    // Wait a moment for workspace context to be fully initialized
-                    await Task.Delay(1000); // 1 second delay
-                    _logger.LogInformation("Starting automatic Jama attachment scan after project opening");
-                    await ScanJamaAttachmentsAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error during automatic Jama attachment scan");
-                }
-            });
+            _logger.LogInformation("Project opened successfully; deferring background Jama attachment scan until user requests it.");
         }
 
         private void OnProjectOpenFailed(OpenProjectEvents.ProjectOpenFailed eventData)
