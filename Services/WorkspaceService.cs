@@ -9,6 +9,13 @@ using TestCaseEditorApp.MVVM.Models;
 
 public static class WorkspaceService
 {
+    public static bool ShouldPromptForRefresh(Workspace workspace, DateTime? lastSyncUtc)
+    {
+        if (workspace == null) return false;
+        if (lastSyncUtc == null) return false;
+        return workspace.LastSavedUtc > lastSyncUtc.Value;
+    }
+
     static readonly JsonSerializerOptions _json = new()
     {
         WriteIndented = true

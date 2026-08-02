@@ -10,6 +10,8 @@ namespace TestCaseEditorApp.MVVM.Models
         public int Version { get; set; } = SchemaVersion;
         public string? SourceDocPath { get; set; }
         public DateTime LastSavedUtc { get; set; }
+        public DateTime? LastJamaSyncUtc { get; set; }
+        public DateTime? LastRagSyncUtc { get; set; }
         public List<Requirement> Requirements { get; set; } = new();
 
         /// <summary>Default Jama Project name to use on export (CSV "Project" column).</summary>

@@ -135,26 +135,26 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                     return false;
                 }
 
-                // If this workspace is associated with Jama, Jama is the source of truth.
-                // Pull requirements on open and persist them to the workspace before broadcasting.
+                // Load from the saved workspace immediately. Only offer a refresh if the workspace
+                // was modified after the last successful sync.
                 var resolvedJamaProjectId = await ResolveJamaProjectIdAsync(workspace);
                 int? liveRequirementCount = null;
                 int? liveTestCaseCount = null;
+                var shouldRefreshJama = resolvedJamaProjectId.HasValue
+                    && _jamaConnectService.IsConfigured
+                    && WorkspaceService.ShouldPromptForRefresh(workspace, workspace.LastJamaSyncUtc);
 
-                if (resolvedJamaProjectId.HasValue)
+                if (resolvedJamaProjectId.HasValue && !_jamaConnectService.IsConfigured)
                 {
-                    if (!_jamaConnectService.IsConfigured)
-                    {
-                        var warning = "This project is associated with Jama, but Jama Connect is not configured. Opening cached workspace data and skipping live Jama sync.";
-                        _logger.LogWarning("⚠️ {Warning}", warning);
-                        ShowNotification(warning, DomainNotificationType.Warning);
-                        resolvedJamaProjectId = null;
-                    }
+                    var warning = "This project is associated with Jama, but Jama Connect is not configured. Opening cached workspace data and skipping live Jama sync.";
+                    _logger.LogWarning("⚠️ {Warning}", warning);
+                    ShowNotification(warning, DomainNotificationType.Warning);
+                    resolvedJamaProjectId = null;
                 }
 
-                if (resolvedJamaProjectId.HasValue)
+                if (resolvedJamaProjectId.HasValue && shouldRefreshJama)
                 {
-                    ShowProgress("Syncing requirements from Jama...", 65);
+                    ShowProgress("Refreshing from Jama...", 65);
 
                     List<Requirement> jamaRequirements;
                     try
@@ -176,6 +176,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                         workspace.JamaProjectId = resolvedJamaProjectId.Value;
                         workspace.JamaProject = resolvedJamaProjectId.Value.ToString();
                         workspace.ImportSource = "Jama";
+                        workspace.LastJamaSyncUtc = DateTime.UtcNow;
                     }
 
                     if (resolvedJamaProjectId.HasValue)
@@ -247,14 +248,12 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                 }
                 else
                 {
-                    _logger.LogWarning(
-                        "Skipping Jama sync on open. No project ID could be resolved. ImportSource={ImportSource}, JamaProjectId={JamaProjectId}, JamaProject='{JamaProject}', JamaProjectName='{JamaProjectName}', JamaTestPlan='{JamaTestPlan}', RequirementCountInWorkspace={RequirementCount}",
-                        workspace.ImportSource ?? "<none>",
-                        workspace.JamaProjectId?.ToString() ?? "<none>",
-                        workspace.JamaProject ?? "<none>",
-                        workspace.JamaProjectName ?? "<none>",
-                        workspace.JamaTestPlan ?? "<none>",
-                        workspace.Requirements?.Count ?? 0);
+                    _logger.LogInformation(
+                        "Opening cached workspace without live Jama refresh. ResolvedProjectId={ResolvedProjectId}, ShouldRefreshJama={ShouldRefreshJama}, LastJamaSyncUtc={LastJamaSyncUtc}, LastSavedUtc={LastSavedUtc}",
+                        resolvedJamaProjectId?.ToString() ?? "<none>",
+                        shouldRefreshJama,
+                        workspace.LastJamaSyncUtc?.ToString("O") ?? "<none>",
+                        workspace.LastSavedUtc.ToString("O"));
                 }
 
                 var workspaceRequirementCount = workspace.Requirements?.Count ?? 0;
