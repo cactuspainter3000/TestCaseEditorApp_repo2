@@ -1377,7 +1377,7 @@
                                            FontWeight="Bold"
                                            FontSize="16"
                                            Foreground="{StaticResource Brush.Accent.Primary}"/>
-                                <TextBlock Text="1) Search attachments → 2) Select document → 3) Extract candidates → 5) Select/deselect → 6) Process selected with AI."
+                                <TextBlock Text="1) Search attachments → 2) Select document → 3) Extract candidates → 4) Review candidate quality → 5) Select/deselect → 6) Process selected with AI → 7) Add selected to workspace."
                                            Margin="0,4,0,0"
                                            FontSize="11"
                                            TextWrapping="Wrap"

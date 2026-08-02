@@ -64,6 +64,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private readonly string _attachmentLogFilePath;
         private const string KnownAtpRelativePath = @"Tests\Fixtures\ATP\946-4DC0-001_C4B_DHM_ATP_Rev-.docx";
         private CancellationTokenSource? _attachmentScraperCts;
+        private bool _suppressExtractionProgressUpdates;
         private readonly List<string> _attachmentLogLines = new();
         private DateTime _lastAttachmentScanLogUtc = DateTime.MinValue;
         private int _lastAttachmentScanLogCount = -1;
@@ -556,6 +557,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 _attachmentScraperCts = new CancellationTokenSource();
 
                 IsAttachmentScraping = true;
+                _suppressExtractionProgressUpdates = false;
                 ExtractionOverallProgress = 0;
                 ExtractionCurrentStepProgress = 0;
                 ExtractionOverallLabel = "Overall Completeness: 0%";
@@ -594,6 +596,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 }
 
                 AttachmentScraperStatusText = $"Local extraction complete: {ScrapedRequirements.Count} candidate(s) found.";
+                _suppressExtractionProgressUpdates = true;
                 ExtractionOverallProgress = 100;
                 ExtractionCurrentStepProgress = 100;
                 ExtractionOverallLabel = "Overall Completeness: 100%";
@@ -608,12 +611,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             catch (OperationCanceledException)
             {
                 AttachmentScraperStatusText = "Local extraction canceled.";
+                _suppressExtractionProgressUpdates = true;
                 ExtractionCurrentStepLabel = "Current Process: canceled";
                 AppendAttachmentLog(AttachmentScraperStatusText);
             }
             catch (Exception ex)
             {
                 AttachmentScraperStatusText = $"Local extraction failed: {ex.Message}";
+                _suppressExtractionProgressUpdates = true;
                 ExtractionCurrentStepLabel = "Current Process: failed";
                 AppendAttachmentLog(AttachmentScraperStatusText);
             }
@@ -647,6 +652,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 _attachmentScraperCts = new CancellationTokenSource();
 
                 IsAttachmentScraping = true;
+                _suppressExtractionProgressUpdates = false;
                 ExtractionOverallProgress = 0;
                 ExtractionCurrentStepProgress = 0;
                 ExtractionOverallLabel = "Overall Completeness: 0%";
@@ -686,6 +692,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 }
 
                 AttachmentScraperStatusText = $"Fast extraction complete: {ScrapedRequirements.Count} candidate(s) found.";
+                _suppressExtractionProgressUpdates = true;
                 ExtractionOverallProgress = 100;
                 ExtractionCurrentStepProgress = 100;
                 ExtractionOverallLabel = "Overall Completeness: 100%";
@@ -700,12 +707,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             catch (OperationCanceledException)
             {
                 AttachmentScraperStatusText = "Fast extraction canceled.";
+                _suppressExtractionProgressUpdates = true;
                 ExtractionCurrentStepLabel = "Current Process: canceled";
                 AppendAttachmentLog(AttachmentScraperStatusText);
             }
             catch (Exception ex)
             {
                 AttachmentScraperStatusText = $"Fast extraction failed: {ex.Message}";
+                _suppressExtractionProgressUpdates = true;
                 ExtractionCurrentStepLabel = "Current Process: failed";
                 AppendAttachmentLog(AttachmentScraperStatusText);
             }
@@ -745,6 +754,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 _attachmentScraperCts = new CancellationTokenSource();
 
                 IsAttachmentScraping = true;
+                _suppressExtractionProgressUpdates = false;
                 ExtractionOverallProgress = 0;
                 ExtractionCurrentStepProgress = 0;
                 ExtractionOverallLabel = "Overall Completeness: 0%";
@@ -971,6 +981,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 }
 
                 AttachmentScraperStatusText = $"Extraction complete: {ScrapedRequirements.Count} candidate(s) found.";
+                _suppressExtractionProgressUpdates = true;
                 ExtractionOverallProgress = 100;
                 ExtractionCurrentStepProgress = 100;
                 ExtractionOverallLabel = "Overall Completeness: 100%";
@@ -985,12 +996,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             catch (OperationCanceledException)
             {
                 AttachmentScraperStatusText = "Requirement extraction canceled.";
+                _suppressExtractionProgressUpdates = true;
                 ExtractionCurrentStepLabel = "Current Process: canceled";
                 AppendAttachmentLog(AttachmentScraperStatusText);
             }
             catch (Exception ex)
             {
                 AttachmentScraperStatusText = $"Requirement extraction failed: {ex.Message}";
+                _suppressExtractionProgressUpdates = true;
                 ExtractionCurrentStepLabel = "Current Process: failed";
                 AppendAttachmentLog(AttachmentScraperStatusText);
             }
@@ -1201,6 +1214,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
         private void UpdateExtractionProgressFromMessage(string message)
         {
+            if (_suppressExtractionProgressUpdates)
+            {
+                return;
+            }
+
             var cleaned = string.IsNullOrWhiteSpace(message) ? "Processing" : message.Trim();
             var (phaseStart, phaseEnd) = GetExtractionPhaseWindow(cleaned);
             var friendly = BuildFriendlyExtractionStatus(cleaned);
