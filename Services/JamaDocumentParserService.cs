@@ -871,7 +871,37 @@ namespace TestCaseEditorApp.Services
                 return null;
             }
 
+            if (IsBroadHarvestStage(sourceStage) &&
+                qualification.Score >= 4 &&
+                IsBroadHarvestClassification(qualification.Classification) &&
+                LooksLikeHarvestableTechnicalCandidate(text))
+            {
+                return null;
+            }
+
             return $"qualification-failed:{qualification.Classification}:score={qualification.Score}";
+        }
+
+        private static bool IsBroadHarvestStage(string sourceStage)
+        {
+            if (string.IsNullOrWhiteSpace(sourceStage))
+            {
+                return false;
+            }
+
+            return sourceStage.Contains("ATP", StringComparison.OrdinalIgnoreCase)
+                || sourceStage.Contains("numbered", StringComparison.OrdinalIgnoreCase)
+                || sourceStage.Contains("verification recovery", StringComparison.OrdinalIgnoreCase)
+                || sourceStage.Contains("raw clause", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsBroadHarvestClassification(string classification)
+        {
+            return classification is "Potential Requirement"
+                or "Test/Measurement Requirement"
+                or "True System Requirement"
+                or "Derived Requirement Candidate"
+                or "Informational Text";
         }
 
         private static bool LooksLikeVerificationStyleClause(string text)
@@ -980,6 +1010,48 @@ namespace TestCaseEditorApp.Services
                 RegexOptions.IgnoreCase);
 
             return hasExecutionSignal && hasVerificationContext && !looksLikeLegalBoilerplate;
+        }
+
+        private static bool LooksLikeHarvestableTechnicalCandidate(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var normalized = Regex.Replace(text, @"\s+", " ").Trim();
+            if (normalized.Length < 24)
+            {
+                return false;
+            }
+
+            if (IsExtractionPromptLeakage(normalized) || IsDocumentStructureNarrativeClause(normalized))
+            {
+                return false;
+            }
+
+            var hasConstraintIndicator = Regex.IsMatch(
+                normalized,
+                @"\b(within\s+the\s+range|at\s+least|at\s+most|less\s+than|greater\s+than|between|\+/-|\b\d+(?:\.\d+)?\s*(?:%|ms|s|sec|seconds|minutes|degrees|vdc|vac|hz|khz|mhz|ghz|amps?|volts?|fl|kbps)\b)",
+                RegexOptions.IgnoreCase);
+
+            var hasTechnicalDomainSignal = Regex.IsMatch(
+                normalized,
+                @"\b(system|software|hardware|equipment|interface|controller|module|unit|display|signal|voltage|current|temperature|performance|accuracy|latency|throughput|protocol|connection|communication|aircraft\s+interfaces|discrete\s+inputs|discrete\s+outputs|ground/open|general\s+purpose)\b",
+                RegexOptions.IgnoreCase);
+
+            var hasActionVerb = Regex.IsMatch(
+                normalized,
+                @"\b(verify|measure|detect|indicate|display|calibrate|configure|apply|set|adjust|monitor|record|test|check|confirm|enable|disable|protect|provide|maintain|prevent|limit|ensure|transmit|receive|process|analyze|operate|function|latch|load)\b",
+                RegexOptions.IgnoreCase);
+
+            return LooksLikeVerificationStyleClause(normalized)
+                || LooksLikeHighConfidenceTechnicalClause(normalized)
+                || LooksLikeExplicitEquipmentConstraintClause(normalized)
+                || LooksLikeGeneralObligationClause(normalized)
+                || (hasConstraintIndicator && hasTechnicalDomainSignal)
+                || (hasConstraintIndicator && hasActionVerb)
+                || (hasTechnicalDomainSignal && hasActionVerb);
         }
 
         /// <summary>
@@ -1246,7 +1318,8 @@ namespace TestCaseEditorApp.Services
             if (sourceStage.Contains("numbered", StringComparison.OrdinalIgnoreCase))
             {
                 var passed = (score >= 4 && (hasStrongRequirementShape || hasAtrTechnicalRequirementShape))
-                    || (score >= 4 && hasStrongNonModalTechnicalShape);
+                    || (score >= 3 && hasStrongNonModalTechnicalShape)
+                    || (score >= 3 && LooksLikeHarvestableTechnicalCandidate(normalized));
                 return new LocalCandidatePromotionDecision(
                     passed,
                     passed
@@ -1260,13 +1333,15 @@ namespace TestCaseEditorApp.Services
             if (hasActionVerb) technicalSignalCount++;
 
             var acceptedDefault = score >= 6 && hasModalVerb && technicalSignalCount >= 2;
-            var acceptedNonModalTechnical = score >= 5 && hasStrongNonModalTechnicalShape && technicalSignalCount >= 2;
+            var acceptedNonModalTechnical = score >= 4 && hasStrongNonModalTechnicalShape && technicalSignalCount >= 2;
+            var acceptedBroadHarvest = IsBroadHarvestStage(sourceStage) && score >= 4 && LooksLikeHarvestableTechnicalCandidate(normalized);
             var accepted = acceptedDefault || acceptedNonModalTechnical;
             return new LocalCandidatePromotionDecision(
-                accepted,
+                accepted || acceptedBroadHarvest,
                 accepted
                     ? (acceptedNonModalTechnical ? "accepted-default-nonmodal-tech" : "accepted-default")
-                    : $"default-gate-fail:score={score}:modal={hasModalVerb}:signals={technicalSignalCount}");
+                    : (acceptedBroadHarvest ? "accepted-broad-harvest" : $"default-gate-fail:score={score}:modal={hasModalVerb}:signals={technicalSignalCount}")
+                    );
         }
 
         private static void AddStageCandidates(
