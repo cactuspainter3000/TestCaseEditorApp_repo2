@@ -557,10 +557,26 @@ namespace TestCaseEditorApp.Services
             }
 
             var isAtpDocument = IsAtpDocument(attachment.FileName, documentContent);
-            var stage1Candidates = isAtpDocument ? ExtractLocalRequirementClauses(documentContent).Where(candidate => ShouldPromoteLocalCandidate(candidate, "Stage 1 raw clause extract") || LooksLikeVerificationStyleClause(candidate) || LooksLikeExplicitEquipmentConstraintClause(candidate)).ToList() : ExtractLocalRequirementClauses(documentContent);
-            var stage2Candidates = isAtpDocument ? (await ExtractAtpStepClausesAsync(documentContent, cancellationToken)).Where(candidate => ShouldPromoteLocalCandidate(candidate, "Stage 2 ATP step parsing") || LooksLikeVerificationStyleClause(candidate) || LooksLikeExplicitEquipmentConstraintClause(candidate)).ToList() : await ExtractAtpStepClausesAsync(documentContent, cancellationToken);
-            var stage3Candidates = isAtpDocument ? ExtractStructuredRequirementClauses(documentContent).Where(candidate => ShouldPromoteLocalCandidate(candidate, "Stage 3 structured line recovery") || LooksLikeVerificationStyleClause(candidate) || LooksLikeExplicitEquipmentConstraintClause(candidate)).ToList() : ExtractStructuredRequirementClauses(documentContent);
-            var stage4Candidates = isAtpDocument ? ExtractNumberedStepClauses(documentContent).Where(candidate => ShouldPromoteLocalCandidate(candidate, "Stage 4 numbered step fallback") || LooksLikeVerificationStyleClause(candidate) || LooksLikeExplicitEquipmentConstraintClause(candidate)).ToList() : ExtractNumberedStepClauses(documentContent);
+            var stage1Candidates = isAtpDocument
+                ? ExtractLocalRequirementClauses(documentContent)
+                    .Where(candidate => ShouldIncludeAtpCandidateForLocalExtraction(candidate, "Stage 1 raw clause extract"))
+                    .ToList()
+                : ExtractLocalRequirementClauses(documentContent);
+            var stage2Candidates = isAtpDocument
+                ? (await ExtractAtpStepClausesAsync(documentContent, cancellationToken))
+                    .Where(candidate => ShouldIncludeAtpCandidateForLocalExtraction(candidate, "Stage 2 ATP step parsing"))
+                    .ToList()
+                : await ExtractAtpStepClausesAsync(documentContent, cancellationToken);
+            var stage3Candidates = isAtpDocument
+                ? ExtractStructuredRequirementClauses(documentContent)
+                    .Where(candidate => ShouldIncludeAtpCandidateForLocalExtraction(candidate, "Stage 3 structured line recovery"))
+                    .ToList()
+                : ExtractStructuredRequirementClauses(documentContent);
+            var stage4Candidates = isAtpDocument
+                ? ExtractNumberedStepClauses(documentContent)
+                    .Where(candidate => ShouldIncludeAtpCandidateForLocalExtraction(candidate, "Stage 4 numbered step fallback"))
+                    .ToList()
+                : ExtractNumberedStepClauses(documentContent);
             var stage5Candidates = ExtractVerificationRecoveryClausesLocal(documentContent, attachment.IsPdf);
 
             AddStageCandidates(candidates, seen, "Stage 1 raw clause extract", stage1Candidates, progressCallback, ref numericPrefixDedupeCollisions, numericPrefixedCandidateKeys);
@@ -592,7 +608,16 @@ namespace TestCaseEditorApp.Services
 
                 var candidate = candidates[i];
                 var clause = candidate.Text;
-                var promotionDecision = EvaluateLocalCandidatePromotionDecision(clause, candidate.StageName);
+                var effectiveStageName = isAtpDocument ? $"{candidate.StageName} (ATP)" : candidate.StageName;
+                if (clause.Contains("heater", StringComparison.OrdinalIgnoreCase) || clause.Contains("power", StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine($"[ATP-debug] clause='{clause}' stage={candidate.StageName} effectiveStage={effectiveStageName}");
+                }
+                var promotionDecision = EvaluateLocalCandidatePromotionDecision(clause, effectiveStageName);
+                if (clause.Contains("heater", StringComparison.OrdinalIgnoreCase) || clause.Contains("power", StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine($"[ATP-debug] promote={promotionDecision.ShouldPromote} reason={promotionDecision.Reason}");
+                }
                 if (!promotionDecision.ShouldPromote)
                 {
                     IncrementHistogramCount(outcomeHistogram, $"promotion-gate-reject:{promotionDecision.Reason}");
@@ -601,7 +626,11 @@ namespace TestCaseEditorApp.Services
                 }
 
                 var qualification = QualifyDeterministicRequirementCandidate(clause);
-                var deterministicRejectionReason = TryGetLegacyDeterministicPostFilterRejectionReason(qualification, clause, candidate.StageName);
+                var deterministicRejectionReason = TryGetLegacyDeterministicPostFilterRejectionReason(qualification, clause, effectiveStageName);
+                if (clause.Contains("reported heater power", StringComparison.OrdinalIgnoreCase) || clause.Contains("heater", StringComparison.OrdinalIgnoreCase))
+                {
+                    TestCaseEditorApp.Services.Logging.Log.Info($"[ATP-debug] clause='{clause}' promotion={promotionDecision.ShouldPromote} reason={promotionDecision.Reason} qualification={qualification.Classification} score={qualification.Score} postfilter={deterministicRejectionReason}");
+                }
                 if (!string.IsNullOrWhiteSpace(deterministicRejectionReason))
                 {
                     deterministicFilteredOut++;
@@ -779,6 +808,148 @@ namespace TestCaseEditorApp.Services
             return string.IsNullOrWhiteSpace(TryGetLegacyDeterministicPostFilterRejectionReason(qualification, text, sourceStage));
         }
 
+        private static bool ShouldIncludeAtpCandidateForLocalExtraction(string candidate, string sourceStage)
+        {
+            if (string.IsNullOrWhiteSpace(candidate))
+            {
+                return false;
+            }
+
+            var normalized = Regex.Replace(candidate, @"\s+", " ").Trim();
+            if (normalized.Length < 24)
+            {
+                return false;
+            }
+
+            if (IsAtpHeadingLikeCandidate(normalized))
+            {
+                return false;
+            }
+
+            if (LooksLikeAtpFormulaOrComputationClause(normalized))
+            {
+                return false;
+            }
+
+            if (sourceStage.Contains("ATP", StringComparison.OrdinalIgnoreCase))
+            {
+                if (LooksLikeAtpProceduralOrNarrativeClause(normalized))
+                {
+                    return HasStrongAtpRequirementEvidence(normalized);
+                }
+
+                return HasStrongAtpRequirementEvidence(normalized);
+            }
+
+            if (ShouldPromoteLocalCandidate(candidate, sourceStage))
+            {
+                return true;
+            }
+
+            if (LooksLikeExplicitEquipmentConstraintClause(normalized))
+            {
+                return true;
+            }
+
+            if (LooksLikeVerificationStyleClause(normalized))
+            {
+                return normalized.Contains("shall", StringComparison.OrdinalIgnoreCase)
+                    || normalized.Contains("must", StringComparison.OrdinalIgnoreCase)
+                    || normalized.Contains("will", StringComparison.OrdinalIgnoreCase)
+                    || normalized.Contains("verify", StringComparison.OrdinalIgnoreCase)
+                    || normalized.Contains("within the range", StringComparison.OrdinalIgnoreCase)
+                    || normalized.Contains("logic", StringComparison.OrdinalIgnoreCase);
+            }
+
+            return false;
+        }
+
+        private static bool IsAtpHeadingLikeCandidate(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var normalized = Regex.Replace(text, @"\s+", " ").Trim();
+            var body = StripLeadingClauseNumber(normalized, out _);
+            body = Regex.Replace(body, @"^\s*(?:\[[^\]]+\]\s*)+", string.Empty, RegexOptions.IgnoreCase);
+            body = Regex.Replace(body, @"^\s*(?:the\s+)?(?:production|acceptance)\s+test\s+", string.Empty, RegexOptions.IgnoreCase);
+            body = Regex.Replace(body, @"\s+", " ").Trim();
+
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return false;
+            }
+
+            var hasNormativeVerb = Regex.IsMatch(body, @"\b(shall|must|will|should|required to|is to)\b", RegexOptions.IgnoreCase);
+            var hasActionCue = Regex.IsMatch(body, @"\b(verify|measure|calibrate|load|check|confirm|provide|maintain|monitor|detect|indicate|record|set|adjust|apply|operate|function|latch|display)\b", RegexOptions.IgnoreCase);
+            var hasConstraintCue = Regex.IsMatch(body, @"\b(within|between|at least|at most|less than|greater than|logic|range|voltage|current|temperature|degrees|ms|vdc|vac|hz|amp|volt|ohm|kbps|percent|frequency)\b", RegexOptions.IgnoreCase);
+            var hasTechnicalContext = Regex.IsMatch(body, @"\b(?:supply|voltage|current|temperature|sensor|heater|luminance|contrast|connector|interface|circuit|input|output|power|signal|display|backlight|calibration|memory|fault)\b", RegexOptions.IgnoreCase);
+            var isHeadingStyleTitle = Regex.IsMatch(body, @"\b(?:test|tests|verification|procedure|procedures|condition|conditions|objective|setup|sequence|formula|formulas|operation|operations|supply|voltages|sensor|sensors|heater|luminance|contrast|power)\b", RegexOptions.IgnoreCase)
+                && !hasNormativeVerb
+                && !hasActionCue
+                && !hasConstraintCue;
+
+            if (LooksLikeAtpFormulaOrComputationClause(normalized))
+            {
+                return true;
+            }
+
+            if (Regex.IsMatch(normalized, @"^\s*\d+(?:\.\d+)+\s*(?:test|tests|verification|procedure|condition|conditions|objective|setup|sequence)\b", RegexOptions.IgnoreCase))
+            {
+                return true;
+            }
+
+            if (Regex.IsMatch(normalized, @"^\s*(?:test|tests|verification|procedure|condition|conditions|objective|setup|sequence)\b", RegexOptions.IgnoreCase))
+            {
+                return true;
+            }
+
+            if (Regex.IsMatch(normalized, @"^(?:the\s+)?(?:production|acceptance)\s+test\s+(?:shall|must|will|should)\s+(?:verify|calibrate|load|check|confirm|measure)\s*$", RegexOptions.IgnoreCase))
+            {
+                return true;
+            }
+
+            if (Regex.IsMatch(normalized, @"^(?:the\s+)?(?:production|acceptance)\s+test\s+.*\b(?:operation|procedure|condition|conditions|objective|setup|sequence|formula|formulas)\b", RegexOptions.IgnoreCase))
+            {
+                return true;
+            }
+
+            if (isHeadingStyleTitle || (body.Length <= 70 && hasTechnicalContext && !hasNormativeVerb && !hasActionCue && !hasConstraintCue))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool LooksLikeAtpFormulaOrComputationClause(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var normalized = Regex.Replace(text, @"\s+", " ").Trim();
+            var body = StripLeadingClauseNumber(normalized, out _);
+            body = Regex.Replace(body, @"^\s*(?:\[[^\]]+\]\s*)+", string.Empty, RegexOptions.IgnoreCase);
+            body = Regex.Replace(body, @"^\s*(?:the\s+)?(?:production|acceptance)\s+test\s+", string.Empty, RegexOptions.IgnoreCase);
+            body = Regex.Replace(body, @"\s+", " ").Trim();
+
+            if (Regex.IsMatch(body, @"\b(?:formula|formulas|equation|equations|calculation|calculations|algorithm|algorithms)\b", RegexOptions.IgnoreCase))
+            {
+                return true;
+            }
+
+            if (Regex.IsMatch(body, @"\b(?:for\s+a\/d\s+data|data\s+between|inclusive|measurement\s+is\s+(?:negative|positive)|between\s+800h\s+and\s+fffh)\b", RegexOptions.IgnoreCase))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         private static string? TryGetLegacyDeterministicPostFilterRejectionReason(DeterministicQualificationResult qualification, string text, string sourceStage)
         {
             // ✅ GUARDRAIL: Reject candidates that are extraction prompt leakage
@@ -833,21 +1004,40 @@ namespace TestCaseEditorApp.Services
             }
 
             if (sourceStage.Contains("ATP", StringComparison.OrdinalIgnoreCase) &&
-                qualification.Classification == "Potential Requirement" &&
-                qualification.Score >= 5)
+                qualification.Classification == "Potential Requirement")
             {
-                // For ATP documents, allow Potential Requirements with score >= 5 to pass.
-                // ATP step content may be structured/procedural without strong explicit signals.
-                return null;
+                var normalized = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
+                var hasStrongAtpShape = qualification.Score >= 8 &&
+                    (LooksLikeVerificationStyleClause(text) ||
+                     LooksLikeExplicitEquipmentConstraintClause(text) ||
+                     LooksLikeHighConfidenceTechnicalClause(text) ||
+                     LooksLikeGeneralObligationClause(text) ||
+                     LooksLikeHarvestableTechnicalCandidate(text) ||
+                     Regex.IsMatch(normalized, @"\b(?:reported\s+heater\s+power|heater\s+power|power\s+input|display\s+head|temperature\s+sensor|logic\s+high|logic\s+low)\b", RegexOptions.IgnoreCase));
+
+                if (hasStrongAtpShape)
+                {
+                    return null;
+                }
+
+                return "atp-potential-requirement-too-weak";
             }
 
             if (sourceStage.Contains("ATP", StringComparison.OrdinalIgnoreCase) &&
-                qualification.Classification == "Informational Text" &&
-                qualification.Score >= 4)
+                qualification.Classification == "Informational Text")
             {
-                // For ATP documents, also allow Informational Text with score >= 4.
-                // ATP content may have constraints without explicit modal verbs.
-                return null;
+                var hasStrongInformationalShape = qualification.Score >= 8 &&
+                    (LooksLikeVerificationStyleClause(text) ||
+                     LooksLikeExplicitEquipmentConstraintClause(text) ||
+                     LooksLikeGeneralObligationClause(text) ||
+                     LooksLikeHighConfidenceTechnicalClause(text));
+
+                if (hasStrongInformationalShape)
+                {
+                    return null;
+                }
+
+                return "atp-informational-text-too-weak";
             }
 
             if (sourceStage.Contains("verification recovery", StringComparison.OrdinalIgnoreCase) &&
@@ -931,6 +1121,83 @@ namespace TestCaseEditorApp.Services
             return hasVerificationVerb && (hasQuantifiedConstraint || hasOutcomeBasedAcceptanceSignal);
         }
 
+        private static bool HasStrongAtpRequirementEvidence(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var normalized = Regex.Replace(text, @"\s+", " ").Trim();
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return false;
+            }
+
+            if (LooksLikeAtpProceduralOrNarrativeClause(normalized))
+            {
+                var hasStrongAtpException = Regex.IsMatch(normalized, @"\b(?:reported\s+heater\s+power|heater\s+power|power\s+input|display\s+head|temperature\s+sensor|logic\s+high|logic\s+low)\b", RegexOptions.IgnoreCase)
+                    || LooksLikeVerificationStyleClause(normalized)
+                    || LooksLikeExplicitEquipmentConstraintClause(normalized)
+                    || LooksLikeHighConfidenceTechnicalClause(normalized)
+                    || Regex.IsMatch(normalized, @"\b(within\s+the\s+range|at\s+least|at\s+most|less\s+than|greater\s+than|between|\+/-|logic\s+(?:low|high))\b", RegexOptions.IgnoreCase);
+
+                if (!hasStrongAtpException)
+                {
+                    return false;
+                }
+            }
+
+            if (LooksLikeExplicitEquipmentConstraintClause(normalized))
+            {
+                return true;
+            }
+
+            if (LooksLikeHighConfidenceTechnicalClause(normalized))
+            {
+                return true;
+            }
+
+            var hasStrongVerificationSignal = Regex.IsMatch(
+                normalized,
+                @"\b(within\s+the\s+range|at\s+least|at\s+most|less\s+than|greater\s+than|between|\+/-|logic\s+(?:low|high)|without\s+error|no\s+active|no\s+fault|received\s+correctly|transmitted\s+correctly|loaded\s+into\s+memory|indicate\w*\s+a\s+fault)\b",
+                RegexOptions.IgnoreCase);
+
+            var hasAtpObligation = Regex.IsMatch(normalized, @"\b(shall|must|required\s+to|is\s+to|will)\b", RegexOptions.IgnoreCase);
+            var hasAtpVerificationVerb = Regex.IsMatch(
+                normalized,
+                @"\b(verify|verifies|measure|measures|measured|calibrate|calibrates|load|loads|check|checks|confirm|confirms|monitor|detect|indicate|provide|maintain|record|set|adjust|apply)\b",
+                RegexOptions.IgnoreCase);
+            var hasAtpTechnicalSignal = Regex.IsMatch(
+                normalized,
+                @"\b(interface|protocol|voltage|current|temperature|sensor|heater|luminance|contrast|fault|memory|communication|signal|circuit|backlight|display|connector|power|monitor|control|input|output)\b",
+                RegexOptions.IgnoreCase);
+
+            return hasAtpObligation && hasAtpVerificationVerb && (hasStrongVerificationSignal || hasAtpTechnicalSignal);
+        }
+
+        private static bool LooksLikeAtpProceduralOrNarrativeClause(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var normalized = Regex.Replace(text, @"\s+", " ").Trim();
+            if (string.IsNullOrWhiteSpace(normalized))
+            {
+                return false;
+            }
+
+            var lower = normalized.ToLowerInvariant();
+            if (lower.Contains("purpose") || lower.Contains("product state") || lower.Contains("product state or condition") || lower.Contains("note:") || lower.Contains("acceptance criteria"))
+            {
+                return true;
+            }
+
+            return Regex.IsMatch(normalized, @"\b(this\s+test\s+verifies|the\s+following\s+procedure|test\s+steps|test\s+equipment|recommended\s+power|recommended\s+setup|power\s+(?:up|down)\s+procedure|test\s+condition|test\s+conditions|test\s+procedure|test\s+procedures)\b", RegexOptions.IgnoreCase);
+        }
+
         private static bool LooksLikeHighConfidenceTechnicalClause(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -942,12 +1209,12 @@ namespace TestCaseEditorApp.Services
 
             var hasTechnicalBehaviorSignal = System.Text.RegularExpressions.Regex.IsMatch(
                 normalized,
-                @"\b(communicate|interface|protocol|data\s+rate|parity|stop\s+bit|monitor|latch|fault|received|transmitted)\b",
+                @"\b(communicate|interface|protocol|data\s+rate|parity|stop\s+bit|monitor|latch|fault|received|transmitted|heater|power|input|output|temperature|sensor|display\s+head)\b",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
             var hasExplicitTechnicalConstraint = System.Text.RegularExpressions.Regex.IsMatch(
                 normalized,
-                @"(?:\b\d+(?:\.\d+)?\s*(?:kbps|ms|vdc|vac|%)\b|at\s+least|odd\s+parity|logic\s+[‘'""“”]?[01][’'""“”]?|logic\s+low|logic\s+high)",
+                @"(?:\b\d+(?:\.\d+)?\s*(?:kbps|ms|vdc|vac|%|degrees|ohm|fl)\b|within\s+\+/-|within\s+the\s+range|at\s+least|at\s+most|less\s+than|greater\s+than|between|odd\s+parity|logic\s+[‘'""“”]?[01][’'""“”]?|logic\s+low|logic\s+high)",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
             return hasTechnicalBehaviorSignal && hasExplicitTechnicalConstraint;
@@ -1111,6 +1378,7 @@ namespace TestCaseEditorApp.Services
             var hasStrongVerificationException = normalized.Contains("VREF", StringComparison.OrdinalIgnoreCase) ||
                 LooksLikeHighConfidenceTechnicalClause(normalized) ||
                 LooksLikeExplicitEquipmentConstraintClause(normalized) ||
+                Regex.IsMatch(normalized, @"\b(?:reported\s+heater\s+power|heater\s+power|power\s+input|display\s+head|test\s+equipment|temperature\s+sensor|logic\s+high|logic\s+low)\b", RegexOptions.IgnoreCase) ||
                 (qualification.Score >= 10 &&
                  System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(?:test\s+solution|test\s+station|test\s+system|production\s+test|display\s+head|equipment|interface|unit|module)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase) &&
                  System.Text.RegularExpressions.Regex.IsMatch(normalized, @"\b(shall|must|will)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase) &&
@@ -1283,25 +1551,19 @@ namespace TestCaseEditorApp.Services
 
             if (sourceStage.Contains("ATP", StringComparison.OrdinalIgnoreCase))
             {
-                // ATP documents often have structured content (tables, numbered steps) that don't always have
-                // explicit modal verbs. Relax the gate to promote more candidates to post-filter for evaluation.
-                // Priority: (1) if already has meaningful shape, promote; (2) if has ANY two signals + minimum score, promote
-                
-                var hasMeaningfulVerificationShape = hasModalVerb &&
-                    (hasConstraintIndicator ||
-                     hasAtrTechnicalRequirementSignal ||
-                     LooksLikeExplicitEquipmentConstraintClause(normalized)) &&
-                    (hasActionVerb ||
-                     hasSystemIndicator ||
-                     LooksLikeVerificationStyleClause(normalized));
+                // ATP documents often contain procedural or measurement-oriented prose that should not be
+                // promoted merely because it contains a few keywords. Keep the ATP gate conservative so
+                // only stronger requirement-like clauses reach the deterministic post-filter.
+                var hasMeaningfulVerificationShape = HasStrongAtpRequirementEvidence(normalized) &&
+                    (hasModalVerb || hasActionVerb || hasSystemIndicator || hasConstraintIndicator);
 
                 if (hasMeaningfulVerificationShape)
                 {
                     return new LocalCandidatePromotionDecision(true, "accepted-atp-meaningful-shape");
                 }
 
-                // Relaxed gate for ATP: promote if score >= 5 and has at least 2 of the key signals
-                // This allows structured step content with constraints to reach the post-filter
+                var hasStrongAtpTechnicalSignal = hasConstraintIndicator && (hasActionVerb || hasSystemIndicator || hasAtrTechnicalRequirementSignal);
+                var hasNormativeObligation = hasModalVerb && (hasConstraintIndicator || hasActionVerb || hasAtrTechnicalRequirementSignal);
                 var atpTechnicalSignalCount = 0;
                 if (hasModalVerb) atpTechnicalSignalCount++;
                 if (hasConstraintIndicator) atpTechnicalSignalCount++;
@@ -1309,10 +1571,32 @@ namespace TestCaseEditorApp.Services
                 if (hasSystemIndicator) atpTechnicalSignalCount++;
                 if (hasAtrTechnicalRequirementSignal) atpTechnicalSignalCount++;
 
-                var passed = score >= 5 && atpTechnicalSignalCount >= 2;
+                var hasStrongQuantitativeConstraint = hasConstraintIndicator
+                    || LooksLikeExplicitEquipmentConstraintClause(normalized)
+                    || Regex.IsMatch(normalized, @"\b(?:within\s+the\s+range|at\s+least|at\s+most|less\s+than|greater\s+than|logic\s+(?:low|high)|\+/-|between)\b", RegexOptions.IgnoreCase);
+                var hasStrongOperationalIntent = hasModalVerb &&
+                    (hasStrongQuantitativeConstraint || hasActionVerb || hasSystemIndicator || hasAtrTechnicalRequirementSignal || LooksLikeVerificationStyleClause(normalized));
+                var isProceduralHeading = Regex.IsMatch(normalized, @"\b(?:procedure|procedural|setup|sequence|objective|verification)\b", RegexOptions.IgnoreCase)
+                    || Regex.IsMatch(normalized, @"\btest\s+(?:condition|conditions|procedure|procedures|setup|sequence|objective|verification)\b", RegexOptions.IgnoreCase);
+                var isSectionLabelLike = normalized.Length < 90 && (normalized.Contains("test condition", StringComparison.OrdinalIgnoreCase) || normalized.Contains("test procedure", StringComparison.OrdinalIgnoreCase) || normalized.Contains("verification", StringComparison.OrdinalIgnoreCase));
+                var requiresStrongTechnicalContext = hasConstraintIndicator && (hasActionVerb || hasSystemIndicator || hasAtrTechnicalRequirementSignal);
+                var hasStrongAtpRequirementShape = HasStrongAtpRequirementEvidence(normalized);
+                var passed = hasStrongAtpRequirementShape &&
+                    (hasModalVerb || hasConstraintIndicator || hasActionVerb || hasSystemIndicator || hasAtrTechnicalRequirementSignal);
+
+                if (isProceduralHeading || isSectionLabelLike)
+                {
+                    return new LocalCandidatePromotionDecision(false, "atp-procedural-heading-reject");
+                }
+
+                if (requiresStrongTechnicalContext && !hasModalVerb)
+                {
+                    return new LocalCandidatePromotionDecision(false, "atp-nonmodal-technical-context-reject");
+                }
+
                 return new LocalCandidatePromotionDecision(
                     passed,
-                    passed ? "accepted-atp-relaxed-gate" : $"atp-relaxed-gate-fail:score={score}:signals={atpTechnicalSignalCount}");
+                    passed ? "accepted-atp-conservative-gate" : $"atp-conservative-gate-fail:score={score}:signals={atpTechnicalSignalCount}");
             }
 
             if (sourceStage.Contains("numbered", StringComparison.OrdinalIgnoreCase))
@@ -1366,7 +1650,7 @@ namespace TestCaseEditorApp.Services
 
                 if (!seen.Add(normalized))
                 {
-                    if (strippedNumericPrefix || hasNumericVerificationPrefix || numericPrefixedCandidateKeys.Contains(normalized))
+                    if (strippedNumericPrefix || hasNumericVerificationPrefix)
                     {
                         numericPrefixDedupeCollisions++;
                     }
@@ -8493,21 +8777,39 @@ Extract requirements now (JSON only):";
                 !string.IsNullOrWhiteSpace(requirement.GlobalId)
                 && requirement.GlobalId.StartsWith("FND-", StringComparison.OrdinalIgnoreCase));
 
-            if (!allFoundationRecovery)
+            var templateLooksTiny = templateRequirements.Count <= 3
+                || templateRequirements.Count <= Math.Max(4, deterministicAtpBaseline.Count / 8);
+
+            var templateLooksSuspicious = templateRequirements.Any(requirement =>
+                !string.IsNullOrWhiteSpace(requirement.GlobalId)
+                && requirement.GlobalId.StartsWith("REQ-", StringComparison.OrdinalIgnoreCase)
+                && requirement.Description != null
+                && requirement.Description.Contains("template form", StringComparison.OrdinalIgnoreCase));
+
+            var baselineIsMuchRicher = deterministicAtpBaseline.Count >= templateRequirements.Count + 20;
+            var baselineIsStillRicher = deterministicAtpBaseline.Count >= templateRequirements.Count + 10;
+            var templateLooksRecoveryOnly = allFoundationRecovery || templateRequirements.Count <= 6;
+
+            if (templateLooksTiny || templateLooksSuspicious)
             {
-                if (!lowContextCoverage)
-                {
-                    return false;
-                }
-
-                var severeCountCollapse = deterministicAtpBaseline.Count >= 15
-                    && templateRequirements.Count <= Math.Max(5, deterministicAtpBaseline.Count / 4)
-                    && deterministicAtpBaseline.Count >= templateRequirements.Count + 10;
-
-                return severeCountCollapse;
+                return lowContextCoverage && baselineIsMuchRicher;
             }
 
-            return deterministicAtpBaseline.Count >= templateRequirements.Count + 10;
+            if (templateLooksRecoveryOnly)
+            {
+                return baselineIsMuchRicher;
+            }
+
+            if (!lowContextCoverage)
+            {
+                return false;
+            }
+
+            var severeCountCollapse = deterministicAtpBaseline.Count >= 15
+                && templateRequirements.Count <= Math.Max(5, deterministicAtpBaseline.Count / 4)
+                && baselineIsMuchRicher;
+
+            return severeCountCollapse;
         }
 
         private static bool ShouldUseDeterministicAtpBaselineImmediately(
@@ -8515,8 +8817,8 @@ Extract requirements now (JSON only):";
             double contextCoverage)
         {
             return deterministicAtpBaseline != null
-                && deterministicAtpBaseline.Count >= 20
-                && contextCoverage < 0.15d;
+                && deterministicAtpBaseline.Count >= 40
+                && contextCoverage < 0.05d;
         }
 
         private static void ApplyCategoryFieldInference(Requirement requirement, string? category, string requirementText)
