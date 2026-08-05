@@ -85,6 +85,22 @@ namespace TestCaseEditorApp.Tests.Requirements
         }
 
         [TestMethod]
+        public void SearchAttachmentsCommand_IsAvailableWhenViewModelIsIdle()
+        {
+            var mediatorMock = new Mock<IRequirementsMediator>(MockBehavior.Loose);
+            var workspaceContextMock = new Mock<IWorkspaceContext>(MockBehavior.Loose);
+            var loggerMock = new Mock<ILogger<RequirementsSearchAttachmentsViewModel>>();
+
+            var viewModel = new RequirementsSearchAttachmentsViewModel(
+                mediatorMock.Object,
+                workspaceContextMock.Object,
+                loggerMock.Object);
+
+            Assert.IsTrue(viewModel.CanSearchAttachments);
+            Assert.IsTrue(viewModel.SearchAttachmentsCommand.CanExecute(null));
+        }
+
+        [TestMethod]
         public void RequirementDestinationSelection_PreservesUserChoice()
         {
             var mediatorMock = new Mock<IRequirementsMediator>(MockBehavior.Loose);

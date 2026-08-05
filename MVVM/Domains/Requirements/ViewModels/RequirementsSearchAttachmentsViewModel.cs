@@ -94,6 +94,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             _logger.LogInformation("[RequirementsSearchAttachments] ViewModel constructor completed.");
             _logger.LogInformation("[RequirementsSearchAttachments] Commands initialized: TestConnectionCommand is {TestCommandStatus}", 
                 TestConnectionCommand != null ? "initialized" : "NULL");
+
+            PropertyChanged += OnViewModelPropertyChanged;
             
             // Initialize with no documents placeholder
             InitializeEmptyState();
@@ -142,6 +144,11 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         [ObservableProperty]
         private bool hasResults = false;
+
+        /// <summary>
+        /// Indicates whether the search action is currently available to the user.
+        /// </summary>
+        public bool CanSearchAttachments => !IsSearching && !IsBusy && !IsParsing;
 
         [ObservableProperty]
         private bool isBackgroundScanningInProgress = false;
@@ -214,6 +221,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             OnPropertyChanged(nameof(HasAttachmentsAvailable));
             OnPropertyChanged(nameof(ScanButtonPrefix));
         }
+
+        partial void OnIsSearchingChanged(bool value)
+        {
+            OnPropertyChanged(nameof(CanSearchAttachments));
+            UpdateWorkflowState();
+            NotifySearchRelatedCommands();
+        }
         
         partial void OnHasScannedForRequirementsChanged(bool value)
         {
@@ -229,15 +243,14 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         partial void OnIsParsingChanged(bool value)
         {
             OnPropertyChanged(nameof(CanScanForRequirements));
+            OnPropertyChanged(nameof(CanSearchAttachments));
             UpdateWorkflowState();
             
             // Notify all commands that depend on parsing state immediately
             Application.Current?.Dispatcher?.BeginInvoke(() =>
             {
+                NotifySearchRelatedCommands();
                 CancelParseCommand?.NotifyCanExecuteChanged();
-                SearchAttachmentsCommand?.NotifyCanExecuteChanged();
-                ParseSelectedAttachmentCommand?.NotifyCanExecuteChanged();
-                OpenAttachmentCommand?.NotifyCanExecuteChanged();
             });
         }
 
@@ -571,7 +584,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
             base.InitializeCommands();
             
             // Initialize domain-specific commands
-            SearchAttachmentsCommand = new AsyncRelayCommand(SearchAttachmentsAsync, CanExecuteSearch);
+            SearchAttachmentsCommand = new AsyncRelayCommand(SearchAttachmentsAsync, () => CanSearchAttachments);
             ParseSelectedAttachmentCommand = new AsyncRelayCommand(ParseSelectedAttachmentAsync, CanExecuteParseAttachment);
             CancelParseCommand = new RelayCommand(CancelParsing, CanCancelParsing);
             ImportExtractedRequirementsCommand = new AsyncRelayCommand(ImportExtractedRequirementsAsync, CanExecuteImportRequirements);
@@ -625,6 +638,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
         /// <summary>
         /// Update the workflow state and smart button text based on current conditions
         /// </summary>
+        private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(IsBusy) || e.PropertyName == nameof(IsSearching) || e.PropertyName == nameof(IsParsing))
+            {
+                OnPropertyChanged(nameof(CanSearchAttachments));
+                UpdateWorkflowState();
+                NotifySearchRelatedCommands();
+            }
+        }
+
         private void UpdateWorkflowState()
         {
             var projectId = GetCurrentJamaProjectId();
@@ -1986,8 +2009,23 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
 
         private bool CanExecuteSearch()
         {
-            // Search for attachments should always be active according to workflow requirements
-            return !IsSearching && !IsBusy && !IsParsing;
+            return CanSearchAttachments;
+        }
+
+        private void NotifySearchRelatedCommands()
+        {
+            Application.Current?.Dispatcher?.BeginInvoke(() =>
+            {
+                SearchAttachmentsCommand?.NotifyCanExecuteChanged();
+                ParseSelectedAttachmentCommand?.NotifyCanExecuteChanged();
+                OpenAttachmentCommand?.NotifyCanExecuteChanged();
+                ReindexSelectedAttachmentCommand?.NotifyCanExecuteChanged();
+                LoadProjectsCommand?.NotifyCanExecuteChanged();
+                TestConnectionCommand?.NotifyCanExecuteChanged();
+                LoadRequirementContainersCommand?.NotifyCanExecuteChanged();
+                CreateRequirementContainerCommand?.NotifyCanExecuteChanged();
+                ExecuteSmartActionCommand?.NotifyCanExecuteChanged();
+            });
         }
 
         private bool CanExecuteParseAttachment()
