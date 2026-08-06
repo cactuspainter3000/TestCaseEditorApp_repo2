@@ -833,12 +833,19 @@ namespace TestCaseEditorApp.Services
 
             if (sourceStage.Contains("ATP", StringComparison.OrdinalIgnoreCase))
             {
+                var hasStrongAtpEvidence = HasStrongAtpRequirementEvidence(normalized);
+                var hasBroadAtpRequirementShape = LooksLikeVerificationStyleClause(normalized)
+                    || LooksLikeExplicitEquipmentConstraintClause(normalized)
+                    || LooksLikeGeneralObligationClause(normalized)
+                    || LooksLikeHighConfidenceTechnicalClause(normalized)
+                    || LooksLikeHarvestableTechnicalCandidate(normalized);
+
                 if (LooksLikeAtpProceduralOrNarrativeClause(normalized))
                 {
-                    return HasStrongAtpRequirementEvidence(normalized);
+                    return hasStrongAtpEvidence || hasBroadAtpRequirementShape;
                 }
 
-                return HasStrongAtpRequirementEvidence(normalized);
+                return hasStrongAtpEvidence || hasBroadAtpRequirementShape;
             }
 
             if (ShouldPromoteLocalCandidate(candidate, sourceStage))
