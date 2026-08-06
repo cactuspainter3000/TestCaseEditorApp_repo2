@@ -1,0 +1,63 @@
+﻿2026-08-02T13:18:33.4590751Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-02T13:18:33.4779084Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-02T13:18:33.5285094Z	Information	App	[OllamaProcessManager] Environment variables configured: LOAD_TIMEOUT=10m, KEEP_ALIVE=20m
+2026-08-02T13:18:33.8103693Z	Information	App	[OllamaProcessManager] ✅ Ollama is running and healthy
+2026-08-02T13:18:33.8247880Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-02T13:18:33.8288458Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-02T13:18:33.8326012Z	Information	App	[OllamaEmbedding] Initialized with model: mxbai-embed-large:335m-v1-fp16, dimensions: 1024
+2026-08-02T13:18:33.8400016Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Service initialized with storage path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\DocumentIndexes
+2026-08-02T13:18:33.8561846Z	Information	TestCaseEditorApp.Services.SystemCapabilityDerivationService	SystemCapabilityDerivationService initialized with Template Form Architecture with taxonomy containing 14 categories
+2026-08-02T13:18:33.8708709Z	Information	App	[JamaConnect] FromConfiguration called
+2026-08-02T13:18:33.8740469Z	Information	App	[JamaConnect] Base URL: https://jama02.rockwellcollins.com/contour
+2026-08-02T13:18:33.8769381Z	Information	App	[JamaConnect] API Token: NOT SET
+2026-08-02T13:18:33.8796559Z	Information	App	[JamaConnect] Client ID: hpytk1ocbt0p01u
+2026-08-02T13:18:33.8873690Z	Information	App	[JamaConnect] Client Secret: SET
+2026-08-02T13:18:33.8904437Z	Information	App	[JamaConnect] Creating service with OAuth
+2026-08-02T13:18:33.8967022Z	Information	App	[JamaConnect] OAuth constructor - Base URL: https://jama02.rockwellcollins.com/contour
+2026-08-02T13:18:33.8996517Z	Information	App	[JamaConnect] OAuth constructor - Client ID: hpytk1ocbt0p01u
+2026-08-02T13:18:33.9024460Z	Information	App	[JamaConnect] OAuth constructor - Client Secret: SET
+2026-08-02T13:18:33.9070942Z	Information	App	[JamaConnect] OCR service configured for image text extraction
+2026-08-02T13:18:33.9188600Z	Information	App	[OllamaStatusMonitor] HTTP timeout configured: 8s
+2026-08-02T13:18:33.9215759Z	Information	App	[OllamaStatusMonitor] Max supported Ollama version: 0.5.13
+2026-08-02T13:18:33.9243431Z	Information	App	[JamaDocumentParser] Initialized with Template Form Architecture: Envelope=True, Quality=True, Compliance=True, ABTest=True, Telemetry=True, OllamaManager=True, OllamaMonitor=True
+2026-08-02T13:18:33.9521628Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-08-02T13:18:33.9683501Z	Information	App	[AnythingLLMMediator] No previous status available - triggering fresh status check
+2026-08-02T13:18:33.9761478Z	Information	App	[AnythingLLMMediator] Triggering fresh status check from AnythingLLMService
+2026-08-02T13:18:33.9796586Z	Information	App	[ServiceMonitor] MEDIATOR DEBUG: NotifyStatusChange for AnythingLLM - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-02T13:18:33.9862611Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-02T13:18:33.9894632Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-02T13:18:33.9921462Z	Information	App	[ServiceMonitor] AnythingLLM status changed - Available: True, Message: AnythingLLM service is available
+2026-08-02T13:18:34.0081284Z	Information	App	[RecentFiles] Load() called, path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\recent-files.json
+2026-08-02T13:18:34.0120589Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-08-02T13:18:34.0165096Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
+2026-08-02T13:18:34.0189545Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-08-02T13:18:34.0213053Z	Information	App	[AnythingLLM] Availability check result: True
+2026-08-02T13:18:34.0238444Z	Information	App	[AnythingLLM] Availability check result: True
+2026-08-02T13:18:34.0259938Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-08-02T13:18:34.0281405Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=True, Message=Checking AnythingLLM status...
+2026-08-02T13:18:34.0300613Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-02T13:18:34.0324834Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: True, Starting: True
+2026-08-02T13:18:34.0349221Z	Information	App	[RecentFiles] Loaded JSON: [
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B sandbox.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B Test workshop.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B TL Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Top Level C4B Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD-268C4B.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\CMP-6000.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Decagon.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\RTU-42XX.tcex.json"
+]
+2026-08-02T13:18:34.2257284Z	Information	App	[TesseractOCR] Initializing with tessdata path: C:\Users\e10653214\AppData\Local\Programs\Tesseract-OCR\tessdata
+2026-08-02T13:18:34.4232295Z	Information	App	[RecentFiles] Deserialized 10 files
+2026-08-02T13:18:34.4539598Z	Information	App	[RecentFiles] After filtering non-existent: 10 files
+2026-08-02T13:18:34.6460971Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-08-02T13:18:35.1247103Z	Information	App	[TesseractOCR] Tesseract OCR engine initialized successfully
+2026-08-02T13:18:35.1277482Z	Information	App	[JamaConnect] OCR engine availability: Available
+2026-08-02T13:18:35.3314267Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-08-02T13:18:36.1931536Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-02T13:18:36.1960365Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-02T13:18:36.2048853Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-08-02T13:18:36.2131887Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM ready
+2026-08-02T13:18:36.2158290Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False

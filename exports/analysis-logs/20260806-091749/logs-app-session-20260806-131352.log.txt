@@ -1,0 +1,130 @@
+﻿2026-08-06T13:13:52.4072502Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-06T13:13:52.4351764Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-06T13:13:52.6632931Z	Information	App	[OllamaProcessManager] Environment variables configured: LOAD_TIMEOUT=10m, KEEP_ALIVE=20m
+2026-08-06T13:13:53.0781640Z	Information	App	[OllamaProcessManager] ✅ Ollama is running and healthy
+2026-08-06T13:13:53.0905587Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-06T13:13:53.0945164Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-06T13:13:53.0975224Z	Information	App	[OllamaEmbedding] Initialized with model: mxbai-embed-large:335m-v1-fp16, dimensions: 1024
+2026-08-06T13:13:53.1030305Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Service initialized with storage path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\DocumentIndexes
+2026-08-06T13:13:53.1233325Z	Information	TestCaseEditorApp.Services.SystemCapabilityDerivationService	SystemCapabilityDerivationService initialized with Template Form Architecture with taxonomy containing 14 categories
+2026-08-06T13:13:53.1351908Z	Information	App	[JamaConnect] FromConfiguration called
+2026-08-06T13:13:53.1372107Z	Information	App	[JamaConnect] Base URL: https://jama02.rockwellcollins.com/contour
+2026-08-06T13:13:53.1391267Z	Information	App	[JamaConnect] API Token: NOT SET
+2026-08-06T13:13:53.1409858Z	Information	App	[JamaConnect] Client ID: hpytk1ocbt0p01u
+2026-08-06T13:13:53.1431584Z	Information	App	[JamaConnect] Client Secret: SET
+2026-08-06T13:13:53.1452405Z	Information	App	[JamaConnect] Creating service with OAuth
+2026-08-06T13:13:53.1490458Z	Information	App	[JamaConnect] OAuth constructor - Base URL: https://jama02.rockwellcollins.com/contour
+2026-08-06T13:13:53.1514644Z	Information	App	[JamaConnect] OAuth constructor - Client ID: hpytk1ocbt0p01u
+2026-08-06T13:13:53.1538699Z	Information	App	[JamaConnect] OAuth constructor - Client Secret: SET
+2026-08-06T13:13:53.1571231Z	Information	App	[JamaConnect] OCR service configured for image text extraction
+2026-08-06T13:13:53.1712505Z	Information	App	[OllamaStatusMonitor] HTTP timeout configured: 8s
+2026-08-06T13:13:53.1740409Z	Information	App	[OllamaStatusMonitor] Max supported Ollama version: 0.5.13
+2026-08-06T13:13:53.1774827Z	Information	App	[JamaDocumentParser] Initialized with Template Form Architecture: Envelope=True, Quality=True, Compliance=True, ABTest=True, Telemetry=True, OllamaManager=True, OllamaMonitor=True
+2026-08-06T13:13:53.2020359Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-08-06T13:13:53.2195750Z	Information	App	[AnythingLLMMediator] No previous status available - triggering fresh status check
+2026-08-06T13:13:53.2223089Z	Information	App	[AnythingLLMMediator] Triggering fresh status check from AnythingLLMService
+2026-08-06T13:13:53.2460815Z	Information	App	[RecentFiles] Load() called, path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\recent-files.json
+2026-08-06T13:13:53.2716782Z	Information	App	[RecentFiles] Loaded JSON: [
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B sandbox.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B Test workshop.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B TL Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Top Level C4B Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD-268C4B.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\CMP-6000.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Decagon.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\RTU-42XX.tcex.json"
+]
+2026-08-06T13:13:53.4250289Z	Information	App	[TesseractOCR] Initializing with tessdata path: C:\Users\e10653214\AppData\Local\Programs\Tesseract-OCR\tessdata
+2026-08-06T13:13:53.5604926Z	Information	App	[RecentFiles] Deserialized 10 files
+2026-08-06T13:13:53.5834342Z	Information	App	[RecentFiles] After filtering non-existent: 10 files
+2026-08-06T13:13:53.7620234Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-08-06T13:13:54.2044436Z	Information	App	[TesseractOCR] Tesseract OCR engine initialized successfully
+2026-08-06T13:13:54.2068362Z	Information	App	[JamaConnect] OCR engine availability: Available
+2026-08-06T13:13:54.2678551Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-08-06T13:13:55.0632799Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-06T13:13:55.0663982Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-06T13:14:05.3957410Z	Information	App	[AnythingLLM] Service not available - no endpoints responded
+2026-08-06T13:14:05.4162961Z	Information	App	[AnythingLLM] Service not available - no endpoints responded
+2026-08-06T13:14:05.4181506Z	Information	App	[AnythingLLM] AnythingLLM not detected, attempting to start...
+2026-08-06T13:14:05.4198092Z	Information	App	[AnythingLLM] Availability check result: False
+2026-08-06T13:14:05.4373443Z	Information	App	[AnythingLLM] Service not available - no endpoints responded
+2026-08-06T13:14:05.4387829Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=False, Starting=True, Message=Checking AnythingLLM status...
+2026-08-06T13:14:05.4407668Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=False, Starting=False, Message=AnythingLLM unavailable
+2026-08-06T13:14:05.4425659Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: False, Starting: False
+2026-08-06T13:14:05.4438013Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: False, Starting: True
+2026-08-06T13:14:05.5331693Z	Information	App	[AnythingLLM] Starting AnythingLLM application...
+2026-08-06T13:14:07.3172002Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-08-06T13:14:07.4343045Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaProject field: '' (null: True)
+2026-08-06T13:14:07.4362164Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaTestPlan field: '' (null: True)
+2026-08-06T13:14:07.4380363Z	Information	App	[Load] 🔍 JAMA DEBUG: ImportSource: 'Jama'
+2026-08-06T13:14:07.4423404Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Total GeneratedTestCases loaded: 0
+2026-08-06T13:14:07.4441375Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Requirements with GeneratedTestCases: 0/377
+2026-08-06T13:14:07.4817520Z	Information	App	[Save] 🔍 PERSISTENCE DEBUG: Serializing 0 total GeneratedTestCases
+2026-08-06T13:14:07.4836214Z	Information	App	[Save] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-08-06T13:14:07.4855225Z	Information	App	[Save] Workspace identity: Project='C4B sandbox', AnythingLLMName='C4B sandbox', AnythingLLMSlug='<none>', JamaProjectId=<none>, JamaProjectName='<none>'
+2026-08-06T13:14:07.5463691Z	Warning	WorkspaceService	[Save] Wrote fallback copies to: C:\Users\e10653214\AppData\Local\Temp\TestCaseEditorApp
+2026-08-06T13:14:07.5547991Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-08-06T13:14:09.1230600Z	Information	App	[AnythingLLM] AnythingLLM started, waiting for service initialization...
+2026-08-06T13:14:11.6938536Z	Information	App	[AnythingLLM] Exception with endpoint http://localhost:3001/api/v1/workspaces: No connection could be made because the target machine actively refused it. (localhost:3001)
+2026-08-06T13:14:11.7374317Z	Error	App	[AnythingLLM] Error getting workspaces
+System.Net.Http.HttpRequestException: No connection could be made because the target machine actively refused it. (localhost:3001)
+ ---> System.Net.Sockets.SocketException (10061): No connection could be made because the target machine actively refused it.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at TestCaseEditorApp.Services.AnythingLLMService.GetWorkspacesAsync(CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\AnythingLLMService.cs:line 495
+2026-08-06T13:14:11.7704320Z	Warning	TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator	Failed to query AnythingLLM workspaces for project: C4B sandbox	EX:System.Net.Http.HttpRequestException: No connection could be made because the target machine actively refused it. (localhost:3001)
+ ---> System.Net.Sockets.SocketException (10061): No connection could be made because the target machine actively refused it.
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at TestCaseEditorApp.Services.AnythingLLMService.GetWorkspacesAsync(CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\Services\AnythingLLMService.cs:line 495
+   at TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators.OpenProjectMediator.OpenProjectFileAsync(String filePath) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\OpenProject\Mediators\OpenProjectMediator.cs:line 299
+2026-08-06T13:14:11.7759605Z	Information	App	[RecentFiles] AddRecentFile called with: C:\Users\e10653214\Test Case Editor Projects\C4B sandbox.tcex.json
+2026-08-06T13:14:11.7780890Z	Information	App	[RecentFiles] Current count before: 10
+2026-08-06T13:14:11.7814754Z	Information	App	[RecentFiles] Current count after: 10
+2026-08-06T13:14:11.7832917Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B sandbox.tcex.json
+2026-08-06T13:14:11.7884780Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-08-06T13:14:11.7900309Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B Test workshop.tcex.json
+2026-08-06T13:14:11.7916841Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B TL Project.tcex.json
+2026-08-06T13:14:11.7934773Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level Project.tcex.json
+2026-08-06T13:14:11.7951555Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\Top Level C4B Project.tcex.json
+2026-08-06T13:14:11.7972608Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD-268C4B.tcex.json
+2026-08-06T13:14:11.7986248Z	Information	App	[RequirementAnalysisService] Workspace context set to: C4B sandbox
+2026-08-06T13:14:11.8000388Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Desktop\testing import\CMP-6000.tcex.json
+2026-08-06T13:14:11.8017765Z	Information	App	[RequirementAnalysisService] Project workspace context set to 'C4B sandbox'. RAG sync deferred until explicitly requested.
+2026-08-06T13:14:11.8033659Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\Decagon.tcex.json
+2026-08-06T13:14:11.8052989Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Desktop\testing import\RTU-42XX.tcex.json
+2026-08-06T13:14:17.5110236Z	Information	App	[AnythingLLM] Service not available - no endpoints responded
+2026-08-06T13:14:17.5133580Z	Information	App	[AnythingLLM] Availability check result: False
+2026-08-06T13:14:17.5153245Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=False, Starting=False, Message=AnythingLLM not detected, attempting to start...
+2026-08-06T13:14:17.5171911Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: False, Starting: False
+2026-08-06T13:14:17.6094413Z	Information	App	[AnythingLLM] Service not available - no endpoints responded
+2026-08-06T13:14:17.6118480Z	Information	App	[AnythingLLM] Availability check result: False
+2026-08-06T13:14:17.6142291Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=False, Starting=True, Message=Starting AnythingLLM application...
+2026-08-06T13:14:17.6159701Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: False, Starting: True
+2026-08-06T13:14:21.2510537Z	Information	App	[AnythingLLM] Service not available - no endpoints responded
+2026-08-06T13:14:21.2649368Z	Information	App	[AnythingLLM] Service not available - no endpoints responded
+2026-08-06T13:14:21.2669907Z	Information	App	[AnythingLLM] Availability check result: False
+2026-08-06T13:14:21.2687527Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=False, Starting=True, Message=AnythingLLM started, waiting for service initialization...
+2026-08-06T13:14:21.2704333Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: False, Starting: True
+2026-08-06T13:14:34.3438047Z	Information	App	[AnythingLLM] Service not available - no endpoints responded
+2026-08-06T13:14:34.3460803Z	Information	App	[AnythingLLM] Waiting for AnythingLLM service... (25/60s)
+2026-08-06T13:14:46.4239855Z	Information	App	[AnythingLLM] Service not available - no endpoints responded
+2026-08-06T13:14:46.4261724Z	Information	App	[AnythingLLM] Availability check result: False
+2026-08-06T13:14:46.4284849Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=False, Starting=False, Message=Waiting for AnythingLLM service... (25/60s)
+2026-08-06T13:14:46.4302156Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: False, Starting: False
+2026-08-06T13:14:47.9333207Z	Information	App	[AnythingLLM] Service not available - no endpoints responded
+2026-08-06T13:15:02.0046621Z	Information	App	[AnythingLLM] Service not available - no endpoints responded
+2026-08-06T13:15:16.5841310Z	Information	App	[AnythingLLM] Service not available - no endpoints responded
+2026-08-06T13:15:19.5866578Z	Warning	TestCaseEditorApp.App	AnythingLLM auto-start failed: AnythingLLM failed to start within 60 seconds
+2026-08-06T13:15:23.4237518Z	Information	App	[ServiceMonitor] MEDIATOR DEBUG: NotifyStatusChange for AnythingLLM - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-06T13:15:23.4261061Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-06T13:15:23.4282443Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-06T13:15:23.4304310Z	Information	App	[ServiceMonitor] AnythingLLM status changed - Available: True, Message: AnythingLLM service is available
