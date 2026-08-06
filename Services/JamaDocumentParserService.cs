@@ -1558,52 +1558,30 @@ namespace TestCaseEditorApp.Services
 
             if (sourceStage.Contains("ATP", StringComparison.OrdinalIgnoreCase))
             {
-                // ATP documents often contain procedural or measurement-oriented prose that should not be
-                // promoted merely because it contains a few keywords. Keep the ATP gate conservative so
-                // only stronger requirement-like clauses reach the deterministic post-filter.
-                var hasMeaningfulVerificationShape = HasStrongAtpRequirementEvidence(normalized) &&
-                    (hasModalVerb || hasActionVerb || hasSystemIndicator || hasConstraintIndicator);
-
-                if (hasMeaningfulVerificationShape)
-                {
-                    return new LocalCandidatePromotionDecision(true, "accepted-atp-meaningful-shape");
-                }
-
-                var hasStrongAtpTechnicalSignal = hasConstraintIndicator && (hasActionVerb || hasSystemIndicator || hasAtrTechnicalRequirementSignal);
-                var hasNormativeObligation = hasModalVerb && (hasConstraintIndicator || hasActionVerb || hasAtrTechnicalRequirementSignal);
-                var atpTechnicalSignalCount = 0;
-                if (hasModalVerb) atpTechnicalSignalCount++;
-                if (hasConstraintIndicator) atpTechnicalSignalCount++;
-                if (hasActionVerb) atpTechnicalSignalCount++;
-                if (hasSystemIndicator) atpTechnicalSignalCount++;
-                if (hasAtrTechnicalRequirementSignal) atpTechnicalSignalCount++;
-
-                var hasStrongQuantitativeConstraint = hasConstraintIndicator
-                    || LooksLikeExplicitEquipmentConstraintClause(normalized)
-                    || Regex.IsMatch(normalized, @"\b(?:within\s+the\s+range|at\s+least|at\s+most|less\s+than|greater\s+than|logic\s+(?:low|high)|\+/-|between)\b", RegexOptions.IgnoreCase);
-                var hasStrongOperationalIntent = hasModalVerb &&
-                    (hasStrongQuantitativeConstraint || hasActionVerb || hasSystemIndicator || hasAtrTechnicalRequirementSignal || LooksLikeVerificationStyleClause(normalized));
+                // ATP handling here is intentionally broad-harvest: preserve plausible technical candidates
+                // and let downstream deterministic qualification plus user selection perform strict filtering.
                 var isProceduralHeading = Regex.IsMatch(normalized, @"\b(?:procedure|procedural|setup|sequence|objective|verification)\b", RegexOptions.IgnoreCase)
                     || Regex.IsMatch(normalized, @"\btest\s+(?:condition|conditions|procedure|procedures|setup|sequence|objective|verification)\b", RegexOptions.IgnoreCase);
                 var isSectionLabelLike = normalized.Length < 90 && (normalized.Contains("test condition", StringComparison.OrdinalIgnoreCase) || normalized.Contains("test procedure", StringComparison.OrdinalIgnoreCase) || normalized.Contains("verification", StringComparison.OrdinalIgnoreCase));
-                var requiresStrongTechnicalContext = hasConstraintIndicator && (hasActionVerb || hasSystemIndicator || hasAtrTechnicalRequirementSignal);
-                var hasStrongAtpRequirementShape = HasStrongAtpRequirementEvidence(normalized);
-                var passed = hasStrongAtpRequirementShape &&
-                    (hasModalVerb || hasConstraintIndicator || hasActionVerb || hasSystemIndicator || hasAtrTechnicalRequirementSignal);
 
                 if (isProceduralHeading || isSectionLabelLike)
                 {
                     return new LocalCandidatePromotionDecision(false, "atp-procedural-heading-reject");
                 }
 
-                if (requiresStrongTechnicalContext && !hasModalVerb)
-                {
-                    return new LocalCandidatePromotionDecision(false, "atp-nonmodal-technical-context-reject");
-                }
+                var hasStrongAtpEvidence = HasStrongAtpRequirementEvidence(normalized);
+                var hasBroadHarvestShape = LooksLikeHarvestableTechnicalCandidate(normalized)
+                    || LooksLikeVerificationStyleClause(normalized)
+                    || LooksLikeHighConfidenceTechnicalClause(normalized)
+                    || LooksLikeExplicitEquipmentConstraintClause(normalized)
+                    || LooksLikeGeneralObligationClause(normalized)
+                    || (score >= 3 && (hasConstraintIndicator || hasActionVerb || hasSystemIndicator || hasAtrTechnicalRequirementSignal));
+
+                var passed = hasStrongAtpEvidence || hasBroadHarvestShape;
 
                 return new LocalCandidatePromotionDecision(
                     passed,
-                    passed ? "accepted-atp-conservative-gate" : $"atp-conservative-gate-fail:score={score}:signals={atpTechnicalSignalCount}");
+                    passed ? "accepted-atp-broad-harvest" : $"atp-broad-harvest-fail:score={score}");
             }
 
             if (sourceStage.Contains("numbered", StringComparison.OrdinalIgnoreCase))
