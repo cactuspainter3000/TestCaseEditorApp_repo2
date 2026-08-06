@@ -1083,18 +1083,95 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         public async Task<int> GetCurrentProjectIdAsync()
         {
             var currentWorkspace = _workspaceContext.CurrentWorkspace;
-            
-            if (!string.IsNullOrEmpty(currentWorkspace?.JamaProject))
+
+            if (currentWorkspace == null)
             {
-                // First try parsing as numeric ID (new format)
+                return -1;
+            }
+
+            if (!string.IsNullOrEmpty(currentWorkspace.JamaProject))
+            {
                 if (int.TryParse(currentWorkspace.JamaProject, out var projectId) && projectId > 0)
                 {
                     return projectId;
                 }
             }
-            
-            await Task.CompletedTask;
-            return -1; // No valid project ID
+
+            if (currentWorkspace.JamaProjectId.HasValue && currentWorkspace.JamaProjectId.Value > 0)
+            {
+                return currentWorkspace.JamaProjectId.Value;
+            }
+
+            if (!string.IsNullOrEmpty(currentWorkspace.JamaTestPlan) && int.TryParse(currentWorkspace.JamaTestPlan, out var testPlanId) && testPlanId > 0)
+            {
+                return testPlanId;
+            }
+
+            var candidateNames = new[]
+            {
+                currentWorkspace.JamaProjectName,
+                currentWorkspace.JamaTestPlan,
+                currentWorkspace.JamaProject
+            }
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+            if (candidateNames.Count > 0 && _jamaConnectService.IsConfigured)
+            {
+                try
+                {
+                    var projects = await _jamaConnectService.GetProjectsAsync();
+                    var matchingProject = projects.FirstOrDefault(project =>
+                        candidateNames.Any(candidate =>
+                            string.Equals(project.Name, candidate, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(project.Key, candidate, StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(project.Id.ToString(), candidate, StringComparison.OrdinalIgnoreCase)));
+
+                    if (matchingProject != null)
+                    {
+                        return matchingProject.Id;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[RequirementsMediator] Failed to resolve current project ID from workspace candidates: {Candidates}", string.Join(", ", candidateNames));
+                }
+            }
+
+            var configuredProjectId = TryResolveConfiguredJamaProjectId();
+            if (configuredProjectId.HasValue)
+            {
+                return configuredProjectId.Value;
+            }
+
+            return -1;
+        }
+
+        private int? TryResolveConfiguredJamaProjectId()
+        {
+            var envProjectId = (Environment.GetEnvironmentVariable("JAMA_PROJECT_ID") ?? string.Empty).Trim();
+            if (int.TryParse(envProjectId, out var parsedEnvProjectId) && parsedEnvProjectId > 0)
+            {
+                return parsedEnvProjectId;
+            }
+
+            try
+            {
+                var settingsService = App.ServiceProvider?.GetService(typeof(IUserSettingsService)) as IUserSettingsService;
+                var settingsProjectId = settingsService?.LoadSettings()?.JamaProjectId?.Trim();
+                if (int.TryParse(settingsProjectId, out var parsedSettingsProjectId) && parsedSettingsProjectId > 0)
+                {
+                    return parsedSettingsProjectId;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "[RequirementsMediator] Could not read configured Jama project ID fallback");
+            }
+
+            return null;
         }
 
         public void UpdateProjectContext(string? projectName)
