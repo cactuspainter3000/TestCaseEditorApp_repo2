@@ -1,0 +1,206 @@
+﻿2026-08-03T16:38:24.2911419Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-03T16:38:24.3226608Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-03T16:38:24.3771199Z	Information	App	[OllamaProcessManager] Environment variables configured: LOAD_TIMEOUT=10m, KEEP_ALIVE=20m
+2026-08-03T16:38:24.7062080Z	Information	App	[OllamaProcessManager] ✅ Ollama is running and healthy
+2026-08-03T16:38:24.7211099Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-03T16:38:24.7249580Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-03T16:38:24.7281438Z	Information	App	[OllamaEmbedding] Initialized with model: mxbai-embed-large:335m-v1-fp16, dimensions: 1024
+2026-08-03T16:38:24.7350018Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Service initialized with storage path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\DocumentIndexes
+2026-08-03T16:38:24.7448770Z	Information	TestCaseEditorApp.Services.SystemCapabilityDerivationService	SystemCapabilityDerivationService initialized with Template Form Architecture with taxonomy containing 14 categories
+2026-08-03T16:38:24.7547932Z	Information	App	[JamaConnect] FromConfiguration called
+2026-08-03T16:38:24.7562923Z	Information	App	[JamaConnect] Base URL: https://jama02.rockwellcollins.com/contour
+2026-08-03T16:38:24.7577206Z	Information	App	[JamaConnect] API Token: NOT SET
+2026-08-03T16:38:24.7593279Z	Information	App	[JamaConnect] Client ID: hpytk1ocbt0p01u
+2026-08-03T16:38:24.7607221Z	Information	App	[JamaConnect] Client Secret: SET
+2026-08-03T16:38:24.7625578Z	Information	App	[JamaConnect] Creating service with OAuth
+2026-08-03T16:38:24.7646746Z	Information	App	[JamaConnect] OAuth constructor - Base URL: https://jama02.rockwellcollins.com/contour
+2026-08-03T16:38:24.7661755Z	Information	App	[JamaConnect] OAuth constructor - Client ID: hpytk1ocbt0p01u
+2026-08-03T16:38:24.7678664Z	Information	App	[JamaConnect] OAuth constructor - Client Secret: SET
+2026-08-03T16:38:24.7698111Z	Information	App	[JamaConnect] OCR service configured for image text extraction
+2026-08-03T16:38:24.7797411Z	Information	App	[OllamaStatusMonitor] HTTP timeout configured: 8s
+2026-08-03T16:38:24.7816327Z	Information	App	[OllamaStatusMonitor] Max supported Ollama version: 0.5.13
+2026-08-03T16:38:24.7838184Z	Information	App	[JamaDocumentParser] Initialized with Template Form Architecture: Envelope=True, Quality=True, Compliance=True, ABTest=True, Telemetry=True, OllamaManager=True, OllamaMonitor=True
+2026-08-03T16:38:24.8015953Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-08-03T16:38:24.8059190Z	Information	App	[ServiceMonitor] MEDIATOR DEBUG: NotifyStatusChange for AnythingLLM - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-03T16:38:24.8088227Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-03T16:38:24.8163189Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-03T16:38:24.8200840Z	Information	App	[ServiceMonitor] AnythingLLM status changed - Available: True, Message: AnythingLLM service is available
+2026-08-03T16:38:24.8216697Z	Information	App	[AnythingLLMMediator] Broadcasting last known status via NotifyStatusUpdated: Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-03T16:38:24.8235067Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-03T16:38:24.8252244Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-03T16:38:24.8331237Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-08-03T16:38:24.8358284Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-08-03T16:38:24.8379007Z	Information	App	[AnythingLLM] Availability check result: True
+2026-08-03T16:38:24.8411880Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
+2026-08-03T16:38:24.8417037Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=True, Message=Checking AnythingLLM status...
+2026-08-03T16:38:24.8437411Z	Information	App	[AnythingLLM] Availability check result: True
+2026-08-03T16:38:24.8450054Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: True, Starting: True
+2026-08-03T16:38:24.8465873Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-08-03T16:38:24.8481660Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-03T16:38:24.8579398Z	Information	App	[RecentFiles] Load() called, path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\recent-files.json
+2026-08-03T16:38:24.8726170Z	Information	App	[RecentFiles] Loaded JSON: [
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B sandbox.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B Test workshop.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B TL Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Top Level C4B Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD-268C4B.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\CMP-6000.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Decagon.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\RTU-42XX.tcex.json"
+]
+2026-08-03T16:38:25.0916061Z	Information	App	[TesseractOCR] Initializing with tessdata path: C:\Users\e10653214\AppData\Local\Programs\Tesseract-OCR\tessdata
+2026-08-03T16:38:25.2509761Z	Information	App	[RecentFiles] Deserialized 10 files
+2026-08-03T16:38:25.3277440Z	Information	App	[RecentFiles] After filtering non-existent: 10 files
+2026-08-03T16:38:25.4308303Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-08-03T16:38:25.7359609Z	Information	App	[TesseractOCR] Tesseract OCR engine initialized successfully
+2026-08-03T16:38:25.7384407Z	Information	App	[JamaConnect] OCR engine availability: Available
+2026-08-03T16:38:25.9725907Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-08-03T16:38:26.7610349Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-03T16:38:26.7652351Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-03T16:38:47.1858927Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-08-03T16:38:47.3679811Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaProject field: '686' (null: False)
+2026-08-03T16:38:47.3704416Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaTestPlan field: 'QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution' (null: False)
+2026-08-03T16:38:47.3723691Z	Information	App	[Load] 🔍 JAMA DEBUG: ImportSource: 'Jama'
+2026-08-03T16:38:47.3757035Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Total GeneratedTestCases loaded: 0
+2026-08-03T16:38:47.3777569Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Requirements with GeneratedTestCases: 0/377
+2026-08-03T16:38:47.4479235Z	Information	App	[Save] 🔍 PERSISTENCE DEBUG: Serializing 0 total GeneratedTestCases
+2026-08-03T16:38:47.4504488Z	Information	App	[Save] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-08-03T16:38:47.4528799Z	Information	App	[Save] Workspace identity: Project='C4B sandbox.tcex', AnythingLLMName='C4B Sandbox', AnythingLLMSlug='c4b-sandbox', JamaProjectId=686, JamaProjectName='QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution'
+2026-08-03T16:38:47.5480950Z	Warning	WorkspaceService	[Save] Wrote fallback copies to: C:\Users\e10653214\AppData\Local\Temp\TestCaseEditorApp
+2026-08-03T16:38:47.5565946Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-08-03T16:38:47.5776443Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-08-03T16:38:47.6629032Z	Information	App	[RecentFiles] AddRecentFile called with: C:\Users\e10653214\Test Case Editor Projects\C4B sandbox.tcex.json
+2026-08-03T16:38:47.6655838Z	Information	App	[RecentFiles] Current count before: 10
+2026-08-03T16:38:47.6687249Z	Information	App	[RecentFiles] Current count after: 10
+2026-08-03T16:38:47.6709814Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B sandbox.tcex.json
+2026-08-03T16:38:47.6732601Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-08-03T16:38:47.6754287Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B Test workshop.tcex.json
+2026-08-03T16:38:47.6776493Z	Information	App	[RequirementAnalysisService] Workspace context set to: C4B sandbox
+2026-08-03T16:38:47.6792194Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B TL Project.tcex.json
+2026-08-03T16:38:47.6809081Z	Information	App	[RequirementAnalysisService] Project workspace context set to 'C4B sandbox'. RAG sync deferred until explicitly requested.
+2026-08-03T16:38:47.6825588Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level Project.tcex.json
+2026-08-03T16:38:47.6856567Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\Top Level C4B Project.tcex.json
+2026-08-03T16:38:47.6879200Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD-268C4B.tcex.json
+2026-08-03T16:38:47.6897881Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Desktop\testing import\CMP-6000.tcex.json
+2026-08-03T16:38:47.6923171Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\Decagon.tcex.json
+2026-08-03T16:38:47.6948508Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Desktop\testing import\RTU-42XX.tcex.json
+2026-08-03T16:38:51.4988993Z	Information	App	[JamaConnect] Getting OAuth token from: https://jama02.rockwellcollins.com/contour/rest/oauth/token
+2026-08-03T16:38:51.5036595Z	Information	App	[JamaConnect] Sending OAuth request...
+2026-08-03T16:38:52.0815592Z	Information	App	[JamaConnect] OAuth response: OK
+2026-08-03T16:38:52.0868228Z	Information	App	[JamaConnect] OAuth token obtained successfully (eyJraWQiOiJvYXV0aEtl...)
+2026-08-03T16:38:52.0892585Z	Information	App	[JamaConnect] ✅ OAuth steel trap validation passed!
+2026-08-03T16:38:52.0920230Z	Information	App	[JamaConnect] Starting cookbook-compliant attachment discovery for project 686
+2026-08-03T16:39:09.6484161Z	Information	App	[JamaConnect] Found 1415 items in project 686, checking for attachments (parallel, max 5 concurrent)
+2026-08-03T16:39:10.4189239Z	Information	App	[JamaConnect] Item 19807205 (MFD268C4B-Artifact-1221) has 1 attachment(s) - Total: 1
+2026-08-03T16:39:10.4422371Z	Information	App	[JamaConnect] Item 19830714 (MFD268C4B-Artifact-1223) has 1 attachment(s) - Total: 2
+2026-08-03T16:39:10.4461302Z	Information	App	[JamaConnect] Item 19830484 (MFD268C4B-Artifact-1222) has 1 attachment(s) - Total: 3
+2026-08-03T16:39:10.4484366Z	Information	App	[JamaConnect] Item 19849045 (MFD268C4B-Artifact-1224) has 1 attachment(s) - Total: 4
+2026-08-03T16:39:10.5424892Z	Information	App	[JamaConnect] Item 19904966 (MFD268C4B-Artifact-1226) has 1 attachment(s) - Total: 5
+2026-08-03T16:39:16.5532299Z	Information	App	[JamaConnect] Item 19833348 (MFD268C4B-TXT-6) has 1 attachment(s) - Total: 6
+2026-08-03T16:39:46.2408770Z	Information	App	[JamaConnect] Attachment discovery complete: 6 attachments found across 6 items
+2026-08-03T16:39:57.3270224Z	Information	App	[JamaConnect] Downloaded attachment 19830718
+2026-08-03T16:39:58.0078028Z	Information	App	[DirectRag] Starting PDF text extraction from 65 pages (1192720 bytes)
+2026-08-03T16:40:00.4620113Z	Information	App	[DirectRag] Successfully extracted 158581 characters from 65 pages
+2026-08-03T16:40:00.4934722Z	Information	App	[JamaDocumentParser] File-type cleansing applied (PDF Document): 158581 -> 123274 chars
+2026-08-03T16:40:12.9353351Z	Information	TestCaseEditorApp.Services.Extraction.DocumentRequirementExtractionService	[ExtractionFoundation] 946-4C45-001A (3).pdf: 1568 blocks, 713 candidates, 8 accepted by deterministic harvest
+2026-08-03T16:40:13.0973803Z	Warning	TestCaseEditorApp.Services.ATPStepParser	Step reduction applied: 1028 -> 180 (max 180)
+2026-08-03T16:40:13.5558922Z	Information	App	[LocalExtraction] Stage 1 raw clause extract: +4 candidates (total 4)
+2026-08-03T16:40:13.5584350Z	Information	App	[LocalExtraction] Stage 2 ATP step parsing: +2 candidates (total 6)
+2026-08-03T16:40:13.5607266Z	Information	App	[LocalExtraction] Stage 3 structured line recovery: +0 candidates (total 6)
+2026-08-03T16:40:13.5719381Z	Information	App	[LocalExtraction] Stage 4 numbered step fallback: +142 candidates (total 148)
+2026-08-03T16:40:13.5796739Z	Information	App	[LocalExtraction] Stage 5 PDF verification recovery: +28 candidates (total 176)
+2026-08-03T16:40:21.0916954Z	Information	App	[LocalExtraction] Candidate outcome histogram for 946-4C45-001A (3).pdf: accepted:requirement-created=143; deterministic-post-filter-reject:qualification-failed:Rejected Candidate:score=3=7; promotion-gate-reject:default-gate-fail:score=2:modal=False:signals=2=7; deterministic-post-filter-reject:qualification-failed:Rejected Candidate:score=2=4; promotion-gate-reject:default-gate-fail:score=3:modal=False:signals=2=4; promotion-gate-reject:default-gate-fail:score=1:modal=False:signals=1=3; promotion-gate-reject:default-gate-fail:score=2:modal=False:signals=1=2; promotion-gate-reject:document-structure-narrative=2; deterministic-post-filter-reject:qualification-failed:Derived Requirement Candidate:score=5=1; promotion-gate-reject:default-gate-fail:score=3:modal=False:signals=1=1; promotion-gate-reject:default-gate-fail:score=4:modal=False:signals=1=1; promotion-gate-reject:default-gate-fail:score=4:modal=False:signals=2=1
+2026-08-03T16:40:21.0941984Z	Information	App	[LocalExtraction] Candidate stage-outcome histogram for 946-4C45-001A (3).pdf: Stage 4 numbered step fallback -> accepted:requirement-created=136; Stage 5 PDF verification recovery -> promotion-gate-reject:default-gate-fail:score=2:modal=False:signals=2=7; Stage 5 PDF verification recovery -> accepted:requirement-created=4; Stage 5 PDF verification recovery -> promotion-gate-reject:default-gate-fail:score=3:modal=False:signals=2=4; Stage 4 numbered step fallback -> deterministic-post-filter-reject:qualification-failed:Rejected Candidate:score=2=3; Stage 4 numbered step fallback -> deterministic-post-filter-reject:qualification-failed:Rejected Candidate:score=3=3; Stage 5 PDF verification recovery -> deterministic-post-filter-reject:qualification-failed:Rejected Candidate:score=3=3; Stage 5 PDF verification recovery -> promotion-gate-reject:default-gate-fail:score=1:modal=False:signals=1=3; Stage 1 raw clause extract -> accepted:requirement-created=2; Stage 5 PDF verification recovery -> promotion-gate-reject:default-gate-fail:score=2:modal=False:signals=1=2; Stage 5 PDF verification recovery -> promotion-gate-reject:document-structure-narrative=2; Stage 1 raw clause extract -> deterministic-post-filter-reject:qualification-failed:Rejected Candidate:score=2=1; Stage 1 raw clause extract -> deterministic-post-filter-reject:qualification-failed:Rejected Candidate:score=3=1; Stage 2 ATP step parsing -> accepted:requirement-created=1; Stage 2 ATP step parsing -> deterministic-post-filter-reject:qualification-failed:Derived Requirement Candidate:score=5=1; Stage 5 PDF verification recovery -> promotion-gate-reject:default-gate-fail:score=3:modal=False:signals=1=1; Stage 5 PDF verification recovery -> promotion-gate-reject:default-gate-fail:score=4:modal=False:signals=1=1; Stage 5 PDF verification recovery -> promotion-gate-reject:default-gate-fail:score=4:modal=False:signals=2=1
+2026-08-03T16:40:21.0966538Z	Information	App	[LocalExtraction] Extracted 143 requirements from 946-4C45-001A (3).pdf using 176 staged candidates; deterministic post-filter removed 12 (potential 0, derived 1, rejected 11, heading 0, informational 0, other 0); numeric-prefix dedupe collisions 0
+2026-08-03T16:41:07.3800833Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-08-03T16:41:07.3979301Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-08-03T16:41:07.4488703Z	Information	App	[RAG DIAGNOSTICS] Found workspaces: 'FOMAX8', 'CMP-6250', 'CMP-6000', 'new CMP', 'new cmp 6250', 'Common Requirements Workspace', 'Common Requirements Project', 'Decagon', 'RTU-42XX', 'decagon 3', 'Decagon 5', 'Decagon 6', 'Decagon Prime', 'test2', 'great', 'Decagon Latest', 'May 6th - test 1', 'May 6th - test 2', 'test one', 'testing the way', 'test a new', 'what is up', 'new testing', 'CDU-7000', 'testing yet again', 'new workspace 11:35', 'Testing RAG', 'New Testing RAG', 'Rag Testing 1', 'Testing RAG version 3', 'Testing RAG version 4', 'Testing Rag version6', 'Testing Rag version7', 'testing RAG version 8', 'testing RAG again', 'embedding test', 'ding', 'new logging', 'logging test', 'logging at its finest', 'latest logging adventure', 'log with embed', '7b1095a', 'blah', 'this is the one', 'Matrix', 'Home Again', 'New Edition', 'embed is the way', 'Hope', 'Analysis 1', 'MFDC4B CCA', 'MFD268C4B Top Level', 'C4B TL', 'testing a new interface', 'new interface test', 'C4B Testing', 'C4B Test workshop', 'C4B Sandbox'
+2026-08-03T16:41:07.4541340Z	Information	App	[RAG DIAGNOSTICS] Searching for workspace matching project: 'C4B sandbox'...
+2026-08-03T16:41:07.4597128Z	Information	App	[RAG] Using existing workspace: C4B Sandbox
+2026-08-03T16:41:07.4634390Z	Information	App	[AnythingLLM] Configuring optimal settings for workspace 'c4b-sandbox' using official documentation guidelines
+2026-08-03T16:41:07.4828405Z	Information	App	[AnythingLLM] Using chat model 'phi4-mini:3.8b-q4_K_M' for workspace 'c4b-sandbox'
+2026-08-03T16:41:07.5037725Z	Information	App	[AnythingLLM] ✅ Successfully configured workspace settings for 'c4b-sandbox' using POST: http://localhost:3001/api/v1/workspace/c4b-sandbox/update
+2026-08-03T16:41:07.5061791Z	Information	App	[AnythingLLM] 🔍 DEBUG: API Response: {"workspace":{"id":79,"name":"C4B Sandbox","slug":"c4b-sandbox","vectorTag":null,"createdAt":"2026-07-09T15:28:09.377Z","openAiTemp":0,"openAiHistory":20,"lastUpdatedAt":"2026-07-09T15:28:09.377Z","op
+2026-08-03T16:41:07.5097030Z	Information	App	[RAG] Successfully updated workspace settings for: C4B Sandbox
+2026-08-03T16:41:07.6313177Z	Information	App	[AnythingLLM] Created new thread '737dbfb7-824f-449f-ba91-b6060b770a6f' in workspace 'c4b-sandbox'
+2026-08-03T16:41:41.2757026Z	Information	App	[AnythingLLM] Streaming response ended without [DONE] token. Workspace=c4b-sandbox Thread=737dbfb7-824f-449f-ba91-b6060b770a6f Lines=354 DataLines=177 Length=884 BraceBalance=1:1 BracketBalance=1:1 Imbalanced=False
+2026-08-03T16:41:41.2801353Z	Information	App	[RAG] Successfully analyzed requirement LOC-19830718-001 using workspace 'c4b-sandbox' in 33.9s
+2026-08-03T16:41:41.3453150Z	Information	App	[RequirementAnalysisService] Analysis JSON normalized for LOC-19830718-001. PreflightDiagnostics=Length=884, ParseState=InvalidJson(JsonReaderException), Snippet=```json\r\n{\r\n  "OriginalQualityScore": 7,\r\n  "HallucinationCheck": false,\r\n  "Issues": ["Lacks detailed description of Table 2 - Critical Test Order", "No supplemental information provided with this requirement"],\r\n  "Rec, OriginalLength=884, NormalizedLength=870, LengthDelta=14
+2026-08-03T16:41:41.3490741Z	Information	App	[JsonParser] CanParse=True, payloadLength=870
+2026-08-03T16:41:41.3515079Z	Information	App	[ParserManager] Using JSON parser for LOC-19830718-001
+2026-08-03T16:41:41.3613359Z	Information	App	[JSONParser] Root properties: OriginalQualityScore, HallucinationCheck, Issues, Recommendations, ImprovedRequirement, FreeformFeedback
+2026-08-03T16:41:41.3643990Z	Information	App	[JSONParser] Successfully parsed complete analysis for LOC-19830718-001: Score=7, Issues=0, Recommendations=0, HasRewrite=True
+2026-08-03T16:41:41.3667096Z	Information	App	[ParserManager] Successfully parsed LOC-19830718-001 using JSON parser. Route=JSON:success
+2026-08-03T16:41:41.5043693Z	Information	App	[AnythingLLM] Created new thread '39f6d243-3b7c-4b6f-bdae-b2209973c239' in workspace 'c4b-sandbox'
+2026-08-03T16:41:42.3149023Z	Information	App	[AnythingLLM] Successfully deleted thread '737dbfb7-824f-449f-ba91-b6060b770a6f' from workspace 'c4b-sandbox'
+2026-08-03T16:42:06.5752010Z	Information	App	[AnythingLLM] Streaming response ended without [DONE] token. Workspace=c4b-sandbox Thread=39f6d243-3b7c-4b6f-bdae-b2209973c239 Lines=336 DataLines=168 Length=796 BraceBalance=2:2 BracketBalance=2:2 Imbalanced=False
+2026-08-03T16:42:06.5795697Z	Information	App	[RAG] Successfully analyzed requirement LOC-19830718-004 using workspace 'c4b-sandbox' in 25.1s
+2026-08-03T16:42:06.5991575Z	Information	App	[RequirementAnalysisService] Analysis JSON normalized for LOC-19830718-004. PreflightDiagnostics=Length=796, ParseState=InvalidJson(JsonReaderException), Snippet=```json\n{\n  "OriginalQualityScore": 4,\n  "HallucinationCheck": false,\n  "Issues": [\n    {\n      "IssueID": "LOC-19830718-004",\n      "Description": "Requirement lacks specificity regarding the correlation between operati, OriginalLength=796, NormalizedLength=784, LengthDelta=12
+2026-08-03T16:42:06.6012933Z	Information	App	[JsonParser] CanParse=True, payloadLength=784
+2026-08-03T16:42:06.6034695Z	Information	App	[ParserManager] Using JSON parser for LOC-19830718-004
+2026-08-03T16:42:06.6060326Z	Information	App	[JSONParser] Root properties: OriginalQualityScore, HallucinationCheck, Issues, Recommendations, ImprovedRequirement, FreeformFeedback
+2026-08-03T16:42:06.6081766Z	Information	App	[JSONParser] Successfully parsed complete analysis for LOC-19830718-004: Score=4, Issues=1, Recommendations=0, HasRewrite=True
+2026-08-03T16:42:06.6099184Z	Information	App	[ParserManager] Successfully parsed LOC-19830718-004 using JSON parser. Route=JSON:success
+2026-08-03T16:42:06.7128743Z	Information	App	[AnythingLLM] Created new thread '0b4bcac5-574b-446b-bd57-a7fd10c6f549' in workspace 'c4b-sandbox'
+2026-08-03T16:42:07.6001217Z	Information	App	[AnythingLLM] Successfully deleted thread '39f6d243-3b7c-4b6f-bdae-b2209973c239' from workspace 'c4b-sandbox'
+2026-08-03T16:43:44.3437412Z	Information	App	[AnythingLLM] Streaming response ended without [DONE] token. Workspace=c4b-sandbox Thread=0b4bcac5-574b-446b-bd57-a7fd10c6f549 Lines=634 DataLines=317 Length=1533 BraceBalance=5:5 BracketBalance=3:3 Imbalanced=False
+2026-08-03T16:43:44.3480634Z	Information	App	[RAG] Successfully analyzed requirement LOC-19830718-005 using workspace 'c4b-sandbox' in 97.7s
+2026-08-03T16:43:44.3732203Z	Information	App	[RequirementAnalysisService] Analysis JSON normalized for LOC-19830718-005. PreflightDiagnostics=Length=1533, ParseState=InvalidJson(JsonReaderException), Snippet=```json\n{\n    "OriginalQualityScore": 3,\n    "HallucinationCheck": false,\n    "Issues": [\n        {\n            "Type": "Clarity",\n            "Description": "The requirement lacks a clear actor and does not specify what, OriginalLength=1533, NormalizedLength=1521, LengthDelta=12
+2026-08-03T16:43:44.3753946Z	Information	App	[JsonParser] CanParse=True, payloadLength=1521
+2026-08-03T16:43:44.3776184Z	Information	App	[ParserManager] Using JSON parser for LOC-19830718-005
+2026-08-03T16:43:44.3806100Z	Information	App	[JSONParser] Root properties: OriginalQualityScore, HallucinationCheck, Issues, Recommendations, ImprovedRequirement
+2026-08-03T16:43:44.3830791Z	Information	App	[JSONParser] Successfully parsed complete analysis for LOC-19830718-005: Score=3, Issues=2, Recommendations=2, HasRewrite=True
+2026-08-03T16:43:44.3850871Z	Information	App	[ParserManager] Successfully parsed LOC-19830718-005 using JSON parser. Route=JSON:success
+2026-08-03T16:43:44.4853517Z	Information	App	[AnythingLLM] Created new thread '26e7bc9c-ea73-4aab-a7f0-1ba83ea5c7bb' in workspace 'c4b-sandbox'
+2026-08-03T16:43:45.3718726Z	Information	App	[AnythingLLM] Successfully deleted thread '0b4bcac5-574b-446b-bd57-a7fd10c6f549' from workspace 'c4b-sandbox'
+2026-08-03T16:45:17.6043672Z	Information	App	[AnythingLLM] Streaming response ended without [DONE] token. Workspace=c4b-sandbox Thread=26e7bc9c-ea73-4aab-a7f0-1ba83ea5c7bb Lines=592 DataLines=296 Length=1490 BraceBalance=3:3 BracketBalance=3:3 Imbalanced=False
+2026-08-03T16:45:17.6084161Z	Information	App	[RAG] Successfully analyzed requirement LOC-19830718-010 using workspace 'c4b-sandbox' in 93.2s
+2026-08-03T16:45:17.6284761Z	Information	App	[RequirementAnalysisService] Analysis JSON normalized for LOC-19830718-010. PreflightDiagnostics=Length=1490, ParseState=InvalidJson(JsonReaderException), Snippet=```json\n{\n    "OriginalQualityScore": 3,\n    "HallucinationCheck": "<NO_FABRICATION>",\n    "Issues": [\n        {\n            "Category": "Completeness",\n            "Severity": "High",\n            "Description": "Require, OriginalLength=1490, NormalizedLength=1478, LengthDelta=12
+2026-08-03T16:45:17.6311505Z	Information	App	[JsonParser] CanParse=True, payloadLength=1478
+2026-08-03T16:45:17.6333594Z	Information	App	[ParserManager] Using JSON parser for LOC-19830718-010
+2026-08-03T16:45:17.6356684Z	Information	App	[JSONParser] Root properties: OriginalQualityScore, HallucinationCheck, Issues, Recommendations, ImprovedRequirement, FreeformFeedback
+2026-08-03T16:45:17.6379241Z	Information	App	[JSONParser] Successfully parsed complete analysis for LOC-19830718-010: Score=3, Issues=1, Recommendations=1, HasRewrite=True
+2026-08-03T16:45:17.6403250Z	Information	App	[ParserManager] Successfully parsed LOC-19830718-010 using JSON parser. Route=JSON:success
+2026-08-03T16:45:17.7258127Z	Information	App	[AnythingLLM] Created new thread 'f9f7b64f-0abe-4500-912c-7a0294461b79' in workspace 'c4b-sandbox'
+2026-08-03T16:45:18.6314997Z	Information	App	[AnythingLLM] Successfully deleted thread '26e7bc9c-ea73-4aab-a7f0-1ba83ea5c7bb' from workspace 'c4b-sandbox'
+2026-08-03T16:46:40.5247524Z	Information	App	[AnythingLLM] Streaming response ended without [DONE] token. Workspace=c4b-sandbox Thread=f9f7b64f-0abe-4500-912c-7a0294461b79 Lines=324 DataLines=162 Length=692 BraceBalance=2:2 BracketBalance=2:2 Imbalanced=False
+2026-08-03T16:46:40.5286014Z	Information	App	[RAG] Successfully analyzed requirement LOC-19830718-012 using workspace 'c4b-sandbox' in 82.8s
+2026-08-03T16:46:40.5575975Z	Information	App	[RequirementAnalysisService] Analysis JSON normalized for LOC-19830718-012. PreflightDiagnostics=Length=692, ParseState=InvalidJson(JsonReaderException), Snippet=```json\n{\n  "OriginalQualityScore": 3,\n  "HallucinationCheck": "NO_FABRICATION",\n  "Issues": [\n    {\n      "Category": "Completeness, Clarity, Testability",\n      "Severity": "High"\n    }\n  ],\n  "Recommendations": [],\n  , OriginalLength=692, NormalizedLength=680, LengthDelta=12
+2026-08-03T16:46:40.5600560Z	Information	App	[JsonParser] CanParse=True, payloadLength=680
+2026-08-03T16:46:40.5626239Z	Information	App	[ParserManager] Using JSON parser for LOC-19830718-012
+2026-08-03T16:46:40.5649553Z	Information	App	[JSONParser] Root properties: OriginalQualityScore, HallucinationCheck, Issues, Recommendations, ImprovedRequirement, FreeformFeedback
+2026-08-03T16:46:40.5672139Z	Information	App	[JSONParser] Successfully parsed complete analysis for LOC-19830718-012: Score=3, Issues=1, Recommendations=0, HasRewrite=True
+2026-08-03T16:46:40.5698517Z	Information	App	[ParserManager] Successfully parsed LOC-19830718-012 using JSON parser. Route=JSON:success
+2026-08-03T16:46:40.6459690Z	Information	App	[AnythingLLM] Created new thread '1a084517-cdeb-4ae1-ad1b-ce7278b98116' in workspace 'c4b-sandbox'
+2026-08-03T16:46:41.5538241Z	Information	App	[AnythingLLM] Successfully deleted thread 'f9f7b64f-0abe-4500-912c-7a0294461b79' from workspace 'c4b-sandbox'
+2026-08-03T16:48:02.0621436Z	Warning	App	[AnythingLLM] Streaming response ended without [DONE] token. Workspace=c4b-sandbox Thread=1a084517-cdeb-4ae1-ad1b-ce7278b98116 Lines=298 DataLines=149 Length=682 BraceBalance=2:1 BracketBalance=1:2 Imbalanced=True
+2026-08-03T16:48:02.0775787Z	Information	App	[RAG] Successfully analyzed requirement LOC-19830718-013 using workspace 'c4b-sandbox' in 81.5s
+2026-08-03T16:48:02.1362856Z	Warning	App	[RequirementAnalysisService] Truncated JSON detected and recovered for LOC-19830718-013. PreflightDiagnostics=Length=682, ParseState=InvalidJson(JsonReaderException), Snippet=```json\n{\n    "OriginalQualityScore": 3,\n    "HallucinationCheck": "<NO_FABRICATION>",\n    "Issues": [\n        {\n            "Category": "Completeness",\n            "Severity": "High",\n            "Description": "The req, OriginalLength=682, RepairedLength=536, LengthDelta=146
+2026-08-03T16:48:02.1408428Z	Information	App	[JsonParser] CanParse=True, payloadLength=536
+2026-08-03T16:48:02.1449717Z	Information	App	[ParserManager] Using JSON parser for LOC-19830718-013
+2026-08-03T16:48:02.1496230Z	Information	App	[JSONParser] Root properties: OriginalQualityScore, HallucinationCheck, Issues
+2026-08-03T16:48:02.1538667Z	Information	App	[JSONParser] Successfully parsed complete analysis for LOC-19830718-013: Score=3, Issues=1, Recommendations=0, HasRewrite=False
+2026-08-03T16:48:02.1579027Z	Information	App	[ParserManager] Successfully parsed LOC-19830718-013 using JSON parser. Route=JSON:success
+2026-08-03T16:48:02.3247957Z	Information	App	[AnythingLLM] Created new thread '1c0f6bad-8b7b-4629-9166-9b205ac7d562' in workspace 'c4b-sandbox'
+2026-08-03T16:48:03.2986274Z	Information	App	[AnythingLLM] Successfully deleted thread '1a084517-cdeb-4ae1-ad1b-ce7278b98116' from workspace 'c4b-sandbox'
+2026-08-03T16:50:32.2752640Z	Warning	App	[AnythingLLM] Streaming cancelled before [DONE], returning partial payload for recovery. Workspace=c4b-sandbox Thread=1c0f6bad-8b7b-4629-9166-9b205ac7d562 Length=4635
+2026-08-03T16:50:32.2779060Z	Warning	App	[AnythingLLM] Streaming response ended without [DONE] token. Workspace=c4b-sandbox Thread=1c0f6bad-8b7b-4629-9166-9b205ac7d562 Lines=1836 DataLines=918 Length=4635 BraceBalance=2:0 BracketBalance=14:0 Imbalanced=True
+2026-08-03T16:50:32.2895261Z	Information	App	[RAG] Successfully analyzed requirement LOC-19830718-014 using workspace 'c4b-sandbox' in 150.0s
+2026-08-03T16:50:32.3900002Z	Warning	TestCaseEditorApp.Services.Templates.ServiceComplianceWrapper	⚠️ Output validation failed for RequirementAnalysis.LOC-19830718-014. Score: 0.00
+2026-08-03T16:50:32.3953642Z	Warning	TestCaseEditorApp.Services.Templates.ServiceComplianceWrapper	⚠️ Compliance failure for RequirementAnalysis.LOC-19830718-014 - returning error (Score: 0.00)
+2026-08-03T16:50:32.4850110Z	Information	App	[RequirementAnalysisService] Attempting JSON repair for LOC-19830718-014
+2026-08-03T16:50:33.3254321Z	Information	App	[AnythingLLM] Successfully deleted thread '1c0f6bad-8b7b-4629-9166-9b205ac7d562' from workspace 'c4b-sandbox'
+2026-08-03T17:24:07.8383447Z	Warning	App	[AnythingLLM] Streaming response ended without [DONE] token. Workspace=c4b-sandbox Thread=none Lines=23492 DataLines=11746 Length=69600 BraceBalance=2:0 BracketBalance=95:0 Imbalanced=True
+2026-08-03T17:24:07.8628205Z	Warning	TestCaseEditorApp.Services.Templates.ServiceComplianceWrapper	⚠️ Output validation failed for RequirementAnalysis.LOC-19830718-014. Score: 0.00
+2026-08-03T17:24:07.8649294Z	Warning	TestCaseEditorApp.Services.Templates.ServiceComplianceWrapper	⚠️ Compliance failure for RequirementAnalysis.LOC-19830718-014 - returning error (Score: 0.00)
+2026-08-03T17:24:07.9153899Z	Error	App	[RequirementAnalysisService] Compliance validation did not pass for LOC-19830718-014. Violations=1, Score=0.00. Diagnostics=Violation[OutputValidation] Severity=Error Desc=Could not extract valid JSON from response. ResponseDiagnostics=Length=4635, ParseState=InvalidJson(JsonReaderException), Snippet=```json\n{\n  "OriginalQualityScore": 2,\n  "HallucinationCheck": "FABRICATED_DETAILS",\n  "Issues": [\n    {\n      "Category ( dynamically extracted from context and triage results above - input only, not output or process d. Rejecting response.
+2026-08-03T17:24:07.9302549Z	Error	App	[RequirementAnalysisService] Compliance validation failed for LOC-19830718-014: Compliance validation failed for requirement LOC-19830718-014. Score=0.00, Violations=1
+2026-08-03T17:24:07.9776626Z	Error	App	[RequirementAnalysisService] STREAMING GENERAL ERROR for requirement LOC-19830718-014
+System.InvalidOperationException: Compliance validation failed for requirement LOC-19830718-014. Score=0.00, Violations=1
+   at TestCaseEditorApp.MVVM.Domains.Requirements.Services.RequirementAnalysisService.ValidateResponseComplianceAsync(String rawResponse, String requirementItem, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\Requirements\Services\RequirementAnalysisService.cs:line 2250
+   at TestCaseEditorApp.MVVM.Domains.Requirements.Services.RequirementAnalysisService.AnalyzeRequirementWithStreamingAsync(Requirement requirement, Action`1 onPartialResult, Action`1 onProgressUpdate, CancellationToken cancellationToken) in C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\MVVM\Domains\Requirements\Services\RequirementAnalysisService.cs:line 270
+2026-08-03T17:24:07.9801271Z	Warning	TestCaseEditorApp.MVVM.Domains.Requirements.Services.RequirementAnalysisEngine	[AnalysisEngine] Analysis failed for LOC-19830718-014: Analysis failed: Compliance validation failed for requirement LOC-19830718-014. Score=0.00, Violations=1
+2026-08-03T17:24:07.9823741Z	Warning	TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.RequirementsMediator	[ANALYSIS_TRACE] MEDIATOR_FAIL_RESULT Attempt=adca91fd Requirement=LOC-19830718-014 Error=Analysis failed: Compliance validation failed for requirement LOC-19830718-014. Score=0.00, Violations=1
+2026-08-03T17:24:08.0658903Z	Information	App	[AnythingLLM] Created new thread 'd09c5296-c616-4503-b2ec-b22b03eb344b' in workspace 'c4b-sandbox'

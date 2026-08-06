@@ -1,0 +1,5 @@
+[08:14:54] Requirement Extraction Log
+------------------------------------------------------------------------
+[08:14:54] Started attachment search.
+[08:14:54] No active Jama project found.
+[08:14:57] Exporting analysis logs to diagnostics report.

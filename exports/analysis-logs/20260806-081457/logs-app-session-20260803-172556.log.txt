@@ -1,0 +1,92 @@
+﻿2026-08-03T17:25:56.7825033Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-03T17:25:56.8409116Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-03T17:25:56.9270001Z	Information	App	[OllamaProcessManager] Environment variables configured: LOAD_TIMEOUT=10m, KEEP_ALIVE=20m
+2026-08-03T17:25:57.4267334Z	Information	App	[OllamaProcessManager] ✅ Ollama is running and healthy
+2026-08-03T17:25:57.4443154Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-03T17:25:57.4504392Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-03T17:25:57.4552993Z	Information	App	[OllamaEmbedding] Initialized with model: mxbai-embed-large:335m-v1-fp16, dimensions: 1024
+2026-08-03T17:25:57.4682807Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Service initialized with storage path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\DocumentIndexes
+2026-08-03T17:25:57.4903615Z	Information	TestCaseEditorApp.Services.SystemCapabilityDerivationService	SystemCapabilityDerivationService initialized with Template Form Architecture with taxonomy containing 14 categories
+2026-08-03T17:25:57.5073361Z	Information	App	[JamaConnect] FromConfiguration called
+2026-08-03T17:25:57.5097135Z	Information	App	[JamaConnect] Base URL: https://jama02.rockwellcollins.com/contour
+2026-08-03T17:25:57.5133128Z	Information	App	[JamaConnect] API Token: NOT SET
+2026-08-03T17:25:57.5178285Z	Information	App	[JamaConnect] Client ID: hpytk1ocbt0p01u
+2026-08-03T17:25:57.5203486Z	Information	App	[JamaConnect] Client Secret: SET
+2026-08-03T17:25:57.5237675Z	Information	App	[JamaConnect] Creating service with OAuth
+2026-08-03T17:25:57.5293977Z	Information	App	[JamaConnect] OAuth constructor - Base URL: https://jama02.rockwellcollins.com/contour
+2026-08-03T17:25:57.5355713Z	Information	App	[JamaConnect] OAuth constructor - Client ID: hpytk1ocbt0p01u
+2026-08-03T17:25:57.5406677Z	Information	App	[JamaConnect] OAuth constructor - Client Secret: SET
+2026-08-03T17:25:57.5440439Z	Information	App	[JamaConnect] OCR service configured for image text extraction
+2026-08-03T17:25:57.5628946Z	Information	App	[OllamaStatusMonitor] HTTP timeout configured: 8s
+2026-08-03T17:25:57.5693311Z	Information	App	[OllamaStatusMonitor] Max supported Ollama version: 0.5.13
+2026-08-03T17:25:57.5745906Z	Information	App	[JamaDocumentParser] Initialized with Template Form Architecture: Envelope=True, Quality=True, Compliance=True, ABTest=True, Telemetry=True, OllamaManager=True, OllamaMonitor=True
+2026-08-03T17:25:57.6185967Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-08-03T17:25:57.6476768Z	Information	App	[AnythingLLMMediator] No previous status available - triggering fresh status check
+2026-08-03T17:25:57.6523450Z	Information	App	[ServiceMonitor] MEDIATOR DEBUG: NotifyStatusChange for AnythingLLM - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-03T17:25:57.6595331Z	Information	App	[AnythingLLMMediator] Triggering fresh status check from AnythingLLMService
+2026-08-03T17:25:57.6727334Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-03T17:25:57.7002465Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-03T17:25:57.7354720Z	Information	App	[ServiceMonitor] AnythingLLM status changed - Available: True, Message: AnythingLLM service is available
+2026-08-03T17:25:57.7563716Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-08-03T17:25:57.7657070Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
+2026-08-03T17:25:57.7692464Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-08-03T17:25:57.7733023Z	Information	App	[AnythingLLM] Availability check result: True
+2026-08-03T17:25:57.7772488Z	Information	App	[AnythingLLM] Availability check result: True
+2026-08-03T17:25:57.7803138Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-08-03T17:25:57.7861467Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=True, Message=Checking AnythingLLM status...
+2026-08-03T17:25:57.7884265Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-03T17:25:57.7907762Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: True, Starting: True
+2026-08-03T17:25:57.8034804Z	Information	App	[RecentFiles] Load() called, path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\recent-files.json
+2026-08-03T17:25:57.8357288Z	Information	App	[RecentFiles] Loaded JSON: [
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B sandbox.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B Test workshop.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B TL Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Top Level C4B Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD-268C4B.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\CMP-6000.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Decagon.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\RTU-42XX.tcex.json"
+]
+2026-08-03T17:25:58.1214955Z	Information	App	[TesseractOCR] Initializing with tessdata path: C:\Users\e10653214\AppData\Local\Programs\Tesseract-OCR\tessdata
+2026-08-03T17:25:58.3906428Z	Information	App	[RecentFiles] Deserialized 10 files
+2026-08-03T17:25:58.4258421Z	Information	App	[RecentFiles] After filtering non-existent: 10 files
+2026-08-03T17:25:58.6167572Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-08-03T17:25:59.1001221Z	Information	App	[TesseractOCR] Tesseract OCR engine initialized successfully
+2026-08-03T17:25:59.1066473Z	Information	App	[JamaConnect] OCR engine availability: Available
+2026-08-03T17:25:59.6302231Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-08-03T17:26:00.5042648Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-03T17:26:00.5329049Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-03T17:26:00.5523547Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-08-03T17:26:00.5779519Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM ready
+2026-08-03T17:26:00.5806206Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-03T17:34:11.8210275Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-08-03T17:34:11.9208099Z	Information	App	[Load] ImportSource is missing - attempting auto-detection...
+2026-08-03T17:34:11.9230586Z	Information	App	[Load] Auto-detected Jama workspace (has GlobalId values), set ImportSource = 'Jama'
+2026-08-03T17:34:11.9247854Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaProject field: '' (null: True)
+2026-08-03T17:34:11.9265332Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaTestPlan field: '' (null: True)
+2026-08-03T17:34:11.9281863Z	Information	App	[Load] 🔍 JAMA DEBUG: ImportSource: 'Jama'
+2026-08-03T17:34:11.9313337Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Total GeneratedTestCases loaded: 0
+2026-08-03T17:34:11.9333478Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Requirements with GeneratedTestCases: 0/377
+2026-08-03T17:34:11.9713065Z	Information	App	[Save] 🔍 PERSISTENCE DEBUG: Serializing 0 total GeneratedTestCases
+2026-08-03T17:34:11.9732010Z	Information	App	[Save] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-08-03T17:34:11.9748490Z	Information	App	[Save] Workspace identity: Project='C4B sandbox', AnythingLLMName='C4B sandbox', AnythingLLMSlug='<none>', JamaProjectId=<none>, JamaProjectName='<none>'
+2026-08-03T17:34:12.0500717Z	Warning	WorkspaceService	[Save] Wrote fallback copies to: C:\Users\e10653214\AppData\Local\Temp\TestCaseEditorApp
+2026-08-03T17:34:12.0568083Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-08-03T17:34:12.0757999Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-08-03T17:34:12.1340405Z	Information	App	[RecentFiles] AddRecentFile called with: C:\Users\e10653214\Test Case Editor Projects\C4B sandbox.tcex.json
+2026-08-03T17:34:12.1360449Z	Information	App	[RecentFiles] Current count before: 10
+2026-08-03T17:34:12.1383493Z	Information	App	[RecentFiles] Current count after: 10
+2026-08-03T17:34:12.1399170Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B sandbox.tcex.json
+2026-08-03T17:34:12.1415308Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-08-03T17:34:12.1432949Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B Test workshop.tcex.json
+2026-08-03T17:34:12.1445773Z	Information	App	[RequirementAnalysisService] Workspace context set to: C4B sandbox
+2026-08-03T17:34:12.1458911Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B TL Project.tcex.json
+2026-08-03T17:34:12.1473545Z	Information	App	[RequirementAnalysisService] Project workspace context set to 'C4B sandbox'. RAG sync deferred until explicitly requested.
+2026-08-03T17:34:12.1486384Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level Project.tcex.json
+2026-08-03T17:34:12.1506275Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\Top Level C4B Project.tcex.json
+2026-08-03T17:34:12.1525950Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD-268C4B.tcex.json
+2026-08-03T17:34:12.1541341Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Desktop\testing import\CMP-6000.tcex.json
+2026-08-03T17:34:12.1558422Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\Decagon.tcex.json
+2026-08-03T17:34:12.1574448Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Desktop\testing import\RTU-42XX.tcex.json
