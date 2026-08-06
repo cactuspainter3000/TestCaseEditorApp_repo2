@@ -1,0 +1,70 @@
+TestCaseEditorApp Analysis Log Export
+Created: 2026-07-15T16:22:33.3872319-05:00
+Source machine: USM246425
+Zip: C:\Users\e10653214\Desktop\TestCaseEditorApp-AnalysisLogs-20260715-162218.zip
+Repo folder: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\exports\analysis-logs\20260715-162218
+DetectedRoot: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp
+RootResolution: Found .git from candidate 'C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\'
+AppBaseDirectory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows\
+CurrentDirectory: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\bin\Debug\net8.0-windows
+
+TraceReportsIncluded: 17
+LatestTraceReport: C:\Users\e10653214\Test Case Editor App Version 2_repo\TestCaseEditorApp\exports\traceability-reports\derivation-trace-20260709-153613-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+
+Git automation
+Succeeded: True
+CommitHash: 5fd670e
+LastSuccessfulStep: push
+FailedStep: (none)
+FailureMessage: (none)
+
+Git command output
+[refactor/requirements-cleanup 5fd670e] Add exported analysis logs 20260715-162218
+ 46 files changed, 458177 insertions(+)
+ create mode 100644 exports/analysis-logs/20260715-162218/build-check.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/build-output.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-logs.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-093809.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-100152.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-103017.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-104247.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-105436.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-110719.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-111340.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-113046.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-123859.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-124619.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-124701.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-125929.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-132222.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-133752.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-134304.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-140218.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-141951.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-175537.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-202437.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-205207.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app-session-20260715-211528.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-app.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-attachment-parse-failure.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/logs-last-anythingllm.log.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/targeted_error.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260707-135411-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260707-151443-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260707-161117-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260707-173844-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260707-181044-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260707-210641-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260709-153613-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260709-215208-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260712-200007-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260713-015433-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260713-211113-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260714-125951-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260714-140157-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260714-155916-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260714-165400-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260714-175756-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-derivation-trace-20260714-191837-att-19849046-946-4DC0-001_C4B_DHM_ATP_Rev-.txt
+ create mode 100644 exports/analysis-logs/20260715-162218/traceability-index.txt
+

@@ -9,7 +9,6 @@ namespace TestCaseEditorApp.Services
 
         public string AnythingLlmBaseUrl { get; set; } = "http://localhost:3001";
         public string AnythingLlmApiKey { get; set; } = string.Empty;
-
         public string OllamaChatModel { get; set; } = "phi4-mini:latest";
         public string OllamaEmbeddingModel { get; set; } = "nomic-embed-text:latest";
         public string ThemeName { get; set; } = "Dark Orange";
