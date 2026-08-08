@@ -1,0 +1,114 @@
+﻿2026-08-02T15:49:56.2672776Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-02T15:49:56.3007546Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-02T15:49:56.3437735Z	Information	App	[OllamaProcessManager] Environment variables configured: LOAD_TIMEOUT=10m, KEEP_ALIVE=20m
+2026-08-02T15:49:56.6284036Z	Information	App	[OllamaProcessManager] ✅ Ollama is running and healthy
+2026-08-02T15:49:56.6391529Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-02T15:49:56.6423169Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-02T15:49:56.6451751Z	Information	App	[OllamaEmbedding] Initialized with model: mxbai-embed-large:335m-v1-fp16, dimensions: 1024
+2026-08-02T15:49:56.6502769Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Service initialized with storage path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\DocumentIndexes
+2026-08-02T15:49:56.6653463Z	Information	TestCaseEditorApp.Services.SystemCapabilityDerivationService	SystemCapabilityDerivationService initialized with Template Form Architecture with taxonomy containing 14 categories
+2026-08-02T15:49:56.6767931Z	Information	App	[JamaConnect] FromConfiguration called
+2026-08-02T15:49:56.6783769Z	Information	App	[JamaConnect] Base URL: https://jama02.rockwellcollins.com/contour
+2026-08-02T15:49:56.6805725Z	Information	App	[JamaConnect] API Token: NOT SET
+2026-08-02T15:49:56.6820406Z	Information	App	[JamaConnect] Client ID: hpytk1ocbt0p01u
+2026-08-02T15:49:56.6836533Z	Information	App	[JamaConnect] Client Secret: SET
+2026-08-02T15:49:56.6854834Z	Information	App	[JamaConnect] Creating service with OAuth
+2026-08-02T15:49:56.6879949Z	Information	App	[JamaConnect] OAuth constructor - Base URL: https://jama02.rockwellcollins.com/contour
+2026-08-02T15:49:56.6901180Z	Information	App	[JamaConnect] OAuth constructor - Client ID: hpytk1ocbt0p01u
+2026-08-02T15:49:56.6917644Z	Information	App	[JamaConnect] OAuth constructor - Client Secret: SET
+2026-08-02T15:49:56.6938930Z	Information	App	[JamaConnect] OCR service configured for image text extraction
+2026-08-02T15:49:56.7076844Z	Information	App	[OllamaStatusMonitor] HTTP timeout configured: 8s
+2026-08-02T15:49:56.7102752Z	Information	App	[OllamaStatusMonitor] Max supported Ollama version: 0.5.13
+2026-08-02T15:49:56.7128023Z	Information	App	[JamaDocumentParser] Initialized with Template Form Architecture: Envelope=True, Quality=True, Compliance=True, ABTest=True, Telemetry=True, OllamaManager=True, OllamaMonitor=True
+2026-08-02T15:49:56.7425956Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-08-02T15:49:56.7456698Z	Information	App	[ServiceMonitor] MEDIATOR DEBUG: NotifyStatusChange for AnythingLLM - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-02T15:49:56.7481109Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-02T15:49:56.7523274Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-02T15:49:56.7610135Z	Information	App	[ServiceMonitor] AnythingLLM status changed - Available: True, Message: AnythingLLM service is available
+2026-08-02T15:49:56.7688295Z	Information	App	[AnythingLLMMediator] Broadcasting last known status via NotifyStatusUpdated: Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-02T15:49:56.7709228Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-02T15:49:56.7735913Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-02T15:49:56.7896646Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-08-02T15:49:56.7937769Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-08-02T15:49:56.7975050Z	Information	App	[AnythingLLM] Availability check result: True
+2026-08-02T15:49:56.7992869Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
+2026-08-02T15:49:56.8009016Z	Information	App	[RecentFiles] Load() called, path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\recent-files.json
+2026-08-02T15:49:56.8023403Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=True, Message=Checking AnythingLLM status...
+2026-08-02T15:49:56.8038622Z	Information	App	[AnythingLLM] Availability check result: True
+2026-08-02T15:49:56.8061926Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: True, Starting: True
+2026-08-02T15:49:56.8083155Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-08-02T15:49:56.8119235Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-02T15:49:56.8245152Z	Information	App	[RecentFiles] Loaded JSON: [
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B sandbox.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B Test workshop.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B TL Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Top Level C4B Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD-268C4B.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\CMP-6000.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Decagon.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\RTU-42XX.tcex.json"
+]
+2026-08-02T15:49:56.9715187Z	Information	App	[TesseractOCR] Initializing with tessdata path: C:\Users\e10653214\AppData\Local\Programs\Tesseract-OCR\tessdata
+2026-08-02T15:49:57.1241064Z	Information	App	[RecentFiles] Deserialized 10 files
+2026-08-02T15:49:57.1455063Z	Information	App	[RecentFiles] After filtering non-existent: 10 files
+2026-08-02T15:49:57.2780534Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-08-02T15:49:57.5705066Z	Information	App	[TesseractOCR] Tesseract OCR engine initialized successfully
+2026-08-02T15:49:57.5729726Z	Information	App	[JamaConnect] OCR engine availability: Available
+2026-08-02T15:49:57.7270881Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-08-02T15:49:58.3267964Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-02T15:49:58.3304465Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-02T15:50:15.6281377Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-08-02T15:50:15.7492830Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaProject field: '686' (null: False)
+2026-08-02T15:50:15.7516947Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaTestPlan field: 'QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution' (null: False)
+2026-08-02T15:50:15.7535885Z	Information	App	[Load] 🔍 JAMA DEBUG: ImportSource: 'Jama'
+2026-08-02T15:50:15.7573920Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Total GeneratedTestCases loaded: 0
+2026-08-02T15:50:15.7591788Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Requirements with GeneratedTestCases: 0/377
+2026-08-02T15:50:15.7959666Z	Information	App	[Save] 🔍 PERSISTENCE DEBUG: Serializing 0 total GeneratedTestCases
+2026-08-02T15:50:15.7980389Z	Information	App	[Save] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-08-02T15:50:15.7997142Z	Information	App	[Save] Workspace identity: Project='C4B sandbox.tcex', AnythingLLMName='C4B Sandbox', AnythingLLMSlug='c4b-sandbox', JamaProjectId=686, JamaProjectName='QAI-2518_MFD268C4B Test Solutions Define_Top-Level Test Solution'
+2026-08-02T15:50:15.8696930Z	Warning	WorkspaceService	[Save] Wrote fallback copies to: C:\Users\e10653214\AppData\Local\Temp\TestCaseEditorApp
+2026-08-02T15:50:15.8757153Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-08-02T15:50:15.8979551Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-08-02T15:50:15.9547650Z	Information	App	[RecentFiles] AddRecentFile called with: C:\Users\e10653214\Test Case Editor Projects\C4B sandbox.tcex.json
+2026-08-02T15:50:15.9568080Z	Information	App	[RecentFiles] Current count before: 10
+2026-08-02T15:50:15.9591839Z	Information	App	[RecentFiles] Current count after: 10
+2026-08-02T15:50:15.9609516Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B sandbox.tcex.json
+2026-08-02T15:50:15.9627646Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-08-02T15:50:15.9646646Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B Test workshop.tcex.json
+2026-08-02T15:50:15.9663919Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B TL Project.tcex.json
+2026-08-02T15:50:15.9681952Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level Project.tcex.json
+2026-08-02T15:50:15.9700474Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\Top Level C4B Project.tcex.json
+2026-08-02T15:50:15.9719403Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD-268C4B.tcex.json
+2026-08-02T15:50:15.9736863Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Desktop\testing import\CMP-6000.tcex.json
+2026-08-02T15:50:15.9749870Z	Information	App	[RequirementAnalysisService] Workspace context set to: C4B sandbox
+2026-08-02T15:50:15.9765864Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\Decagon.tcex.json
+2026-08-02T15:50:15.9779607Z	Information	App	[RequirementAnalysisService] Project workspace context set to 'C4B sandbox'. RAG sync deferred until explicitly requested.
+2026-08-02T15:50:15.9793804Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Desktop\testing import\RTU-42XX.tcex.json
+2026-08-02T15:50:19.1435011Z	Information	App	[JamaConnect] Getting OAuth token from: https://jama02.rockwellcollins.com/contour/rest/oauth/token
+2026-08-02T15:50:19.1473891Z	Information	App	[JamaConnect] Sending OAuth request...
+2026-08-02T15:50:19.6277309Z	Information	App	[JamaConnect] OAuth response: OK
+2026-08-02T15:50:19.6373371Z	Information	App	[JamaConnect] OAuth token obtained successfully (eyJraWQiOiJvYXV0aEtl...)
+2026-08-02T15:50:19.6392958Z	Information	App	[JamaConnect] ✅ OAuth steel trap validation passed!
+2026-08-02T15:50:19.6411520Z	Information	App	[JamaConnect] Starting cookbook-compliant attachment discovery for project 686
+2026-08-02T15:50:35.0171984Z	Information	App	[JamaConnect] Found 1415 items in project 686, checking for attachments (parallel, max 5 concurrent)
+2026-08-02T15:50:35.8082752Z	Information	App	[JamaConnect] Item 19807205 (MFD268C4B-Artifact-1221) has 1 attachment(s) - Total: 1
+2026-08-02T15:50:35.8130559Z	Information	App	[JamaConnect] Item 19830484 (MFD268C4B-Artifact-1222) has 1 attachment(s) - Total: 2
+2026-08-02T15:50:35.8333656Z	Information	App	[JamaConnect] Item 19830714 (MFD268C4B-Artifact-1223) has 1 attachment(s) - Total: 3
+2026-08-02T15:50:35.8442917Z	Information	App	[JamaConnect] Item 19849045 (MFD268C4B-Artifact-1224) has 1 attachment(s) - Total: 4
+2026-08-02T15:50:35.9324756Z	Information	App	[JamaConnect] Item 19904966 (MFD268C4B-Artifact-1226) has 1 attachment(s) - Total: 5
+2026-08-02T15:50:36.5761643Z	Information	App	[JamaConnect] Item 19833348 (MFD268C4B-TXT-6) has 1 attachment(s) - Total: 6
+2026-08-02T15:51:06.6314237Z	Information	App	[JamaConnect] Attachment discovery complete: 6 attachments found across 6 items
+2026-08-02T15:51:51.5100430Z	Information	App	[JamaConnect] Downloaded attachment 19830718
+2026-08-02T15:51:52.5119601Z	Information	App	[DirectRag] Starting PDF text extraction from 65 pages (1192720 bytes)
+2026-08-02T15:51:56.1228057Z	Information	App	[DirectRag] Successfully extracted 158581 characters from 65 pages
+2026-08-02T15:51:56.1509745Z	Information	App	[JamaDocumentParser] File-type cleansing applied (PDF Document): 158581 -> 123274 chars
+2026-08-02T15:52:09.6723463Z	Information	TestCaseEditorApp.Services.Extraction.DocumentRequirementExtractionService	[ExtractionFoundation] 946-4C45-001A (3).pdf: 1568 blocks, 713 candidates, 8 accepted by deterministic harvest
+2026-08-02T15:52:09.8369725Z	Warning	TestCaseEditorApp.Services.ATPStepParser	Step reduction applied: 1028 -> 180 (max 180)
+2026-08-02T15:52:10.2499739Z	Information	App	[LocalExtraction] Stage 1 raw clause extract: +1 candidates (total 1)
+2026-08-02T15:52:10.2522256Z	Information	App	[LocalExtraction] Stage 2 ATP step parsing: +2 candidates (total 3)
+2026-08-02T15:52:10.2548617Z	Information	App	[LocalExtraction] Stage 3 structured line recovery: +0 candidates (total 3)
+2026-08-02T15:52:10.2643891Z	Information	App	[LocalExtraction] Stage 4 numbered step fallback: +54 candidates (total 57)
+2026-08-02T15:52:10.2717668Z	Information	App	[LocalExtraction] Stage 5 PDF verification recovery: +31 candidates (total 88)
+2026-08-02T15:52:10.4401182Z	Information	App	[LocalExtraction] Extracted 0 requirements from 946-4C45-001A (3).pdf using 88 staged candidates; deterministic post-filter removed 3 (potential 1, derived 2, rejected 0, heading 0, informational 0, other 0); numeric-prefix dedupe collisions 0

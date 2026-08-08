@@ -1,0 +1,123 @@
+﻿2026-08-06T18:20:18.8685073Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-06T18:20:18.9037076Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-06T18:20:18.9530592Z	Information	App	[OllamaProcessManager] Environment variables configured: LOAD_TIMEOUT=10m, KEEP_ALIVE=20m
+2026-08-06T18:20:19.4952463Z	Information	App	[OllamaProcessManager] ✅ Ollama is running and healthy
+2026-08-06T18:20:19.5069022Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-06T18:20:19.5101784Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-06T18:20:19.5134010Z	Information	App	[OllamaEmbedding] Initialized with model: mxbai-embed-large:335m-v1-fp16, dimensions: 1024
+2026-08-06T18:20:19.5194854Z	Information	TestCaseEditorApp.Services.DirectRagService	[DirectRAG] Service initialized with storage path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\DocumentIndexes
+2026-08-06T18:20:19.5339222Z	Information	TestCaseEditorApp.Services.SystemCapabilityDerivationService	SystemCapabilityDerivationService initialized with Template Form Architecture with taxonomy containing 14 categories
+2026-08-06T18:20:19.5452505Z	Information	App	[JamaConnect] FromConfiguration called
+2026-08-06T18:20:19.5477198Z	Information	App	[JamaConnect] Base URL: https://jama02.rockwellcollins.com/contour
+2026-08-06T18:20:19.5494781Z	Information	App	[JamaConnect] API Token: NOT SET
+2026-08-06T18:20:19.5513985Z	Information	App	[JamaConnect] Client ID: hpytk1ocbt0p01u
+2026-08-06T18:20:19.5529415Z	Information	App	[JamaConnect] Client Secret: SET
+2026-08-06T18:20:19.5547549Z	Information	App	[JamaConnect] Creating service with OAuth
+2026-08-06T18:20:19.5584756Z	Information	App	[JamaConnect] OAuth constructor - Base URL: https://jama02.rockwellcollins.com/contour
+2026-08-06T18:20:19.5604603Z	Information	App	[JamaConnect] OAuth constructor - Client ID: hpytk1ocbt0p01u
+2026-08-06T18:20:19.5624545Z	Information	App	[JamaConnect] OAuth constructor - Client Secret: SET
+2026-08-06T18:20:19.5653048Z	Information	App	[JamaConnect] OCR service configured for image text extraction
+2026-08-06T18:20:19.5726370Z	Information	App	[OllamaStatusMonitor] HTTP timeout configured: 8s
+2026-08-06T18:20:19.5744256Z	Information	App	[OllamaStatusMonitor] Max supported Ollama version: 0.5.13
+2026-08-06T18:20:19.5763312Z	Information	App	[JamaDocumentParser] Initialized with Template Form Architecture: Envelope=True, Quality=True, Compliance=True, ABTest=True, Telemetry=True, OllamaManager=True, OllamaMonitor=True
+2026-08-06T18:20:19.6078594Z	Information	App	[AnythingLLM] Checking AnythingLLM status...
+2026-08-06T18:20:19.6158182Z	Information	App	[AnythingLLMMediator] No previous status available - triggering fresh status check
+2026-08-06T18:20:19.6180416Z	Information	App	[AnythingLLMMediator] Triggering fresh status check from AnythingLLMService
+2026-08-06T18:20:19.6226696Z	Information	App	[ServiceMonitor] MEDIATOR DEBUG: NotifyStatusChange for AnythingLLM - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-06T18:20:19.6270061Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is available
+2026-08-06T18:20:19.6367003Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-06T18:20:19.6451126Z	Information	App	[ServiceMonitor] AnythingLLM status changed - Available: True, Message: AnythingLLM service is available
+2026-08-06T18:20:19.6593055Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-08-06T18:20:19.6648940Z	Information	App	[AnythingLLM] Availability check result: True
+2026-08-06T18:20:19.6670319Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=True, Message=Checking AnythingLLM status...
+2026-08-06T18:20:19.6691858Z	Information	App	[MENU] AnythingLLM status updated - Ready: False, Available: True, Starting: True
+2026-08-06T18:20:19.6707670Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-08-06T18:20:19.6739908Z	Information	App	[AnythingLLM] AnythingLLM service is ready!
+2026-08-06T18:20:19.6756968Z	Information	App	[AnythingLLM] Availability check result: True
+2026-08-06T18:20:19.6784147Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM service is ready!
+2026-08-06T18:20:19.6804666Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-06T18:20:19.6833279Z	Information	App	[RecentFiles] Load() called, path: C:\Users\e10653214\AppData\Roaming\TestCaseEditorApp\recent-files.json
+2026-08-06T18:20:19.6973313Z	Information	App	[RecentFiles] Loaded JSON: [
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B sandbox.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B Test workshop.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\C4B TL Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD268C4B Top Level Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Top Level C4B Project.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\MFD-268C4B.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\CMP-6000.tcex.json",
+  "C:\\Users\\e10653214\\Test Case Editor Projects\\Decagon.tcex.json",
+  "C:\\Users\\e10653214\\Desktop\\testing import\\RTU-42XX.tcex.json"
+]
+2026-08-06T18:20:19.8663065Z	Information	App	[TesseractOCR] Initializing with tessdata path: C:\Users\e10653214\AppData\Local\Programs\Tesseract-OCR\tessdata
+2026-08-06T18:20:19.9928478Z	Information	App	[RecentFiles] Deserialized 10 files
+2026-08-06T18:20:20.0148880Z	Information	App	[RecentFiles] After filtering non-existent: 10 files
+2026-08-06T18:20:20.1571711Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-08-06T18:20:20.7619318Z	Information	App	[TesseractOCR] Tesseract OCR engine initialized successfully
+2026-08-06T18:20:20.7654654Z	Information	App	[JamaConnect] OCR engine availability: Available
+2026-08-06T18:20:20.7958854Z	Warning	TestCaseEditorApp.MVVM.Domains.NewProject.Mediators.NewProjectMediator	Event type ProjectOpened may not belong to domain NewProjectEvents
+2026-08-06T18:20:21.7835356Z	Information	App	[UserSettings] Loading settings from registry.
+2026-08-06T18:20:21.7864511Z	Information	App	[UserSettings] Loaded OllamaChatModel: phi4-mini:3.8b-q4_K_M, OllamaEmbeddingModel: mxbai-embed-large:335m-v1-fp16
+2026-08-06T18:20:21.7978000Z	Information	App	[AnythingLLM] Service available via http://localhost:3001/api/v1/workspaces (status: OK)
+2026-08-06T18:20:21.8045621Z	Information	App	[AnythingLLMMediator] MEDIATOR DEBUG: NotifyStatusUpdated called - Available=True, Starting=False, Message=AnythingLLM ready
+2026-08-06T18:20:21.8066736Z	Information	App	[MENU] AnythingLLM status updated - Ready: True, Available: True, Starting: False
+2026-08-06T18:20:25.4636376Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-08-06T18:20:25.8763152Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaProject field: '' (null: True)
+2026-08-06T18:20:25.8789010Z	Information	App	[Load] 🔍 JAMA DEBUG: JamaTestPlan field: '' (null: True)
+2026-08-06T18:20:25.8814819Z	Information	App	[Load] 🔍 JAMA DEBUG: ImportSource: 'Jama'
+2026-08-06T18:20:25.8867841Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Total GeneratedTestCases loaded: 0
+2026-08-06T18:20:25.8893433Z	Information	App	[Load] 🔍 PERSISTENCE DEBUG: Requirements with GeneratedTestCases: 0/377
+2026-08-06T18:20:25.9617104Z	Information	App	[Save] 🔍 PERSISTENCE DEBUG: Serializing 0 total GeneratedTestCases
+2026-08-06T18:20:25.9640100Z	Information	App	[Save] 🔍 PERSISTENCE DEBUG: JSON contains GeneratedTestCases data: False
+2026-08-06T18:20:25.9657821Z	Information	App	[Save] Workspace identity: Project='C4B sandbox', AnythingLLMName='C4B sandbox', AnythingLLMSlug='<none>', JamaProjectId=<none>, JamaProjectName='<none>'
+2026-08-06T18:20:26.0462608Z	Warning	WorkspaceService	[Save] Wrote fallback copies to: C:\Users\e10653214\AppData\Local\Temp\TestCaseEditorApp
+2026-08-06T18:20:26.0522080Z	Information	App	[AnythingLLM] Trying GET endpoint: http://localhost:3001/api/v1/workspaces
+2026-08-06T18:20:26.0686220Z	Information	App	[AnythingLLM] Success! Working endpoint: http://localhost:3001/api/v1/workspaces
+2026-08-06T18:20:26.1421353Z	Information	App	[RecentFiles] AddRecentFile called with: C:\Users\e10653214\Test Case Editor Projects\C4B sandbox.tcex.json
+2026-08-06T18:20:26.1446139Z	Information	App	[RecentFiles] Current count before: 10
+2026-08-06T18:20:26.1482333Z	Information	App	[RecentFiles] Current count after: 10
+2026-08-06T18:20:26.1504942Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B sandbox.tcex.json
+2026-08-06T18:20:26.1525415Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level.tcex.json
+2026-08-06T18:20:26.1544679Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B Test workshop.tcex.json
+2026-08-06T18:20:26.1565210Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\C4B TL Project.tcex.json
+2026-08-06T18:20:26.1589710Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD268C4B Top Level Project.tcex.json
+2026-08-06T18:20:26.1610197Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\Top Level C4B Project.tcex.json
+2026-08-06T18:20:26.1636198Z	Information	App	[RequirementAnalysisService] Workspace context set to: C4B sandbox
+2026-08-06T18:20:26.1658780Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\MFD-268C4B.tcex.json
+2026-08-06T18:20:26.1673830Z	Information	App	[RequirementAnalysisService] Project workspace context set to 'C4B sandbox'. RAG sync deferred until explicitly requested.
+2026-08-06T18:20:26.1693377Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Desktop\testing import\CMP-6000.tcex.json
+2026-08-06T18:20:26.1713419Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Test Case Editor Projects\Decagon.tcex.json
+2026-08-06T18:20:26.1734783Z	Information	App	[RecentFiles]   - C:\Users\e10653214\Desktop\testing import\RTU-42XX.tcex.json
+2026-08-06T18:20:30.3513209Z	Information	App	[JamaConnect] Getting OAuth token from: https://jama02.rockwellcollins.com/contour/rest/oauth/token
+2026-08-06T18:20:30.3563115Z	Information	App	[JamaConnect] Sending OAuth request...
+2026-08-06T18:20:30.8221717Z	Information	App	[JamaConnect] OAuth response: OK
+2026-08-06T18:20:30.8280194Z	Information	App	[JamaConnect] OAuth token obtained successfully (eyJraWQiOiJvYXV0aEtl...)
+2026-08-06T18:20:30.8307378Z	Information	App	[JamaConnect] ✅ OAuth steel trap validation passed!
+2026-08-06T18:20:31.1038994Z	Information	App	[JamaConnect] Projects API response: OK
+2026-08-06T18:20:31.1063658Z	Information	App	[JamaConnect] Raw JSON response (first 1000 chars): {"meta":{"status":"OK","timestamp":"2026-08-06T18:20:31.092+0000","pageInfo":{"startIndex":0,"resultCount":19,"totalResults":19}},"links":{"data.createdBy":{"type":"users","href":"https://jama02.rockwellcollins.com/contour/rest/v1/users/{data.createdBy}"},"data.modifiedBy":{"type":"users","href":"https://jama02.rockwellcollins.com/contour/rest/v1/users/{data.modifiedBy}"},"data.parent":{"type":"projects","href":"https://jama02.rockwellcollins.com/contour/rest/v1/projects/{data.parent}"}},"data":[{"id":617,"projectKey":"AFD5220E_BP4_TE","isFolder":false,"createdDate":"2024-01-09T19:29:58.000+0000","modifiedDate":"2024-01-09T19:29:58.000+0000","createdBy":1187030,"modifiedBy":1187030,"fields":{"name":"AFD-5220E_BP4_TE","description":"Use this project when creating new projects on the Jama 02 Server.","projectKey":"AFD5220E_BP4_TE","text1":""},"type":"projects"},{"id":615,"projectKey":"AFD_65X0","isFolder":false,"createdDate":"2023-10-23T14:06:46.000+0000","modifiedDate":"2023-10-23T14:06
+2026-08-06T18:20:31.1175771Z	Information	App	[JamaConnect] Project 0: Id=617, Name='AFD-5220E_BP4_TE', Key='AFD5220E_BP4_TE', Desc='Use this project when creating new projects on the Jama 02 Server.'
+2026-08-06T18:20:31.1200847Z	Information	App	[JamaConnect] Project 1: Id=615, Name='AFD-65X0 BP1', Key='AFD_65X0', Desc='Use this project when creating new projects on the Jama 02 Server.'
+2026-08-06T18:20:31.1226235Z	Information	App	[JamaConnect] Project 2: Id=624, Name='ATE Test Strategy', Key='ATE_TS', Desc='Use this project when creating new projects on the Jama 02 Server.'
+2026-08-06T18:20:31.1314486Z	Information	App	[JamaConnect] Starting cookbook-compliant attachment discovery for project 686
+2026-08-06T18:20:47.2924460Z	Information	App	[JamaConnect] Found 1415 items in project 686, checking for attachments (parallel, max 5 concurrent)
+2026-08-06T18:20:48.1283673Z	Information	App	[JamaConnect] Item 19807205 (MFD268C4B-Artifact-1221) has 1 attachment(s) - Total: 1
+2026-08-06T18:20:48.1487292Z	Information	App	[JamaConnect] Item 19830484 (MFD268C4B-Artifact-1222) has 1 attachment(s) - Total: 2
+2026-08-06T18:20:48.1644331Z	Information	App	[JamaConnect] Item 19830714 (MFD268C4B-Artifact-1223) has 1 attachment(s) - Total: 3
+2026-08-06T18:20:48.1689919Z	Information	App	[JamaConnect] Item 19849045 (MFD268C4B-Artifact-1224) has 1 attachment(s) - Total: 4
+2026-08-06T18:20:48.2409003Z	Information	App	[JamaConnect] Item 19904966 (MFD268C4B-Artifact-1226) has 1 attachment(s) - Total: 5
+2026-08-06T18:20:48.8721041Z	Information	App	[JamaConnect] Item 19833348 (MFD268C4B-TXT-6) has 1 attachment(s) - Total: 6
+2026-08-06T18:21:18.2945194Z	Information	App	[JamaConnect] Attachment discovery complete: 6 attachments found across 6 items
+2026-08-06T18:21:25.0656701Z	Information	App	[JamaConnect] Downloaded attachment 19830718
+2026-08-06T18:21:25.9423167Z	Information	App	[DirectRag] Starting PDF text extraction from 65 pages (1192720 bytes)
+2026-08-06T18:21:29.6765426Z	Information	App	[DirectRag] Successfully extracted 158581 characters from 65 pages
+2026-08-06T18:21:29.7212479Z	Information	App	[JamaDocumentParser] File-type cleansing applied (PDF Document): 158581 -> 123274 chars
+2026-08-06T18:21:47.6816856Z	Information	TestCaseEditorApp.Services.Extraction.DocumentRequirementExtractionService	[ExtractionFoundation] 946-4C45-001A (3).pdf: 1568 blocks, 713 candidates, 8 accepted by deterministic harvest
+2026-08-06T18:21:47.8967160Z	Warning	TestCaseEditorApp.Services.ATPStepParser	Step reduction applied: 1028 -> 180 (max 180)
+2026-08-06T18:21:48.8285586Z	Information	App	[LocalExtraction] Stage 1 raw clause extract: +4 candidates (total 4)
+2026-08-06T18:21:48.8325982Z	Information	App	[LocalExtraction] Stage 2 ATP step parsing: +18 candidates (total 22)
+2026-08-06T18:21:48.8355696Z	Information	App	[LocalExtraction] Stage 3 structured line recovery: +0 candidates (total 22)
+2026-08-06T18:21:48.8549183Z	Information	App	[LocalExtraction] Stage 4 numbered step fallback: +133 candidates (total 155)
+2026-08-06T18:21:48.8613432Z	Information	App	[LocalExtraction] Stage 5 PDF verification recovery: +44 candidates (total 199)
+2026-08-06T18:21:49.1271345Z	Information	App	[LocalExtraction] Candidate outcome histogram for 946-4C45-001A (3).pdf: promotion-gate-reject:atp-conservative-gate-fail:score=3:signals=2=63; promotion-gate-reject:atp-nonmodal-technical-context-reject=32; promotion-gate-reject:atp-conservative-gate-fail:score=4:signals=2=31; promotion-gate-reject:atp-conservative-gate-fail:score=3:signals=1=26; deterministic-post-filter-reject:atp-informational-text-too-weak=15; deterministic-post-filter-reject:qualification-failed:Rejected Candidate:score=2=7; deterministic-post-filter-reject:atp-potential-requirement-too-weak=5; deterministic-post-filter-reject:qualification-failed:Heading/Structure:score=1=3; promotion-gate-reject:atp-conservative-gate-fail:score=1:signals=1=3; promotion-gate-reject:document-structure-narrative=3; promotion-gate-reject:atp-conservative-gate-fail:score=2:signals=1=2; promotion-gate-reject:atp-conservative-gate-fail:score=2:signals=2=2; promotion-gate-reject:atp-conservative-gate-fail:score=4:signals=1=2; promotion-gate-reject:atp-conservative-gate-fail:score=5:signals=2=2; promotion-gate-reject:atp-conservative-gate-fail:score=1:signals=0=1; promotion-gate-reject:atp-conservative-gate-fail:score=6:signals=3=1; promotion-gate-reject:recommendation-or-guidance-without-mandate=1
+2026-08-06T18:21:49.1299054Z	Information	App	[LocalExtraction] Candidate stage-outcome histogram for 946-4C45-001A (3).pdf: Stage 4 numbered step fallback -> promotion-gate-reject:atp-conservative-gate-fail:score=3:signals=2=57; Stage 4 numbered step fallback -> promotion-gate-reject:atp-conservative-gate-fail:score=3:signals=1=25; Stage 4 numbered step fallback -> promotion-gate-reject:atp-nonmodal-technical-context-reject=24; Stage 4 numbered step fallback -> promotion-gate-reject:atp-conservative-gate-fail:score=4:signals=2=22; Stage 5 PDF verification recovery -> promotion-gate-reject:atp-nonmodal-technical-context-reject=8; Stage 5 PDF verification recovery -> deterministic-post-filter-reject:atp-informational-text-too-weak=7; Stage 5 PDF verification recovery -> deterministic-post-filter-reject:qualification-failed:Rejected Candidate:score=2=6; Stage 2 ATP step parsing -> promotion-gate-reject:atp-conservative-gate-fail:score=3:signals=2=5; Stage 5 PDF verification recovery -> promotion-gate-reject:atp-conservative-gate-fail:score=4:signals=2=5; Stage 2 ATP step parsing -> deterministic-post-filter-reject:atp-informational-text-too-weak=4; Stage 2 ATP step parsing -> promotion-gate-reject:atp-conservative-gate-fail:score=4:signals=2=4; Stage 4 numbered step fallback -> deterministic-post-filter-reject:atp-informational-text-too-weak=4; Stage 5 PDF verification recovery -> deterministic-post-filter-reject:atp-potential-requirement-too-weak=4; Stage 5 PDF verification recovery -> deterministic-post-filter-reject:qualification-failed:Heading/Structure:score=1=3; Stage 5 PDF verification recovery -> promotion-gate-reject:atp-conservative-gate-fail:score=1:signals=1=3; Stage 1 raw clause extract -> promotion-gate-reject:atp-conservative-gate-fail:score=4:signals=1=2; Stage 5 PDF verification recovery -> promotion-gate-reject:atp-conservative-gate-fail:score=2:signals=1=2; Stage 5 PDF verification recovery -> promotion-gate-reject:document-structure-narrative=2; Stage 1 raw clause extract -> promotion-gate-reject:atp-conservative-gate-fail:score=5:signals=2=1; Stage 1 raw clause extract -> promotion-gate-reject:atp-conservative-gate-fail:score=6:signals=3=1; Stage 2 ATP step parsing -> deterministic-post-filter-reject:qualification-failed:Rejected Candidate:score=2=1; Stage 2 ATP step parsing -> promotion-gate-reject:atp-conservative-gate-fail:score=2:signals=2=1; Stage 2 ATP step parsing -> promotion-gate-reject:atp-conservative-gate-fail:score=5:signals=2=1; Stage 2 ATP step parsing -> promotion-gate-reject:document-structure-narrative=1; Stage 2 ATP step parsing -> promotion-gate-reject:recommendation-or-guidance-without-mandate=1; Stage 4 numbered step fallback -> deterministic-post-filter-reject:atp-potential-requirement-too-weak=1; Stage 5 PDF verification recovery -> promotion-gate-reject:atp-conservative-gate-fail:score=1:signals=0=1; Stage 5 PDF verification recovery -> promotion-gate-reject:atp-conservative-gate-fail:score=2:signals=2=1; Stage 5 PDF verification recovery -> promotion-gate-reject:atp-conservative-gate-fail:score=3:signals=1=1; Stage 5 PDF verification recovery -> promotion-gate-reject:atp-conservative-gate-fail:score=3:signals=2=1
+2026-08-06T18:21:49.1319337Z	Information	App	[LocalExtraction] Extracted 0 requirements from 946-4C45-001A (3).pdf using 199 staged candidates; deterministic post-filter removed 30 (potential 5, derived 0, rejected 7, heading 3, informational 15, other 0); numeric-prefix dedupe collisions 0
