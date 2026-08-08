@@ -608,7 +608,11 @@ namespace TestCaseEditorApp.Services
 
                 var candidate = candidates[i];
                 var clause = candidate.Text;
-                var effectiveStageName = isAtpDocument ? $"{candidate.StageName} (ATP)" : candidate.StageName;
+                var effectiveStageName = isAtpDocument
+                    ? attachment.IsPdf
+                        ? $"{candidate.StageName} (ATP PDF broad review)"
+                        : $"{candidate.StageName} (ATP)"
+                    : candidate.StageName;
                 if (clause.Contains("heater", StringComparison.OrdinalIgnoreCase) || clause.Contains("power", StringComparison.OrdinalIgnoreCase))
                 {
                     Console.WriteLine($"[ATP-debug] clause='{clause}' stage={candidate.StageName} effectiveStage={effectiveStageName}");
@@ -968,6 +972,13 @@ namespace TestCaseEditorApp.Services
             if (IsDocumentStructureNarrativeClause(text))
             {
                 return "document-structure-narrative";
+            }
+
+            if (sourceStage.Contains("ATP PDF broad review", StringComparison.OrdinalIgnoreCase))
+            {
+                return qualification.Classification == "Heading/Structure"
+                    ? "atp-pdf-heading-or-structure"
+                    : null;
             }
 
             if (qualification.IsPromoted)

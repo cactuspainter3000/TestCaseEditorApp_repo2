@@ -174,7 +174,7 @@ namespace TestCaseEditorApp.Tests.Integration
                 null,
                 CancellationToken.None);
 
-            Assert.AreEqual(73, result.Count, "ATP local extraction baseline changed. Inspect staged parser filters before accepting a new count.");
+            Assert.AreEqual(99, result.Count, "ATP broad-harvest baseline changed. Inspect staged parser filters before accepting a new count.");
 
             var descriptions = result
                 .Select(requirement => requirement.Description ?? string.Empty)
@@ -208,10 +208,10 @@ namespace TestCaseEditorApp.Tests.Integration
                 "Recommended power-up procedure guidance should remain filtered.");
 
             Assert.IsTrue(
-                progressMessages.Any(message => message.Contains("kept 73", StringComparison.OrdinalIgnoreCase)
-                    && message.Contains("deterministic-filtered 6", StringComparison.OrdinalIgnoreCase)
+                progressMessages.Any(message => message.Contains("kept 99", StringComparison.OrdinalIgnoreCase)
+                    && message.Contains("deterministic-filtered 56", StringComparison.OrdinalIgnoreCase)
                     && message.Contains("numeric-prefix-deduped 27", StringComparison.OrdinalIgnoreCase)),
-                "Expected the local extraction summary to report the current staged baseline metrics.");
+                "Expected the local extraction summary to report the current broad-harvest baseline metrics.");
 
             Assert.IsTrue(
                 descriptions.Any(text => text.Contains("The test solution shall provide the means to verify +5VREF is within the range [4.9, 5.1] VDC.", StringComparison.OrdinalIgnoreCase)),
@@ -783,7 +783,7 @@ namespace TestCaseEditorApp.Tests.Integration
 
             var result = await parser.ParseAttachmentAsync(attachment, 77);
 
-            Assert.AreEqual(73, result.Count, "Low-coverage ATP runs should keep the richer deterministic baseline when template extraction degrades to recovery-only output.");
+            Assert.AreEqual(99, result.Count, "Low-coverage ATP runs should keep the richer broad-harvest deterministic baseline when template extraction degrades to recovery-only output.");
             Assert.IsTrue(
                 result.Any(req => string.Equals(req.SourcePrefix, "4.1.2.1", StringComparison.OrdinalIgnoreCase)),
                 "Expected the deterministic ATP baseline to preserve hierarchical clause numbering.");
@@ -915,7 +915,7 @@ namespace TestCaseEditorApp.Tests.Integration
 
             var result = await parser.ParseAttachmentAsync(attachment, 77);
 
-            Assert.AreEqual(73, result.Count, "Low-coverage ATP runs should reject tiny template outputs and keep the deterministic baseline.");
+            Assert.AreEqual(99, result.Count, "Low-coverage ATP runs should reject tiny template outputs and keep the broad-harvest deterministic baseline.");
             Assert.IsTrue(
                 result.Any(req => string.Equals(req.SourcePrefix, "4.1.2.1", StringComparison.OrdinalIgnoreCase)),
                 "Expected the deterministic ATP baseline to preserve hierarchical clause numbering after tiny-template fallback.");
