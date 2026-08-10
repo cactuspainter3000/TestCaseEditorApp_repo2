@@ -273,7 +273,7 @@ namespace TestCaseEditorApp.Services
         {
             Console.WriteLine($"[DEBUG] TestCaseGenerator called with context: {context}");
             Console.WriteLine($"[DEBUG] Creating TestCaseGenerator configuration...");
-            var debugLogPath = Path.Combine(Path.GetTempPath(), "TestCaseEditorApp", "navigation-debug.log");
+            var debugLogPath = Path.Combine(AppStoragePaths.LogsDirectory, "navigation-debug.log");
             Directory.CreateDirectory(Path.GetDirectoryName(debugLogPath)!);
             
             File.AppendAllText(debugLogPath, 

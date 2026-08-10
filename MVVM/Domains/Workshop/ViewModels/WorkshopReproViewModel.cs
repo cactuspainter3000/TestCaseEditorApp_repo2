@@ -226,7 +226,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
             _jamaDocumentParserService = jamaDocumentParserService ?? throw new ArgumentNullException(nameof(jamaDocumentParserService));
 
-            var logsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs");
+            var logsDir = AppStoragePaths.LogsDirectory;
             Directory.CreateDirectory(logsDir);
             _attachmentLogFilePath = Path.Combine(logsDir, "extraction-troubleshooter.log");
 

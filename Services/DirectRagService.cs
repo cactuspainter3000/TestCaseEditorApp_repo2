@@ -49,9 +49,7 @@ namespace TestCaseEditorApp.Services
             _embeddingService = embeddingService ?? throw new ArgumentNullException(nameof(embeddingService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             
-            // Store indexes in app data directory
-            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            _indexStoragePath = Path.Combine(appDataPath, "TestCaseEditorApp", "DocumentIndexes");
+            _indexStoragePath = AppStoragePaths.DocumentIndexesDirectory;
             Directory.CreateDirectory(_indexStoragePath);
             
             _logger.LogInformation("[DirectRAG] Service initialized with storage path: {StoragePath}", _indexStoragePath);

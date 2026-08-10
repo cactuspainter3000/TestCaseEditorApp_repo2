@@ -272,7 +272,7 @@ namespace TestCaseEditorApp.Services
             var rootResolution = ResolveProjectRoot();
             var projectRoot = rootResolution.RootPath;
             var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-            var stagingDir = Path.Combine(Path.GetTempPath(), $"TestCaseEditorApp-logs-{timestamp}");
+            var stagingDir = Path.Combine(AppStoragePaths.TempDirectory, $"AnalysisLogs-{timestamp}");
             Directory.CreateDirectory(stagingDir);
 
             var copiedAny = CollectKnownLogs(projectRoot, stagingDir);
@@ -378,7 +378,7 @@ namespace TestCaseEditorApp.Services
 
             var runtimeLogDirectories = new[]
             {
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs"),
+                AppStoragePaths.LogsDirectory,
                 Path.Combine(projectRoot, "logs")
             };
 

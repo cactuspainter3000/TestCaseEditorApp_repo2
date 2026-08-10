@@ -269,8 +269,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
                 };
 
                 // For now, save to a learning repository file (could be enhanced to send to API endpoint)
-                var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                var learningDir = System.IO.Path.Combine(appDataPath, "TestCaseEditorApp", "LearningRepository");
+                var learningDir = AppStoragePaths.LearningRepositoryDirectory;
                 System.IO.Directory.CreateDirectory(learningDir);
                 
                 var fileName = $"learning_data_{DateTime.UtcNow:yyyy-MM-dd_HH-mm-ss}_{_requirement.Item?.Replace(":", "-")}.json";

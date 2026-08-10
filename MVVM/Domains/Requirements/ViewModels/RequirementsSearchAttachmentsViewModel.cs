@@ -2510,7 +2510,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.ViewModels
                 }
 
                 // Create temporary file path
-                var tempPath = Path.GetTempPath();
+                var tempPath = AppStoragePaths.TempDirectory;
                 var fileName = SelectedAttachment.Name ?? $"attachment_{SelectedAttachment.Id}.pdf";
                 var filePath = Path.Combine(tempPath, $"JamaAttachment_{SelectedAttachment.Id}_{fileName}");
 

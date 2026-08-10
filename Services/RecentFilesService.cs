@@ -17,8 +17,7 @@ namespace TestCaseEditorApp.Services
 
         public RecentFilesService()
         {
-            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var folder = Path.Combine(appData, "TestCaseEditorApp");
+            var folder = AppStoragePaths.RootDirectory;
             Directory.CreateDirectory(folder);
             _settingsPath = Path.Combine(folder, "recent-files.json");
             Load();

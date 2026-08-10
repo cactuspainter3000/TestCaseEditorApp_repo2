@@ -1194,8 +1194,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                    // --- Write filtered AnythingLLM/project creation log slice to repo log file ---
                    try
                    {
-                       var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-                       var appLogPath = Path.Combine(userProfile, "TestCaseEditorApp", "logs", "app.log");
+                       var appLogPath = Path.Combine(AppStoragePaths.LogsDirectory, "app.log");
                        var repoRoot = ResolveRepositoryRootPath();
                        var repoLogPath = Path.Combine(repoRoot, "logs", "last-anythingllm.log");
                        var patterns = new[] { "[NewProject]", "[AnythingLLM]", "[RAG Sync]", "[RAG]", "CompleteProjectCreationAsync", "RAG setup", "optimization guide", "training document", "verification" };
@@ -1742,7 +1741,7 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 }
 
                 // Create a temporary JSON file that can be processed by SmartRequirementImporter
-                var tempPath = Path.Combine(Path.GetTempPath(), $"JamaRequirements_{projectKey}_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+                var tempPath = Path.Combine(AppStoragePaths.TempDirectory, $"JamaRequirements_{projectKey}_{DateTime.Now:yyyyMMdd_HHmmss}.json");
 
                 // Create a workspace object to serialize (this is the standard format)
                 var workspace = new Workspace

@@ -30,7 +30,7 @@ namespace TestCaseEditorApp.Utilities
                 }
 
                 // Read the document content from temp file created by PowerShell script
-                var tempFilePath = Path.Combine(Path.GetTempPath(), "Cable-MBSE-POC-for-embedding.txt");
+                var tempFilePath = Path.Combine(Services.AppStoragePaths.TempDirectory, "Cable-MBSE-POC-for-embedding.txt");
                 
                 string documentContent;
                 if (File.Exists(tempFilePath))

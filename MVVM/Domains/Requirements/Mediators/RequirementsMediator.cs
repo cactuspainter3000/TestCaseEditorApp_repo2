@@ -1740,7 +1740,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Mediators
         {
             try
             {
-                var logDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs");
+                var logDirectory = AppStoragePaths.LogsDirectory;
                 Directory.CreateDirectory(logDirectory);
 
                 var failureFilePath = Path.Combine(logDirectory, "attachment-parse-failure.txt");

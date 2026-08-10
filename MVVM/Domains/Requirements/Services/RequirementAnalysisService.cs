@@ -1679,7 +1679,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
         {
             try
             {
-                var syncFile = Path.Combine(Path.GetTempPath(), $"tcex_rag_sync_{workspaceSlug}.timestamp");
+                var syncFile = Path.Combine(AppStoragePaths.TempDirectory, $"tcex_rag_sync_{workspaceSlug}.timestamp");
                 if (!File.Exists(syncFile))
                 {
                     return null;
@@ -1706,7 +1706,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
         {
             try
             {
-                var syncFile = Path.Combine(Path.GetTempPath(), $"tcex_rag_sync_{workspaceSlug}.timestamp");
+                var syncFile = Path.Combine(AppStoragePaths.TempDirectory, $"tcex_rag_sync_{workspaceSlug}.timestamp");
                 await File.WriteAllTextAsync(syncFile, DateTime.UtcNow.ToString("O"));
             }
             catch (Exception ex)

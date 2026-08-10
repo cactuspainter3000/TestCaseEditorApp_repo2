@@ -7,7 +7,7 @@ namespace TestCaseEditorApp.Services.Logging
 {
     internal sealed class RequirementsAnalysisSnapshotOptions
     {
-        public string LogDirectoryPath { get; set; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "TestCaseEditorApp", "logs");
+        public string LogDirectoryPath { get; set; } = AppStoragePaths.LogsDirectory;
         public string SnapshotFileName { get; set; } = "app-logs.txt";
         public int MaxTraceWindows { get; set; } = 1;
         public int FallbackTailLineCount { get; set; } = 2000;

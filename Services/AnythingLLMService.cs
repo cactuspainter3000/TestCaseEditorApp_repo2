@@ -3810,7 +3810,7 @@ Your task: Extract technical requirements from the provided document content wit
                     textContent += "or use external PDF text extraction tools to provide the document text for analysis.";
                     
                     var textFileName = Path.GetFileNameWithoutExtension(filePath) + "_extracted.txt";
-                    var tempTextPath = Path.Combine(Path.GetTempPath(), textFileName);
+                    var tempTextPath = Path.Combine(AppStoragePaths.TempDirectory, textFileName);
                     
                     await File.WriteAllTextAsync(tempTextPath, textContent);
                     

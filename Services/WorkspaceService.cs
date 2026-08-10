@@ -133,7 +133,7 @@ public static class WorkspaceService
     {
         try
         {
-            var stagingDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditorApp", "Staging");
+            var stagingDir = TestCaseEditorApp.Services.AppStoragePaths.StagingDirectory;
             Directory.CreateDirectory(stagingDir);
             var stagingPath = Path.Combine(stagingDir, Path.GetFileName(path));
             File.WriteAllText(stagingPath, json, Encoding.UTF8);
@@ -223,7 +223,7 @@ public static class WorkspaceService
     {
         try
         {
-            var logDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditorApp");
+            var logDir = TestCaseEditorApp.Services.AppStoragePaths.LogsDirectory;
             Directory.CreateDirectory(logDir);
             var logPath = Path.Combine(logDir, "where-saved.log");
             var prefix = isFallback ? "Fallback saved workspace to" : "Saved workspace to";
@@ -267,7 +267,7 @@ public static class WorkspaceService
     {
         try
         {
-            var tmpDir = Path.Combine(Path.GetTempPath(), "TestCaseEditorApp");
+            var tmpDir = TestCaseEditorApp.Services.AppStoragePaths.TempDirectory;
             Directory.CreateDirectory(tmpDir);
             var tmpLog = Path.Combine(tmpDir, "where-saved.log");
             var tmpEntry = $"{DateTime.UtcNow:o}\tSaved workspace to: {path}\tUser:{Environment.UserName}" + Environment.NewLine;
@@ -294,7 +294,7 @@ public static class WorkspaceService
 
             TestCaseEditorApp.Services.Logging.Log.Debug($"[Save] Final destination missing after write: {path}. Attempting fallback.");
 
-            var stagingPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TestCaseEditorApp", "Staging", Path.GetFileName(path));
+            var stagingPath = Path.Combine(TestCaseEditorApp.Services.AppStoragePaths.StagingDirectory, Path.GetFileName(path));
             var wroteFallback = TryRestoreFromStaging(stagingPath, path, logger);
 
             if (!wroteFallback)

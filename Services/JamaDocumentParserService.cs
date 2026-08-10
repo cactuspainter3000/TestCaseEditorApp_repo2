@@ -2580,7 +2580,7 @@ namespace TestCaseEditorApp.Services
                 progressCallback?.Invoke($"✅ AI workspace ready - Uploading document...");
 
                 // Step 4: Upload document to AnythingLLM for processing
-                var tempFilePath = Path.Combine(Path.GetTempPath(), attachment.FileName);
+                var tempFilePath = Path.Combine(AppStoragePaths.TempDirectory, attachment.FileName);
                 try
                 {
                     await File.WriteAllBytesAsync(tempFilePath, fileBytes, cancellationToken);

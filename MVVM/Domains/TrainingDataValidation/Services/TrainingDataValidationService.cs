@@ -29,8 +29,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TrainingDataValidation.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _taxonomyValidator = taxonomyValidator ?? throw new ArgumentNullException(nameof(taxonomyValidator));
             
-            _validationDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), 
-                "TestCaseEditorApp", "TrainingDataValidation");
+            _validationDataPath = AppStoragePaths.TrainingDataValidationDirectory;
             
             _validationResults = new List<ValidationResult>();
             _activeSessions = new Dictionary<string, ValidationSession>();

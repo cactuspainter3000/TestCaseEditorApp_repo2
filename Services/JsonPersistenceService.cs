@@ -11,8 +11,7 @@
 
         public JsonPersistenceService()
         {
-            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            _folder = Path.Combine(appData, "TestCaseEditorApp");
+            _folder = AppStoragePaths.RootDirectory;
             Directory.CreateDirectory(_folder);
         }
 

@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.MVVM.Extensions
 {
@@ -28,8 +29,7 @@ namespace TestCaseEditorApp.MVVM.Extensions
             
             // Default extension directories
             _extensionDirectories.Add(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Extensions"));
-            _extensionDirectories.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
-                "TestCaseEditor", "Extensions"));
+            _extensionDirectories.Add(AppStoragePaths.ExtensionsDirectory);
         }
         
         /// <summary>

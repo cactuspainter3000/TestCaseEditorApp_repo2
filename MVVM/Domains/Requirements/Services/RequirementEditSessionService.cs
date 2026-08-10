@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Models;
+using TestCaseEditorApp.Services;
 
 namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
 {
@@ -34,9 +35,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Requirements.Services
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             
-            // Workspace path: ~/.TestCaseEditorApp/workspace.json
-            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            var appFolder = Path.Combine(userProfile, "TestCaseEditorApp");
+            var appFolder = AppStoragePaths.WorkspaceDataDirectory;
             if (!Directory.Exists(appFolder))
             {
                 Directory.CreateDirectory(appFolder);

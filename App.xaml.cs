@@ -59,6 +59,8 @@ namespace TestCaseEditorApp
             
             base.OnStartup(e);
 
+            AppStoragePaths.MigrateLegacyData();
+
             _host = Host.CreateDefaultBuilder()
                 .ConfigureLogging(logging =>
                 {
@@ -101,8 +103,7 @@ namespace TestCaseEditorApp
                     // Add file logging with robust error handling
                     try
                     {
-                        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-                        var logs = System.IO.Path.Combine(userProfile, "TestCaseEditorApp", "logs");
+                        var logs = AppStoragePaths.LogsDirectory;
                         
                         // Ensure directory exists and is writable
                         if (!System.IO.Directory.Exists(logs))
