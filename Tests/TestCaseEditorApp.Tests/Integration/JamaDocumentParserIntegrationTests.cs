@@ -290,6 +290,25 @@ namespace TestCaseEditorApp.Tests.Integration
         }
 
         [TestMethod]
+        public void BuildRequirementTitleFromText_PdfMeasurementClause_UsesConciseVerificationTitle()
+        {
+            var method = typeof(JamaDocumentParserService).GetMethod(
+                "BuildRequirementTitleFromText",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+
+            Assert.IsNotNull(method, "Expected private requirement title builder.");
+
+            var title = method!.Invoke(
+                null,
+                new object[] { "POSITION_IN_1 Current Sourcing Verify voltage at the pin 4.8 5.4 V ALL" }) as string;
+
+            Assert.AreEqual(
+                "POSITION_IN_1 Current Sourcing Voltage Verification",
+                title,
+                "Expected the title to summarize the verification intent without repeating acceptance criteria from the description.");
+        }
+
+        [TestMethod]
         public async Task ParseAttachmentAsync_DirectRagTemplateForm_MapsExtractionTriageFields()
         {
             var attachment = new JamaAttachment

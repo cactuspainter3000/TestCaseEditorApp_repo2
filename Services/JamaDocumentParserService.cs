@@ -7434,6 +7434,20 @@ Extract all legitimate requirements:";
                 string.Empty,
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
 
+            var measurementVerification = System.Text.RegularExpressions.Regex.Match(
+                normalized,
+                @"^(?<context>.*?)\bverify\s+(?<measurement>voltage|current|resistance|continuity|frequency|power|signal|state|status|operation|functionality|timing|temperature|pressure)\b(?:\s+(?:at|to|within|between|against|on|from|is|of)\b.*)?$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (measurementVerification.Success)
+            {
+                var context = measurementVerification.Groups["context"].Value.Trim(' ', '.', ';', ':', '-', '\t');
+                var measurement = measurementVerification.Groups["measurement"].Value;
+                var measurementTitle = char.ToUpperInvariant(measurement[0]) + measurement.Substring(1).ToLowerInvariant();
+                normalized = string.IsNullOrWhiteSpace(context)
+                    ? $"{measurementTitle} Verification"
+                    : $"{context} {measurementTitle} Verification";
+            }
+
             normalized = normalized.Trim(' ', '.', ';', ':', '-', '\t');
 
             if (string.IsNullOrWhiteSpace(normalized))
