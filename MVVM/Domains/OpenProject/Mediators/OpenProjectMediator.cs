@@ -10,6 +10,7 @@ using TestCaseEditorApp.MVVM.Models;
 using TestCaseEditorApp.MVVM.Events;
 using static TestCaseEditorApp.MVVM.Events.CrossDomainMessages;
 using TestCaseEditorApp.MVVM.Domains.OpenProject.Events;
+using TestCaseEditorApp.MVVM.Domains.OpenProject.Services;
 
 namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
 {
@@ -157,9 +158,13 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                     ShowProgress("Refreshing from Jama...", 65);
 
                     List<Requirement> jamaRequirements;
+                    int refreshedRequirementCount = 0;
                     try
                     {
-                        jamaRequirements = await _newProjectMediator.GetJamaRequirementsAsync(resolvedJamaProjectId.Value);
+                        var remoteRequirements = await _newProjectMediator.GetJamaRequirementsAsync(resolvedJamaProjectId.Value);
+                        refreshedRequirementCount = remoteRequirements.Count;
+                        jamaRequirements = JamaWorkspaceRequirementRefresh.Merge(
+                            workspace.Requirements ?? new List<Requirement>(), remoteRequirements);
                     }
                     catch (Exception ex)
                     {
@@ -172,7 +177,7 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
 
                     if (resolvedJamaProjectId.HasValue)
                     {
-                        workspace.Requirements = jamaRequirements ?? new List<Requirement>();
+                        workspace.Requirements = jamaRequirements;
                         workspace.JamaProjectId = resolvedJamaProjectId.Value;
                         workspace.JamaProject = resolvedJamaProjectId.Value.ToString();
                         workspace.ImportSource = "Jama";
@@ -239,10 +244,10 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                     {
                         _logger.LogInformation("✅ Jama sync on open complete for project {ProjectId}. Requirements refreshed: {Count}",
                             resolvedJamaProjectId.Value,
-                            workspace.Requirements.Count);
+                            refreshedRequirementCount);
 
                         ShowNotification(
-                            $"Refreshed {workspace.Requirements.Count} requirements from Jama project {resolvedJamaProjectId.Value}.",
+                            $"Refreshed {refreshedRequirementCount} requirements from Jama project {resolvedJamaProjectId.Value}.",
                             DomainNotificationType.Success);
                     }
                 }

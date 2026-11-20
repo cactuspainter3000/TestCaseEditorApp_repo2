@@ -2093,6 +2093,7 @@ namespace TestCaseEditorApp.Services
 
                 var requirement = new Requirement
                 {
+                    ApiId = item.Id > 0 ? item.Id.ToString(System.Globalization.CultureInfo.InvariantCulture) : string.Empty,
                     Item = itemId,
                     Name = CleanHtmlText(name ?? ""),  // Clean HTML entities from name
                     Description = CleanHtmlText(description ?? ""),
