@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:TestCaseEditorApp.MVVM.Domains.Workshop.Views"
+             xmlns:models="clr-namespace:TestCaseEditorApp.MVVM.Models"
              mc:Ignorable="d"
              d:DesignWidth="1200"
              d:DesignHeight="760"
@@ -1371,17 +1372,37 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
                             <StackPanel>
                                 <TextBlock Text="Requirement Extraction"
                                            FontWeight="Bold"
                                            FontSize="16"
                                            Foreground="{StaticResource Brush.Accent.Primary}"/>
-                                <TextBlock Text="1) Search attachments → 2) Select document → 3) Extract candidates → 4) Review candidate quality → 5) Select/deselect → 6) Process selected with AI → 7) Add selected to workspace."
+                                <TextBlock Text="Import a local L0/L1 document or search Jama attachments, then review and select candidates before adding them to the workspace."
                                            Margin="0,4,0,0"
                                            FontSize="11"
                                            TextWrapping="Wrap"
                                            Foreground="{StaticResource Brush.Text.Tertiary}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,8,0,0">
+                                <TextBlock Text="Local document level:"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"
+                                           Foreground="{StaticResource Brush.Text.Secondary}"/>
+                                <ComboBox ItemsSource="{Binding LocalDocumentLevels}"
+                                          SelectedItem="{Binding SelectedLocalDocumentLevel, Mode=TwoWay}"
+                                          AutomationProperties.Name="Local document level"
+                                          Width="70"
+                                          Margin="0,0,8,0"/>
+                                <Button Content="Choose Local Document and Extract"
+                                        Command="{Binding ExtractClassifiedDocumentCommand}"
+                                        Style="{StaticResource HoverBorderOnlyButtonStyle}"
+                                        Padding="10,4"/>
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -1714,6 +1735,26 @@
                                                                MaxHeight="48"
                                                                TextTrimming="CharacterEllipsis"
                                                                Foreground="{StaticResource Brush.Text.Secondary}"/>
+                                                    <TextBlock Margin="0,4,0,0"
+                                                               FontSize="10"
+                                                               TextWrapping="Wrap"
+                                                               Foreground="{StaticResource Brush.Text.Secondary}">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Requirement.SourceDocumentLevel}"
+                                                                                 Value="{x:Static models:RequirementSourceLevel.Unspecified}">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                        <Run Text="{Binding Requirement.SourceDocumentLevel, Mode=OneWay}"/>
+                                                        <Run Text=" | "/>
+                                                        <Run Text="{Binding Requirement.SourceDocumentName, Mode=OneWay}"/>
+                                                        <Run Text=" | Section: "/>
+                                                        <Run Text="{Binding Requirement.SourceSection, Mode=OneWay}"/>
+                                                    </TextBlock>
                                                     <TextBlock Text="{Binding AiProcessingStatus}"
                                                                Margin="0,4,0,0"
                                                                FontSize="10"

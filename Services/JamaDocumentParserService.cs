@@ -208,10 +208,7 @@ namespace TestCaseEditorApp.Services
             try
             {
                 if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
-                {
-                    progressCallback?.Invoke("❌ Local file not found.");
-                    return new List<Requirement>();
-                }
+                    throw new FileNotFoundException("Local source document was not found.", filePath);
 
                 var fileInfo = new FileInfo(filePath);
                 var extension = fileInfo.Extension?.ToLowerInvariant() ?? string.Empty;
@@ -230,18 +227,12 @@ namespace TestCaseEditorApp.Services
                 };
 
                 if (!localAttachment.IsSupportedDocument)
-                {
-                    progressCallback?.Invoke($"❌ Unsupported local document type: {extension}");
-                    return new List<Requirement>();
-                }
+                    throw new NotSupportedException($"Unsupported local document type: {extension}");
 
                 progressCallback?.Invoke($"📄 Loading local document '{localAttachment.FileName}'...");
                 var fileBytes = await File.ReadAllBytesAsync(filePath, cancellationToken);
                 if (fileBytes == null || fileBytes.Length == 0)
-                {
-                    progressCallback?.Invoke("❌ Local document is empty.");
-                    return new List<Requirement>();
-                }
+                    throw new InvalidDataException("Local source document is empty.");
 
                 progressCallback?.Invoke("🔎 Extracting raw text from local document...");
                 var documentContent = await ExtractAttachmentTextForIndexingAsync(localAttachment, fileBytes);
@@ -266,10 +257,7 @@ namespace TestCaseEditorApp.Services
                 }
 
                 if (string.IsNullOrWhiteSpace(documentContent))
-                {
-                    progressCallback?.Invoke("❌ No extractable text found in the local document.");
-                    return new List<Requirement>();
-                }
+                    throw new InvalidDataException("No extractable text found in the local source document.");
 
                 progressCallback?.Invoke("🧱 Standardizing ATP content for deterministic extraction...");
                 documentContent = await StandardizeLocalExtractionContentAsync(
@@ -300,11 +288,10 @@ namespace TestCaseEditorApp.Services
                 progressCallback?.Invoke($"✅ Scratch-built local extraction produced {requirements.Count} requirements.");
                 return requirements;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 TestCaseEditorApp.Services.Logging.Log.Error($"[JamaDocumentParser] Error parsing local document '{filePath}': {ex.Message}");
-                progressCallback?.Invoke($"❌ Local extraction failed: {ex.Message}");
-                return new List<Requirement>();
+                throw;
             }
         }
 

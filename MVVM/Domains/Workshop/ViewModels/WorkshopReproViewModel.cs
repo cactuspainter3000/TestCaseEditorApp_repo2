@@ -63,6 +63,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private string? _lastLocalExtractionPath;
         private readonly string _attachmentLogFilePath;
         private const string KnownAtpRelativePath = @"Tests\Fixtures\ATP\946-4DC0-001_C4B_DHM_ATP_Rev-.docx";
+        private const string LocalDocumentFilter =
+            "Supported documents (*.docx;*.pdf;*.txt;*.md;*.csv)|*.docx;*.pdf;*.txt;*.md;*.csv";
         private CancellationTokenSource? _attachmentScraperCts;
         private bool _suppressExtractionProgressUpdates;
         private readonly List<string> _attachmentLogLines = new();
@@ -146,6 +148,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
         [ObservableProperty]
         private JamaAttachment? selectedScraperAttachment;
+
+        public IReadOnlyList<RequirementSourceLevel> LocalDocumentLevels { get; } =
+            Array.AsReadOnly(new[] { RequirementSourceLevel.L0, RequirementSourceLevel.L1 });
+
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ExtractClassifiedDocumentCommand))]
+        private RequirementSourceLevel? selectedLocalDocumentLevel;
 
         [ObservableProperty]
         private ObservableCollection<JamaAttachment> availableScraperAttachments = new();
@@ -537,24 +546,49 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
         private bool CanSearchAttachments() => !IsAttachmentScanning && !IsAttachmentScraping;
 
+        [RelayCommand(CanExecute = nameof(CanExtractClassifiedDocument))]
+        private Task ExtractClassifiedDocumentAsync()
+        {
+            if (!CanExtractClassifiedDocument() || SelectedLocalDocumentLevel is not { } level)
+                return Task.CompletedTask;
+
+            return ExtractLocalDocumentForReviewAsync(
+                () =>
+                {
+                    var path = _fileDialogService.ShowOpenFile($"Select {level} source document", LocalDocumentFilter);
+                    if (!string.IsNullOrWhiteSpace(path))
+                        SelectedLocalDocumentLevel = null;
+                    return path;
+                },
+                level);
+        }
+
+        private bool CanExtractClassifiedDocument() =>
+            CanExtractLocalDocument() && SelectedLocalDocumentLevel is RequirementSourceLevel.L0 or RequirementSourceLevel.L1;
+
         [RelayCommand(CanExecute = nameof(CanExtractLocalDocument))]
-        private async Task ExtractLocalDocumentAsync()
+        private Task ExtractLocalDocumentAsync() =>
+            ExtractLocalDocumentForReviewAsync(ResolvePreferredLocalExtractionPath, RequirementSourceLevel.Unspecified);
+
+        private async Task ExtractLocalDocumentForReviewAsync(Func<string?> selectPath, RequirementSourceLevel level)
         {
             try
             {
-                var selectedPath = ResolvePreferredLocalExtractionPath();
-
+                var selectedPath = selectPath();
                 if (string.IsNullOrWhiteSpace(selectedPath))
                 {
                     AppendAttachmentLog("Local extraction canceled before file selection.");
                     return;
                 }
 
-                _lastLocalExtractionPath = selectedPath;
+                var isClassified = level != RequirementSourceLevel.Unspecified;
+                if (!isClassified)
+                    _lastLocalExtractionPath = selectedPath;
 
                 _attachmentScraperCts?.Cancel();
                 _attachmentScraperCts?.Dispose();
                 _attachmentScraperCts = new CancellationTokenSource();
+                var cancellationToken = _attachmentScraperCts.Token;
 
                 IsAttachmentScraping = true;
                 _suppressExtractionProgressUpdates = false;
@@ -562,40 +596,48 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 ExtractionCurrentStepProgress = 0;
                 ExtractionOverallLabel = "Overall Completeness: 0%";
                 ExtractionCurrentStepLabel = "Current Process: initializing";
-                ScrapedRequirements.Clear();
-                OnPropertyChanged(nameof(HasScrapedRequirements));
-                OnPropertyChanged(nameof(AttachmentScraperSummary));
-
-                var statusBuffer = $"Starting local extraction for {System.IO.Path.GetFileName(selectedPath)}...";
-                AttachmentScraperStatusText = statusBuffer;
-                AppendAttachmentLog(statusBuffer);
-                UpdateExtractionProgressFromMessage(statusBuffer);
+                var documentName = Path.GetFileName(selectedPath);
+                var source = isClassified ? $"{level} document '{documentName}'" : $"'{documentName}'";
+                AttachmentScraperStatusText = $"Starting local extraction for {source}...";
+                AppendAttachmentLog(AttachmentScraperStatusText);
+                UpdateExtractionProgressFromMessage(AttachmentScraperStatusText);
 
                 var requirements = await _jamaDocumentParserService.ParseLocalDocumentAsync(
                     selectedPath,
                     progressCallback: message =>
                     {
-                        statusBuffer = message;
                         Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                         {
-                            UpdateExtractionProgressFromMessage(statusBuffer);
-                            AppendAttachmentLog(statusBuffer);
+                            UpdateExtractionProgressFromMessage(message);
+                            AppendAttachmentLog(message);
                         }));
                     },
-                    cancellationToken: _attachmentScraperCts.Token);
+                    cancellationToken: cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
 
+                var candidates = new ObservableCollection<ScrapedRequirementCandidate>();
                 foreach (var requirement in requirements)
                 {
+                    if (isClassified)
+                    {
+                        requirement.SourceDocumentName = documentName;
+                        requirement.SourceDocumentLevel = level;
+                    }
+
                     var candidate = new ScrapedRequirementCandidate
                     {
                         Requirement = requirement,
-                        IsSelected = true
+                        IsSelected = !isClassified
                     };
                     candidate.PropertyChanged += OnScrapedCandidatePropertyChanged;
-                    ScrapedRequirements.Add(candidate);
+                    candidates.Add(candidate);
                 }
 
-                AttachmentScraperStatusText = $"Local extraction complete: {ScrapedRequirements.Count} candidate(s) found.";
+                foreach (var previousCandidate in ScrapedRequirements)
+                    previousCandidate.PropertyChanged -= OnScrapedCandidatePropertyChanged;
+                ScrapedRequirements = candidates;
+
+                AttachmentScraperStatusText = $"Local extraction complete for {source}: {candidates.Count} candidate(s) found.";
                 _suppressExtractionProgressUpdates = true;
                 ExtractionOverallProgress = 100;
                 ExtractionCurrentStepProgress = 100;
@@ -603,10 +645,6 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
                 ExtractionCurrentStepLabel = "Current Process: extraction complete";
                 AppendAttachmentLog(AttachmentScraperStatusText);
                 AppendAttachmentLog(BuildScraperOutputText(ScrapedRequirements.Select(c => c.Requirement)), force: true);
-                OnPropertyChanged(nameof(HasScrapedRequirements));
-                OnPropertyChanged(nameof(SelectedScrapedRequirementCount));
-                OnPropertyChanged(nameof(HasSelectedScrapedRequirements));
-                OnPropertyChanged(nameof(AttachmentScraperSummary));
             }
             catch (OperationCanceledException)
             {
@@ -1762,6 +1800,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         {
             SearchAttachmentsCommand.NotifyCanExecuteChanged();
             ExtractLocalDocumentCommand.NotifyCanExecuteChanged();
+            ExtractClassifiedDocumentCommand.NotifyCanExecuteChanged();
             ExtractSelectedAttachmentFastCommand.NotifyCanExecuteChanged();
             ProcessSelectedCandidatesWithAiCommand.NotifyCanExecuteChanged();
             ScrapeSelectedAttachmentCommand.NotifyCanExecuteChanged();

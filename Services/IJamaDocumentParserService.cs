@@ -39,6 +39,10 @@ namespace TestCaseEditorApp.Services
         /// <param name="onRequirementDiscovered">Optional callback for real-time requirement streaming as they are discovered</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>List of extracted requirements with rich metadata</returns>
+        /// <exception cref="System.IO.FileNotFoundException">The local document does not exist.</exception>
+        /// <exception cref="System.NotSupportedException">The document type is unsupported.</exception>
+        /// <exception cref="System.IO.InvalidDataException">The document is empty or has no extractable text.</exception>
+        /// <exception cref="System.OperationCanceledException">Extraction was canceled.</exception>
         Task<List<Requirement>> ParseLocalDocumentAsync(string filePath, System.Action<string>? progressCallback = null, System.Action<Requirement>? onRequirementDiscovered = null, CancellationToken cancellationToken = default);
 
         /// <summary>
