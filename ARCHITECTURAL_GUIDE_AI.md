@@ -16,7 +16,9 @@ The application should let a Systems Engineer choose how to provide requirements
 
 All three paths feed the existing requirement analysis and test-case creation workflow. Test cases are created from processed requirements and retain traceability to those requirements. Document-derived requirements retain their source document, L0/L1 level, and source location so their provenance remains reviewable after processing and Jama export.
 
-**Available in Workshop > Requirement Extraction:** Select L0 or L1 under **Local document level**, then choose a local file to extract. Candidates appear unchecked in **Qualification Review**, with their document level, filename, and any source section identified during extraction. Check the candidates to keep, optionally process them with AI, and use **Add Selected to Workspace**. The pinned diagnostic utility and Jama attachment extraction remain separate. This step does not publish to Jama; mapping level and provenance into Jama remains part of the target workflow.
+**Available in Workshop > Requirement Extraction:** Select L0 or L1 under **Local document level**, then choose a local file to extract. Candidates appear unchecked in **Qualification Review**, with their document level, filename, and any source section identified during extraction. Check the candidates to keep, optionally process them with AI, and use **Add Selected to Workspace**. The pinned diagnostic utility and Jama attachment extraction remain separate.
+
+**Jama publication:** In the Workshop requirement view, stage the reviewed L0/L1 requirement and choose **Preview Jama Publication**. The preview shows the workspace's Jama project ID, Name, and Description. Classification and available provenance are appended to Jama Description rather than assuming tenant-specific custom fields; item type and placement use the existing Jama create flow. Publication is one requirement at a time and requires **Publish to Jama**. A confirmed creation records the Jama item ID in the workspace without replacing local requirement identifiers. The preview covers creation, not round-trip reconstruction of structured provenance from a Jama refresh.
 
 ---
 

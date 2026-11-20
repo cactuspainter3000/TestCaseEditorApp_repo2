@@ -249,6 +249,8 @@
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -268,7 +270,7 @@
 
                                     <Button Grid.Row="0"
                                             Grid.Column="2"
-                                            Content="Commit"
+                                            Content="Commit Other Items"
                                             Command="{Binding CommitStagedCommand}"
                                             Style="{StaticResource HoverBorderOnlyButtonStyle}"
                                             Padding="12,5"
@@ -279,7 +281,7 @@
                                             Foreground="{StaticResource Brush.Accent.Primary}"
                                             BorderBrush="{StaticResource Brush.Border.Accent}"
                                             BorderThickness="1"
-                                            ToolTip="Commit all staged objects in the current workshop set."/>
+                                            ToolTip="Mark other staged objects committed locally. Use the Jama preview for classified document requirements."/>
 
                                     <TextBlock Grid.Row="1"
                                                Grid.Column="0"
@@ -300,6 +302,42 @@
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
+                                    <Button Grid.Row="1" Grid.Column="2"
+                                            Margin="0,6,0,0" Padding="12,5"
+                                            Content="Preview Jama Publication"
+                                            Command="{Binding PreviewJamaPublishCommand}"
+                                            Style="{StaticResource HoverBorderOnlyButtonStyle}"
+                                            ToolTip="Stage the current L0/L1 document requirement, then preview creation in Jama."/>
+                                    <TextBlock Grid.Row="2" Grid.ColumnSpan="3"
+                                               Text="{Binding JamaPublishStatus}"
+                                               TextWrapping="Wrap" MaxWidth="440"
+                                               Foreground="{StaticResource Brush.Text.Secondary}"/>
+                                    <StackPanel Grid.Row="3" Grid.ColumnSpan="3" Margin="0,6,0,0">
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsJamaPublishPreviewVisible}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
+                                        <TextBox Text="{Binding JamaPublishPreviewText, Mode=OneWay}"
+                                                 IsReadOnly="True" TextWrapping="Wrap"
+                                                 VerticalScrollBarVisibility="Auto" MaxHeight="180" MaxWidth="440"
+                                                 AutomationProperties.Name="Jama publication preview"
+                                                 Background="{StaticResource Brush.Background.Menu}"
+                                                 Foreground="{StaticResource Brush.Text.Primary}"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                                            <Button Content="Cancel Preview" Margin="0,0,8,0" Padding="8,4"
+                                                    Command="{Binding CancelJamaPublishPreviewCommand}"
+                                                    Style="{StaticResource HoverBorderOnlyButtonStyle}"/>
+                                            <Button Content="Publish to Jama" Padding="8,4"
+                                                    Command="{Binding ConfirmJamaPublishCommand}"
+                                                    Style="{StaticResource HoverBorderOnlyButtonStyle}"/>
+                                        </StackPanel>
+                                    </StackPanel>
                                 </Grid>
                             </Border>
                         </Grid>

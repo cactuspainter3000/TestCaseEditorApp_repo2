@@ -56,6 +56,28 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private readonly IWorkspaceDiagnosticsService _workspaceDiagnosticsService;
         private readonly IFileDialogService _fileDialogService;
         private readonly IJamaDocumentParserService _jamaDocumentParserService;
+        private readonly IWorkspaceContext _workspaceContext;
+        private readonly IJamaConnectService _jamaConnectService;
+        private JamaPublishPreview? _jamaPublishPreview;
+
+        private sealed record JamaPublishPreview(
+            Workspace Workspace, int ProjectId, Requirement Requirement, JamaRequirementCreateContent Content);
+
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ConfirmJamaPublishCommand))]
+        private bool isJamaPublishPreviewVisible;
+
+        [ObservableProperty]
+        private string jamaPublishPreviewText = string.Empty;
+
+        [ObservableProperty]
+        private string jamaPublishStatus = string.Empty;
+
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(PreviewJamaPublishCommand))]
+        [NotifyCanExecuteChangedFor(nameof(ConfirmJamaPublishCommand))]
+        [NotifyCanExecuteChangedFor(nameof(DeleteCurrentRequirementCommand))]
+        private bool isPublishingToJama;
         private readonly DispatcherTimer _analysisHeartbeatTimer;
         private DateTime _analysisStartedUtc;
         private DateTime _statusStepStartedUtc;
@@ -228,12 +250,16 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             IRequirementsMediator mediator,
             IWorkspaceDiagnosticsService workspaceDiagnosticsService,
             IFileDialogService fileDialogService,
-            IJamaDocumentParserService jamaDocumentParserService)
+            IJamaDocumentParserService jamaDocumentParserService,
+            IWorkspaceContext workspaceContext,
+            IJamaConnectService jamaConnectService)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _workspaceDiagnosticsService = workspaceDiagnosticsService ?? throw new ArgumentNullException(nameof(workspaceDiagnosticsService));
             _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
             _jamaDocumentParserService = jamaDocumentParserService ?? throw new ArgumentNullException(nameof(jamaDocumentParserService));
+            _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
+            _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
 
             var logsDir = AppStoragePaths.LogsDirectory;
             Directory.CreateDirectory(logsDir);
@@ -1524,7 +1550,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             NotifyLifecycleStateUiChanged();
         }
 
-        private bool CanDeleteCurrentRequirement() => CurrentRequirement != null;
+        private bool CanDeleteCurrentRequirement() => CurrentRequirement != null && !IsPublishingToJama;
 
         [RelayCommand(CanExecute = nameof(CanUnstage))]
         private void Unstage()
@@ -1544,16 +1570,118 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private void CommitStaged()
         {
             // Stub — Jama write integration will be wired here
+            var classifiedKeys = _mediator.Requirements.Where(IsClassified).Select(GetKey).ToHashSet();
             foreach (var key in new List<string>(_lifecycleStates.Keys))
             {
-                if (_lifecycleStates[key] == RequirementLifecycleStage.StagedForCommit)
+                if (!classifiedKeys.Contains(key) && _lifecycleStates[key] == RequirementLifecycleStage.StagedForCommit)
                     _lifecycleStates[key] = RequirementLifecycleStage.Committed;
             }
             RefreshLifecycleCounts();
                     NotifyLifecycleStateUiChanged();
         }
 
-        private bool CanCommitStaged() => StagedCount > 0;
+        private bool CanCommitStaged() => _mediator.Requirements.Any(req =>
+            !IsClassified(req) && GetCurrentStage(req) == RequirementLifecycleStage.StagedForCommit);
+
+        private static bool IsClassified(Requirement requirement) =>
+            requirement.SourceDocumentLevel is RequirementSourceLevel.L0 or RequirementSourceLevel.L1;
+
+        private bool CanPreviewJamaPublish() =>
+            !IsPublishingToJama && !IsTestCaseTabActive && CurrentRequirement is { } requirement &&
+            IsClassified(requirement) && string.IsNullOrWhiteSpace(requirement.ApiId) &&
+            !string.IsNullOrWhiteSpace(requirement.SourceDocumentName) &&
+            _mediator.Requirements.Contains(requirement) &&
+            GetCurrentStage(requirement) == RequirementLifecycleStage.StagedForCommit;
+
+        private static int? GetPublishProjectId(Workspace? workspace)
+        {
+            if (workspace == null)
+                return null;
+
+            var hasNumericProject = int.TryParse(workspace.JamaProject, out var projectId) && projectId > 0;
+            if (workspace.JamaProjectId is > 0 and var savedId)
+                return !hasNumericProject || projectId == savedId ? savedId : null;
+
+            return hasNumericProject ? projectId : null;
+        }
+
+        [RelayCommand(CanExecute = nameof(CanPreviewJamaPublish))]
+        private void PreviewJamaPublish()
+        {
+            CancelJamaPublishPreview();
+            if (!CanPreviewJamaPublish() || CurrentRequirement is not { } requirement)
+                return;
+
+            var workspace = _workspaceContext.CurrentWorkspace;
+            if (workspace == null || GetPublishProjectId(workspace) is not { } projectId || !_jamaConnectService.IsConfigured)
+            {
+                JamaPublishStatus = "Open a workspace with a confirmed Jama project ID and configure Jama before publishing.";
+                return;
+            }
+
+            var content = JamaRequirementCreateContent.FromRequirement(requirement);
+            _jamaPublishPreview = new(workspace, projectId, requirement, content);
+            JamaPublishPreviewText = $"Destination: {workspace.JamaProjectName} (Jama project ID {projectId})\n" +
+                $"Jama Name: {content.Name}\n\n" +
+                $"Jama Description:\n{(string.IsNullOrWhiteSpace(requirement.Description) ? content.Name : requirement.Description)}\n\n" +
+                $"{content.SourceProvenance}\n\n" +
+                "Provenance is appended to Description, not mapped to custom fields. Jama determines the item type and placement.";
+            JamaPublishStatus = string.Empty;
+            IsJamaPublishPreviewVisible = true;
+        }
+
+        [RelayCommand]
+        private void CancelJamaPublishPreview()
+        {
+            _jamaPublishPreview = null;
+            IsJamaPublishPreviewVisible = false;
+        }
+
+        private bool CanConfirmJamaPublish() => IsJamaPublishPreviewVisible && !IsPublishingToJama;
+
+        [RelayCommand(CanExecute = nameof(CanConfirmJamaPublish))]
+        private async Task ConfirmJamaPublishAsync()
+        {
+            if (!CanConfirmJamaPublish() || _jamaPublishPreview is not { } preview)
+                return;
+
+            CancelJamaPublishPreview();
+            if (!CanPreviewJamaPublish() || !ReferenceEquals(CurrentRequirement, preview.Requirement) ||
+                !ReferenceEquals(_workspaceContext.CurrentWorkspace, preview.Workspace) ||
+                GetPublishProjectId(preview.Workspace) != preview.ProjectId || !_jamaConnectService.IsConfigured ||
+                JamaRequirementCreateContent.FromRequirement(preview.Requirement) != preview.Content)
+            {
+                JamaPublishStatus = "The requirement or destination changed. Review a new preview before publishing.";
+                return;
+            }
+
+            IsPublishingToJama = true;
+            JamaPublishStatus = "Publishing to Jama...";
+            try
+            {
+                var (success, message, itemId) = await _jamaConnectService.CreateRequirementAsync(preview.ProjectId, preview.Requirement);
+                if (!success || itemId is not > 0)
+                {
+                    JamaPublishStatus = $"Jama did not confirm creation: {message}. Check the destination before retrying.";
+                    return;
+                }
+
+                preview.Requirement.ApiId = itemId.Value.ToString();
+                if (ReferenceEquals(_workspaceContext.CurrentWorkspace, preview.Workspace) &&
+                    _mediator.Requirements.Contains(preview.Requirement))
+                {
+                    _lifecycleStates[GetKey(preview.Requirement)] = RequirementLifecycleStage.Committed;
+                    _mediator.UpdateRequirement(preview.Requirement, new[] { nameof(Requirement.ApiId) });
+                }
+                JamaPublishStatus = $"Published to Jama project {preview.ProjectId} as item {itemId.Value}.";
+            }
+            finally
+            {
+                IsPublishingToJama = false;
+                RefreshLifecycleCounts();
+                NotifyLifecycleStateUiChanged();
+            }
+        }
 
         [RelayCommand]
         private void CloseAnalysisModal()
@@ -1631,6 +1759,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private RequirementLifecycleStage GetCurrentStage(Requirement? req)
         {
             if (req == null) return RequirementLifecycleStage.Edit;
+            if (IsClassified(req) && int.TryParse(req.ApiId, out var id) && id > 0)
+                return RequirementLifecycleStage.Committed;
             var key = GetKey(req);
             return _lifecycleStates.TryGetValue(key, out var stage) ? stage : RequirementLifecycleStage.Edit;
         }
@@ -1689,6 +1819,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             ((RelayCommand)ToggleStageCommand).NotifyCanExecuteChanged();
             ((RelayCommand)DeleteCurrentRequirementCommand).NotifyCanExecuteChanged();
             ((RelayCommand)CommitStagedCommand).NotifyCanExecuteChanged();
+            PreviewJamaPublishCommand.NotifyCanExecuteChanged();
         }
 
         private void NotifyNavigationCanExecute()
@@ -1701,6 +1832,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             ((RelayCommand)UnstageCommand).NotifyCanExecuteChanged();
             ((RelayCommand)ToggleStageCommand).NotifyCanExecuteChanged();
             ((RelayCommand)DeleteCurrentRequirementCommand).NotifyCanExecuteChanged();
+            PreviewJamaPublishCommand.NotifyCanExecuteChanged();
         }
 
         private void NotifyLifecycleStateUiChanged()
@@ -1713,6 +1845,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             OnPropertyChanged(nameof(StageToggleToolTip));
             ((RelayCommand)ToggleStageCommand).NotifyCanExecuteChanged();
             ((RelayCommand)DeleteCurrentRequirementCommand).NotifyCanExecuteChanged();
+            PreviewJamaPublishCommand.NotifyCanExecuteChanged();
         }
 
         partial void OnActiveObjectTabIndexChanged(int value) => NotifyLifecycleStateUiChanged();

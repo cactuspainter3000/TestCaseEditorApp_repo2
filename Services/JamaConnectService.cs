@@ -5028,6 +5028,7 @@ namespace TestCaseEditorApp.Services
 
             try
             {
+                var createContent = JamaRequirementCreateContent.FromRequirement(requirement);
                 await EnsureAccessTokenAsync();
 
                 var (typeSuccess, itemTypeId) = await GetRequirementItemTypeAsync(projectId, cancellationToken);
@@ -5036,8 +5037,8 @@ namespace TestCaseEditorApp.Services
                     return (false, "Could not determine requirement item type for project", null);
                 }
 
-                var requirementName = ResolveRequirementName(requirement);
-                var description = ResolveRequirementDescription(requirement, requirementName);
+                var requirementName = createContent.Name;
+                var description = createContent.Description;
                 var fields = await BuildCreateRequirementFieldsAsync(
                     projectId,
                     itemTypeId.Value,
@@ -5186,22 +5187,6 @@ namespace TestCaseEditorApp.Services
             }
         }
 
-        private static string ResolveRequirementName(Requirement requirement)
-        {
-            return !string.IsNullOrWhiteSpace(requirement.Name)
-                ? requirement.Name
-                : !string.IsNullOrWhiteSpace(requirement.Item)
-                    ? requirement.Item
-                    : "Extracted Requirement";
-        }
-
-        private static string ResolveRequirementDescription(Requirement requirement, string requirementName)
-        {
-            return !string.IsNullOrWhiteSpace(requirement.Description)
-                ? requirement.Description
-                : requirementName;
-        }
-
         private async Task<Dictionary<string, object?>> BuildCreateRequirementFieldsAsync(
             int projectId,
             int itemTypeId,
@@ -5251,6 +5236,9 @@ namespace TestCaseEditorApp.Services
 
         private static void ApplyUpstreamSourceFields(Requirement requirement, Dictionary<string, object?> fields)
         {
+            if (requirement.SourceDocumentLevel is RequirementSourceLevel.L0 or RequirementSourceLevel.L1)
+                return;
+
             var sourceDocumentName = !string.IsNullOrWhiteSpace(requirement.SourceDocumentName)
                 ? requirement.SourceDocumentName
                 : requirement.AtpDerivation?.SourceDocumentName;
@@ -5295,6 +5283,12 @@ namespace TestCaseEditorApp.Services
             CancellationToken cancellationToken)
         {
             requirement.ApiId = createdId.ToString();
+            if (requirement.SourceDocumentLevel is RequirementSourceLevel.L0 or RequirementSourceLevel.L1)
+            {
+                // Local documents have no Jama source item. Keep the workspace key stable for test-case links.
+                return (true, successMessage, createdId);
+            }
+
             if (!string.IsNullOrWhiteSpace(documentKey))
             {
                 requirement.Item = documentKey;
