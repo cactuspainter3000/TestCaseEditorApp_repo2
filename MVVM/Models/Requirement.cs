@@ -18,6 +18,13 @@ namespace TestCaseEditorApp.MVVM.Models
         VerifiedAtAnotherLevel
     }
 
+    public enum RequirementSourceLevel
+    {
+        Unspecified,
+        L0,
+        L1
+    }
+
     public partial class Requirement
     {
         /// <summary>
@@ -226,6 +233,7 @@ namespace TestCaseEditorApp.MVVM.Models
         [ObservableProperty] private string description = string.Empty; // main requirement text
         [ObservableProperty] private string traceReference = string.Empty; // stable lookup key for provenance reports
         [ObservableProperty] private string sourceDocumentName = string.Empty;
+        [ObservableProperty] private RequirementSourceLevel sourceDocumentLevel = RequirementSourceLevel.Unspecified;
         [ObservableProperty] private int? sourceAttachmentId;
         [ObservableProperty] private int? sourceJamaItemId;
 
