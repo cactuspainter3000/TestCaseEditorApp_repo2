@@ -4,6 +4,22 @@
 
 ---
 
+## 🎯 PRODUCT DIRECTION — R2T2
+
+**R2T2** means **Requirements to Test Cases Tool**. This is the intended product name and workflow direction; the existing solution, project, assembly, and code identifiers are unchanged until a separate technical rename is approved.
+
+The application should let a Systems Engineer choose how to provide requirements:
+
+1. Import requirements from a Jama project.
+2. Enter requirements manually.
+3. Import source documents, identify each document's level (L0 or L1), find and process its requirements, and send the reviewed requirements to Jama.
+
+All three paths feed the existing requirement analysis and test-case creation workflow. Test cases are created from processed requirements and retain traceability to those requirements. Document-derived requirements retain their source document, L0/L1 level, and source location so their provenance remains reviewable after processing and Jama export.
+
+This section records the target workflow; it does not assert that every step is currently implemented.
+
+---
+
 ## 🚨 JAMA CONNECT — CRITICAL PROTECTION RULES (May 2026)
 
 > **See `IMPLEMENTATION_NOTES.md` for full root-cause analysis of the May 2026 Jama regression.**
