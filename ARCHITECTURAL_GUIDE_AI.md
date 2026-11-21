@@ -22,7 +22,24 @@ All three paths feed the existing requirement analysis and test-case creation wo
 
 **Jama refresh on reopen:** Published document requirements match saved records by numeric Jama item ID, not by requirement title or displayed key. A match takes Jama's current requirement fields while preserving the workspace identifiers, structured provenance, and test cases. Unmatched L0/L1 records stay in the workspace, including unpublished drafts. A fresh Jama import without that saved workspace can read provenance in the Jama Description but does not reconstruct structured fields or local test-case links.
 
-**Test-project verification:** In a confirmed Jama test workspace, add an L0 or L1 document requirement and an associated test case, publish the requirement, and save the workspace. In Jama, verify the provenance in Description and change the requirement name. Reopen through a Jama refresh and verify that the updated name appears on a single requirement with the same local ID, structured provenance, and test case.
+### Work-laptop Jama smoke test
+
+Live Jama verification must run on a machine that can reach the Jama instance. In the work-laptop checkout, fetch and switch to the feature branch:
+
+```powershell
+git fetch origin
+git switch --track origin/feature/r2t2-document-requirements
+```
+
+If the branch already exists locally, use `git switch feature/r2t2-document-requirements` followed by `git pull --ff-only`. Open `TestCaseEditorApp.sln` in Visual Studio and run the WPF app with .NET 8 support. Use the work laptop's existing Jama configuration and a designated **non-production Jama project**. No new LLM workspace is needed for this check; use an existing local test case linked to the requirement if one is available.
+
+1. In **Workshop > Requirement Extraction**, choose L0 or L1 and extract a requirement from a synthetic local document. Review it and add it to the workspace. Record its local requirement ID, source details, and the ID of its associated test case.
+2. Stage the requirement, select **Preview Jama Publication**, verify the test project ID, then select **Publish to Jama**. Record the Jama item ID and save the workspace.
+3. In Jama, verify that the item's **Description** contains the document level and available source details. Rename that same item in Jama.
+4. Reopen the same saved workspace and verify that R2T2 reports a Jama refresh. Opening cached data is not a valid result: the current refresh gate requires a recorded Jama sync and a workspace save newer than that sync.
+5. **Pass:** The updated name appears on exactly one requirement. Its Jama item ID, original local ID, structured source provenance, and linked test case are unchanged.
+
+The app build and 24 focused tests passed locally, including simulated L0 and L1 round trips. Live verification is still pending. When reporting results, include the branch commit, pass/fail outcome, and failing step without sharing credentials or source-document contents.
 
 ---
 
