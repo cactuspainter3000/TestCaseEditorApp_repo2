@@ -1048,13 +1048,7 @@ namespace TestCaseEditorApp.MVVM.Domains.TestCaseCreation.ViewModels
         /// </summary>
         private TestCase CreateTestCaseFromLLMTestCase(LLMTestCase llmTestCase)
         {
-            return new TestCase
-            {
-                Id = llmTestCase.Id,
-                Name = llmTestCase.Title,
-                TestCaseText = llmTestCase.Description,
-                // Additional properties can be mapped as needed
-            };
+            return llmTestCase.ToWorkspaceTestCase();
         }
 
         /// <summary>

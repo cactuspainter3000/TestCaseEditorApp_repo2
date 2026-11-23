@@ -22,6 +22,8 @@ All three paths feed the existing requirement analysis and test-case creation wo
 
 **Saving:** Use **Save Project** in the top application bar. A successful save displays **Last save succeeded** beside the button; save errors appear there instead. Saving updates the local workspace file and does not publish to Jama.
 
+**Test-case generation:** In **Requirement Record**, select the requirement using **Requirement Record Navigation**, open **Test Case**, and choose **Generate Test Cases**. Generation uses the project's AnythingLLM workspace and appends cases linked to the selected requirement, retaining existing cases. Review **Generation / Validation Output**, the case count, and each case's steps and expected results. Use **Save Project**, reopen the same project, and verify the case IDs and linked requirement remain intact. Generation does not publish to Jama.
+
 **Jama refresh on reopen:** Published document requirements match saved records by numeric Jama item ID, not by requirement title or displayed key. A match takes Jama's current requirement fields while preserving the workspace identifiers, structured provenance, and test cases. Unmatched L0/L1 records stay in the workspace, including unpublished drafts. A fresh Jama import without that saved workspace can read provenance in the Jama Description but does not reconstruct structured fields or local test-case links.
 
 ### Work-laptop Jama smoke test

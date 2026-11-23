@@ -1,0 +1,96 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services;
+using TestCaseEditorApp.MVVM.Models;
+
+namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels;
+
+public partial class WorkshopReproViewModel
+{
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(GenerateTestCasesCommand))]
+    private bool isGeneratingTestCases;
+
+    [ObservableProperty]
+    private string testCaseGenerationStatus = "Select a requirement and generate test cases. Save Project to keep the results.";
+
+    private bool CanGenerateTestCases() => CurrentRequirement != null && !IsGeneratingTestCases;
+
+    [RelayCommand(CanExecute = nameof(CanGenerateTestCases))]
+    private async Task GenerateTestCasesAsync()
+    {
+        var requirement = CurrentRequirement;
+        var workspace = _workspaceContext.CurrentWorkspace;
+        if (requirement == null || workspace == null)
+        {
+            TestCaseGenerationStatus = "Open a project and select a requirement before generating test cases.";
+            return;
+        }
+
+        var workspaceName = workspace.AnythingLLMWorkspaceSlug ?? workspace.AnythingLLMWorkspaceName;
+        if (string.IsNullOrWhiteSpace(workspaceName))
+        {
+            TestCaseGenerationStatus = "Generation failed: this project has no AnythingLLM workspace association.";
+            return;
+        }
+
+        IsGeneratingTestCases = true;
+        TestCaseGenerationStatus = $"Generating test cases for {requirement.Item}...";
+        try
+        {
+            _testCaseGenerationService.SetWorkspaceContext(workspaceName);
+            string lastProgress = string.Empty;
+            var generated = await _testCaseGenerationService.GenerateTestCasesForSingleRequirementAsync(
+                requirement, (message, _, _) => lastProgress = message);
+            if (!ReferenceEquals(_workspaceContext.CurrentWorkspace, workspace) ||
+                !_mediator.Requirements.Contains(requirement))
+            {
+                TestCaseGenerationStatus = "Generation results were not added because the project or requirement changed. Return to the intended project and try again.";
+                return;
+            }
+
+            if (generated.Count == 0)
+            {
+                TestCaseGenerationStatus = $"No test cases were added. {lastProgress} Check the AnythingLLM connection and generation logs before retrying.";
+                return;
+            }
+
+            // Validate the entire response before changing the requirement.
+            if (generated.Any(testCase => string.IsNullOrWhiteSpace(testCase.Id) ||
+                string.IsNullOrWhiteSpace(testCase.Title) ||
+                testCase.CoveredRequirementIds.Count != 1 ||
+                testCase.CoveredRequirementIds[0] != requirement.Item))
+            {
+                TestCaseGenerationStatus = "Generation failed: returned cases have missing IDs/titles or do not reference only the selected requirement. No cases were added.";
+                return;
+            }
+
+            var additions = generated.DistinctBy(testCase => testCase.Id)
+                .Where(testCase => !requirement.GeneratedTestCases.Any(existing => existing.Id == testCase.Id))
+                .Select(testCase => testCase.ToWorkspaceTestCase())
+                .ToList();
+            foreach (var testCase in additions)
+                requirement.GeneratedTestCases.Add(testCase);
+
+            if (additions.Count > 0)
+            {
+                _mediator.UpdateRequirement(requirement, new[] { nameof(Requirement.GeneratedTestCases) });
+                if (ReferenceEquals(CurrentRequirement, requirement))
+                    SelectedTestCase = additions[0];
+                RefreshLifecycleCounts();
+                NotifyLifecycleStateUiChanged();
+            }
+            TestCaseGenerationStatus = $"Added {additions.Count} test case(s) to {requirement.Item}. " +
+                $"Skipped {generated.Count - additions.Count} duplicate ID(s). Review the cases, then Save Project. Nothing was published to Jama.";
+        }
+        catch (Exception ex)
+        {
+            TestCaseGenerationStatus = $"Test-case generation failed: {ex.Message}";
+            TestCaseEditorApp.Services.Logging.Log.Error(ex, "Workshop test-case generation failed");
+        }
+        finally
+        {
+            IsGeneratingTestCases = false;
+        }
+    }
+}

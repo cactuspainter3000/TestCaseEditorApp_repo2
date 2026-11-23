@@ -124,7 +124,8 @@ public class WorkshopJamaPublicationTests
         _context.SetupGet(context => context.CurrentWorkspace).Returns(_workspace);
         _jama.SetupGet(jama => jama.IsConfigured).Returns(true);
         var viewModel = new WorkshopReproViewModel(_mediator.Object, Mock.Of<IWorkspaceDiagnosticsService>(),
-            Mock.Of<IFileDialogService>(), Mock.Of<IJamaDocumentParserService>(), _context.Object, _jama.Object);
+            Mock.Of<IFileDialogService>(), Mock.Of<IJamaDocumentParserService>(), _context.Object, _jama.Object,
+            Mock.Of<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseGenerationService>());
         viewModel.StageCommand.Execute(null);
         return viewModel;
     }

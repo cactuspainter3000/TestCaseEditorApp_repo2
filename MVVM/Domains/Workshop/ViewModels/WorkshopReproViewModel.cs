@@ -58,6 +58,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private readonly IJamaDocumentParserService _jamaDocumentParserService;
         private readonly IWorkspaceContext _workspaceContext;
         private readonly IJamaConnectService _jamaConnectService;
+        private readonly TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseGenerationService _testCaseGenerationService;
         private JamaPublishPreview? _jamaPublishPreview;
 
         private sealed record JamaPublishPreview(
@@ -252,7 +253,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             IFileDialogService fileDialogService,
             IJamaDocumentParserService jamaDocumentParserService,
             IWorkspaceContext workspaceContext,
-            IJamaConnectService jamaConnectService)
+            IJamaConnectService jamaConnectService,
+            TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseGenerationService testCaseGenerationService)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _workspaceDiagnosticsService = workspaceDiagnosticsService ?? throw new ArgumentNullException(nameof(workspaceDiagnosticsService));
@@ -260,6 +262,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             _jamaDocumentParserService = jamaDocumentParserService ?? throw new ArgumentNullException(nameof(jamaDocumentParserService));
             _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
+            _testCaseGenerationService = testCaseGenerationService ?? throw new ArgumentNullException(nameof(testCaseGenerationService));
 
             var logsDir = AppStoragePaths.LogsDirectory;
             Directory.CreateDirectory(logsDir);
@@ -1824,6 +1827,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
 
         private void NotifyNavigationCanExecute()
         {
+            GenerateTestCasesCommand.NotifyCanExecuteChanged();
             ((RelayCommand)PreviousRequirementCommand).NotifyCanExecuteChanged();
             ((RelayCommand)NextRequirementCommand).NotifyCanExecuteChanged();
             ((AsyncRelayCommand)LlmAnalyzeRequirementCommand).NotifyCanExecuteChanged();

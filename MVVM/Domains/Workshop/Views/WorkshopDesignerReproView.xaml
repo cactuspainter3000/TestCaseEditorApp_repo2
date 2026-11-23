@@ -1116,7 +1116,8 @@
                                            VerticalAlignment="Center"
                                            Foreground="{StaticResource Brush.Accent.Primary}"/>
                                 <Button Grid.Column="1"
-                                        Content="LLM Analyze"
+                                        Content="Generate Test Cases"
+                                        Command="{Binding GenerateTestCasesCommand}"
                                         Padding="10,4"
                                         VerticalAlignment="Center"
                                         Background="{StaticResource Brush.Background.Pill.Selected}"
@@ -1219,7 +1220,7 @@
                                         <RowDefinition Height="*"/>
                                     </Grid.RowDefinitions>
                                     <TextBlock Text="Generation / Validation Output" FontWeight="SemiBold" Foreground="{StaticResource Brush.Accent.Primary}"/>
-                                    <TextBox Grid.Row="2" Text="Generation status, validation findings, and execution history placeholder." AcceptsReturn="True" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
+                                    <TextBox Grid.Row="2" Text="{Binding TestCaseGenerationStatus, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" Foreground="{StaticResource Brush.Text.Secondary}" Background="{StaticResource Brush.Background.Menu}" BorderBrush="{StaticResource Brush.Border.Subtle}"/>
                                 </Grid>
                             </Border>
                         </Grid>
