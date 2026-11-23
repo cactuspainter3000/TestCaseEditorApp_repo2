@@ -136,14 +136,28 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Mediators
                     return false;
                 }
 
-                // Load from the saved workspace immediately. Only offer a refresh if the workspace
-                // was modified after the last successful sync.
+                // Remote edits can occur independently of local save and sync timestamps.
                 var resolvedJamaProjectId = await ResolveJamaProjectIdAsync(workspace);
                 int? liveRequirementCount = null;
                 int? liveTestCaseCount = null;
                 var shouldRefreshJama = resolvedJamaProjectId.HasValue
                     && _jamaConnectService.IsConfigured
-                    && WorkspaceService.ShouldPromptForRefresh(workspace, workspace.LastJamaSyncUtc);
+                    && JamaWorkspaceRequirementRefresh.ShouldOfferRefresh(workspace);
+
+                if (shouldRefreshJama)
+                {
+                    shouldRefreshJama = System.Windows.MessageBox.Show(
+                        System.Windows.Application.Current.MainWindow,
+                        $"Refresh this workspace from Jama project {resolvedJamaProjectId}?\n\n" +
+                        "Yes loads current Jama data, including renamed requirements. " +
+                        "L0/L1 source details and linked test cases are preserved.\n\n" +
+                        "No opens the saved local data without contacting Jama for a refresh.",
+                        "Refresh from Jama",
+                        System.Windows.MessageBoxButton.YesNo,
+                        System.Windows.MessageBoxImage.Question,
+                        System.Windows.MessageBoxResult.No) == System.Windows.MessageBoxResult.Yes;
+                    _logger.LogInformation("Jama refresh confirmation: RefreshRequested={RefreshRequested}", shouldRefreshJama);
+                }
 
                 if (resolvedJamaProjectId.HasValue && !_jamaConnectService.IsConfigured)
                 {

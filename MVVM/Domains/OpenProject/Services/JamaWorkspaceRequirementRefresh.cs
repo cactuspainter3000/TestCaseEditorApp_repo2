@@ -8,6 +8,13 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Services
 {
     public static class JamaWorkspaceRequirementRefresh
     {
+        public static bool ShouldOfferRefresh(Workspace workspace)
+        {
+            ArgumentNullException.ThrowIfNull(workspace);
+            return workspace.LastJamaSyncUtc.HasValue ||
+                workspace.Requirements.Any(requirement => GetJamaId(requirement).HasValue);
+        }
+
         public static List<Requirement> Merge(
             IEnumerable<Requirement> cachedRequirements, IEnumerable<Requirement> jamaRequirements)
         {

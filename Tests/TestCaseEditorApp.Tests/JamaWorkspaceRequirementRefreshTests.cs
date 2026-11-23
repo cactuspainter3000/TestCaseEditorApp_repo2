@@ -9,6 +9,37 @@ namespace TestCaseEditorApp.Tests;
 public class JamaWorkspaceRequirementRefreshTests
 {
     [TestMethod]
+    public void NewlyPublishedRequirement_OffersRefreshWithoutPriorSync()
+    {
+        var workspace = new Workspace
+        {
+            Requirements = [new Requirement { ApiId = "1234", SourceDocumentLevel = RequirementSourceLevel.L0 }]
+        };
+        Assert.IsTrue(JamaWorkspaceRequirementRefresh.ShouldOfferRefresh(workspace));
+    }
+
+    [TestMethod]
+    public void PreviouslySyncedWorkspace_OffersRefreshRegardlessOfLocalSaveTime()
+    {
+        var workspace = new Workspace
+        {
+            LastJamaSyncUtc = DateTime.UtcNow,
+            LastSavedUtc = DateTime.UtcNow.AddDays(-1)
+        };
+        Assert.IsTrue(JamaWorkspaceRequirementRefresh.ShouldOfferRefresh(workspace));
+    }
+
+    [TestMethod]
+    public void UnpublishedLocalWorkspace_DoesNotOfferRefresh()
+    {
+        var workspace = new Workspace
+        {
+            Requirements = [new Requirement { ApiId = "LOCAL-1", SourceDocumentLevel = RequirementSourceLevel.L0 }]
+        };
+        Assert.IsFalse(JamaWorkspaceRequirementRefresh.ShouldOfferRefresh(workspace));
+    }
+
+    [TestMethod]
     [DataRow(RequirementSourceLevel.L0)]
     [DataRow(RequirementSourceLevel.L1)]
     public async Task PublishedDocumentRequirement_RetainsLocalWorkAfterJamaConversionAndWorkspaceReload(

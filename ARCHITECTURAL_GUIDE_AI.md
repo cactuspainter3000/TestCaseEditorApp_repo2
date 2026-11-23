@@ -38,7 +38,7 @@ If the branch already exists locally, use `git switch feature/r2t2-document-requ
 1. In **Workshop > Requirement Extraction**, choose L0 or L1 and extract a requirement from a synthetic local document. Review it and add it to the workspace. Record its local requirement ID, source details, and the ID of its associated test case.
 2. Stage the requirement, select **Preview Jama Publication**, verify the test project ID, then select **Publish to Jama**. Record the Jama item ID and save the workspace.
 3. In Jama, verify that the item's **Description** contains the document level and available source details. Rename that same item in Jama.
-4. Reopen the same saved workspace and verify that R2T2 reports a Jama refresh. Opening cached data is not a valid result: the current refresh gate requires a recorded Jama sync and a workspace save newer than that sync.
+4. Reopen the same saved workspace and choose **Yes** in **Refresh from Jama**. The prompt is offered for configured Jama-associated workspaces with a prior Jama sync or a requirement linked by numeric Jama item ID, including newly published document requirements. **No** opens cached data without a live refresh. Local timestamps do not determine whether remote edits are available.
 5. **Pass:** The updated name appears on exactly one requirement. Its Jama item ID, original local ID, structured source provenance, and linked test case are unchanged.
 
 The app build and 24 focused tests passed locally, including simulated L0 and L1 round trips. Live verification is still pending. When reporting results, include the branch commit, pass/fail outcome, and failing step without sharing credentials or source-document contents.
