@@ -33,6 +33,9 @@ namespace TestCaseEditorApp.MVVM.Domains.Title.ViewModels
         [ObservableProperty]
         private bool hasProject = false;
 
+        [ObservableProperty]
+        private string saveStatus = string.Empty;
+
         public ICommand SaveProjectCommand { get; }
         public ICommand UndoLastSaveCommand { get; }
         public ICommand OpenSettingsCommand { get; }
@@ -70,6 +73,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Title.ViewModels
             _newProjectMediator.Subscribe<NewProjectEvents.ProjectSaved>(OnProjectSaved);
             _newProjectMediator.Subscribe<NewProjectEvents.WorkspaceModified>(OnWorkspaceModified);
             _newProjectMediator.Subscribe<NewProjectEvents.ProjectClosed>(OnProjectClosed);
+            _newProjectMediator.Subscribe<NewProjectEvents.ProjectOperationError>(OnProjectOperationError);
             
             _openProjectMediator.Subscribe<OpenProjectEvents.ProjectOpened>(OnProjectOpened);
         }
@@ -79,6 +83,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Title.ViewModels
             ProjectTitle = $"Requirements Workshop - {evt.WorkspaceName}";
             HasProject = true;
             HasUnsavedChanges = false;
+            SaveStatus = string.Empty;
             _logger.LogInformation("[TitleVM] Workshop created: {Name}", evt.WorkspaceName);
         }
 
@@ -87,13 +92,23 @@ namespace TestCaseEditorApp.MVVM.Domains.Title.ViewModels
             ProjectTitle = $"Requirements Workshop - {evt.WorkspaceName}";
             HasProject = true;
             HasUnsavedChanges = false;
+            SaveStatus = string.Empty;
             _logger.LogInformation("[TitleVM] Workshop opened: {Name}", evt.WorkspaceName);
         }
 
         private void OnProjectSaved(NewProjectEvents.ProjectSaved evt)
         {
             HasUnsavedChanges = false;
+            SaveStatus = "Last save succeeded";
             _logger.LogInformation("[TitleVM] Workshop saved");
+        }
+
+        private void OnProjectOperationError(NewProjectEvents.ProjectOperationError evt)
+        {
+            if (evt.Operation == "SaveProject")
+            {
+                SaveStatus = $"Save failed: {evt.ErrorMessage}";
+            }
         }
 
         private void OnWorkspaceModified(NewProjectEvents.WorkspaceModified evt)
@@ -107,6 +122,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Title.ViewModels
             ProjectTitle = "Systems ATE APP";
             HasProject = false;
             HasUnsavedChanges = false;
+            SaveStatus = string.Empty;
             _logger.LogInformation("[TitleVM] Workshop closed");
         }
 
@@ -115,12 +131,13 @@ namespace TestCaseEditorApp.MVVM.Domains.Title.ViewModels
             try
             {
                 _logger.LogInformation("[TitleVM] Saving workshop");
+                SaveStatus = "Saving...";
                 await _newProjectMediator.SaveProjectAsync();
-                _logger.LogInformation("[TitleVM] Workshop saved successfully");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[TitleVM] Error saving workshop");
+                SaveStatus = $"Save failed: {ex.Message}";
             }
         }
 

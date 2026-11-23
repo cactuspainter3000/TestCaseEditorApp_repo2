@@ -270,6 +270,11 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
             {
                 if (_currentWorkspaceInfo == null)
                 {
+                    PublishEvent(new NewProjectEvents.ProjectOperationError
+                    {
+                        Operation = "SaveProject",
+                        ErrorMessage = "No active workspace to save"
+                    });
                     if (showUiFeedback)
                     {
                         ShowNotification("No active workspace to save", DomainNotificationType.Warning);
@@ -293,9 +298,9 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                 });
                 
                 // 1. Get current requirements from Requirements domain
-                var requirementsMediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>();
-                var currentRequirements = requirementsMediator?.Requirements?.ToList() 
-                    ?? new List<Requirement>();
+                var requirementsMediator = App.ServiceProvider?.GetService<TestCaseEditorApp.MVVM.Domains.Requirements.Mediators.IRequirementsMediator>()
+                    ?? throw new InvalidOperationException("The requirements service is unavailable.");
+                var currentRequirements = requirementsMediator.Requirements.ToList();
                 
                 _logger.LogInformation("Gathering current workspace data - found {RequirementCount} requirements (from {Source})", 
                     currentRequirements.Count, 
@@ -314,18 +319,8 @@ namespace TestCaseEditorApp.MVVM.Domains.NewProject.Mediators
                         string.Join(", ", req.GeneratedTestCases?.Select(tc => tc.Id) ?? new List<string>()));
                 }
                 
-                // 2. Build current workspace object with all data
-                var workspace = new Workspace
-                {
-                    Name = _currentWorkspaceInfo.Name,
-                    Requirements = currentRequirements,
-                    Version = Workspace.SchemaVersion,
-                    CreatedBy = Environment.UserName,
-                    CreatedUtc = DateTime.UtcNow,
-                    LastSavedUtc = DateTime.UtcNow,
-                    SaveCount = 1 // Will be incremented in future versions
-                    // Note: ImportSource will be auto-detected during load if missing
-                };
+                // Preserve the saved workspace's project associations and sync metadata.
+                var workspace = ProjectWorkspaceSave.Prepare(_currentWorkspaceInfo.Path, currentRequirements);
                 
                 // 3. Validate workspace data before save
                 var validationService = App.ServiceProvider?.GetService<IWorkspaceValidationService>();

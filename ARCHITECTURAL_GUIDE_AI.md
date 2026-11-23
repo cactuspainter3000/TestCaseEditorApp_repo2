@@ -20,6 +20,8 @@ All three paths feed the existing requirement analysis and test-case creation wo
 
 **Jama publication:** In the Workshop requirement view, stage the reviewed L0/L1 requirement and choose **Preview Jama Publication**. The preview shows the workspace's Jama project ID, Name, and Description. Classification and available provenance are appended to Jama Description rather than assuming tenant-specific custom fields; item type and placement use the existing Jama create flow. Publication is one requirement at a time and requires **Publish to Jama**. A confirmed creation records the Jama item ID without replacing local requirement identifiers. Save the workspace to persist that link.
 
+**Saving:** Use **Save Project** in the top application bar. A successful save displays **Last save succeeded** beside the button; save errors appear there instead. Saving updates the local workspace file and does not publish to Jama.
+
 **Jama refresh on reopen:** Published document requirements match saved records by numeric Jama item ID, not by requirement title or displayed key. A match takes Jama's current requirement fields while preserving the workspace identifiers, structured provenance, and test cases. Unmatched L0/L1 records stay in the workspace, including unpublished drafts. A fresh Jama import without that saved workspace can read provenance in the Jama Description but does not reconstruct structured fields or local test-case links.
 
 ### Work-laptop Jama smoke test

@@ -44,7 +44,7 @@ namespace TestCaseEditorApp.MVVM.ViewModels
         /// <summary>
         /// Title domain ViewModel - manages title bar and global actions
         /// </summary>
-        public object TitleVM { get; }
+        public TestCaseEditorApp.MVVM.Domains.Title.ViewModels.TitleViewModel TitleVM { get; }
         
         // === 6-WORKSPACE PROPERTIES ===
         // All UI areas are managed by ViewAreaCoordinator

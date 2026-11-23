@@ -382,6 +382,7 @@
                 <Grid HorizontalAlignment="Stretch">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/> <!-- Title content -->
+                        <ColumnDefinition Width="Auto"/> <!-- Project save -->
                         <ColumnDefinition Width="Auto"/> <!-- Window controls -->
                     </Grid.ColumnDefinitions>
                     
@@ -396,8 +397,22 @@
                                Margin="12,0,10,0"
                                TextTrimming="CharacterEllipsis"/>
                     
-                    <!-- Window Controls -->
                     <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="{Binding TitleVM.SaveStatus}"
+                                   Foreground="White"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0"/>
+                        <Button Content="Save Project"
+                                Command="{Binding TitleVM.SaveProjectCommand}"
+                                ToolTip="Save the current project locally"
+                                Padding="10,4"
+                                Margin="0,0,10,0"/>
+                    </StackPanel>
+
+                    <!-- Window Controls -->
+                    <StackPanel Grid.Column="2"
                                 Orientation="Horizontal"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Center">
