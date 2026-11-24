@@ -113,7 +113,8 @@ namespace TestCaseEditorApp.Services.DependencyInjection
                 return new WorkshopReproViewModel(mediator, workspaceDiagnosticsService, fileDialogService,
                     jamaDocumentParserService, provider.GetRequiredService<IWorkspaceContext>(),
                     provider.GetRequiredService<IJamaConnectService>(),
-                    provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseGenerationService>());
+                    provider.GetRequiredService<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseGenerationService>(),
+                    provider.GetRequiredService<IPersistenceService>());
             });
 
             // Main ViewModel (TRANSIENT - matches existing app lifecycle)

@@ -146,7 +146,7 @@ public class WorkshopTestCaseGenerationTests
         _context.SetupGet(context => context.CurrentWorkspace).Returns(_workspace);
         return new WorkshopReproViewModel(_mediator.Object, Mock.Of<IWorkspaceDiagnosticsService>(),
             Mock.Of<IFileDialogService>(), Mock.Of<IJamaDocumentParserService>(), _context.Object,
-            Mock.Of<IJamaConnectService>(), _generation.Object);
+            Mock.Of<IJamaConnectService>(), _generation.Object, Mock.Of<IPersistenceService>());
     }
 
     private static LLMTestCase GeneratedCase() => new()

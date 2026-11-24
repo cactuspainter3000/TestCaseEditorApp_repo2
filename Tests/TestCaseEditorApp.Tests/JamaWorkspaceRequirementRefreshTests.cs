@@ -9,6 +9,18 @@ namespace TestCaseEditorApp.Tests;
 public class JamaWorkspaceRequirementRefreshTests
 {
     [TestMethod]
+    public void OrdinaryJamaRequirement_PreservesLocalDraftsAndPublicationIdsOnRefresh()
+    {
+        var local = new Requirement { ApiId = "123", Item = "DEMO-REQ-1",
+            GeneratedTestCases = { new TestCase { Id = "TC-1", ApiId = "900", Status = "AI Draft - published and linked" } } };
+        var remote = new Requirement { ApiId = "123", Item = "DEMO-REQ-1", Name = "Renamed in Jama" };
+        var result = JamaWorkspaceRequirementRefresh.Merge([local], [remote]).Single();
+        Assert.AreEqual("Renamed in Jama", result.Name);
+        Assert.AreEqual("900", result.GeneratedTestCases.Single().ApiId);
+        Assert.AreEqual(RequirementSourceLevel.Unspecified, result.SourceDocumentLevel);
+    }
+
+    [TestMethod]
     public void NewlyPublishedRequirement_OffersRefreshWithoutPriorSync()
     {
         var workspace = new Workspace

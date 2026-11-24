@@ -83,6 +83,14 @@ namespace TestCaseEditorApp.Services
         /// </summary>
         Task<(bool Success, int? TestCaseItemType)> GetTestCaseItemTypeAsync(int projectId, CancellationToken cancellationToken = default);
 
+        Task<JamaDraftOptions> GetDraftPublicationOptionsAsync(int projectId, CancellationToken cancellationToken = default);
+        Task ValidateDraftDestinationAsync(int projectId, int containerId, int itemTypeId,
+            IReadOnlyList<int> requirementIds, CancellationToken cancellationToken = default);
+        Task<int> CreateDraftTestCaseAsync(int projectId, int containerId, int itemTypeId,
+            string name, string description, CancellationToken cancellationToken = default);
+        Task LinkDraftTestCaseAsync(int projectId, int requirementId, int testCaseId,
+            int relationshipTypeId, CancellationToken cancellationToken = default);
+
         /// <summary>
         /// Get requirement item type ID for a project
         /// </summary>

@@ -19,7 +19,8 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Services
             IEnumerable<Requirement> cachedRequirements, IEnumerable<Requirement> jamaRequirements)
         {
             var classified = cachedRequirements
-                .Where(requirement => requirement.SourceDocumentLevel is RequirementSourceLevel.L0 or RequirementSourceLevel.L1)
+                .Where(requirement => requirement.SourceDocumentLevel is RequirementSourceLevel.L0 or RequirementSourceLevel.L1 ||
+                    requirement.GeneratedTestCases.Count > 0)
                 .ToList();
             var published = classified
                 .Select(requirement => (Id: GetJamaId(requirement), Requirement: requirement))
@@ -54,24 +55,27 @@ namespace TestCaseEditorApp.MVVM.Domains.OpenProject.Services
 
         private static void PreserveWorkspaceData(Requirement local, Requirement remote)
         {
-            remote.Item = local.Item;
-            remote.GlobalId = local.GlobalId;
-            remote.SourceDocumentLevel = local.SourceDocumentLevel;
-            remote.SourceDocumentName = local.SourceDocumentName;
-            remote.SourceSection = local.SourceSection;
-            remote.SourcePrefix = local.SourcePrefix;
-            remote.SourcePrefixType = local.SourcePrefixType;
-            remote.SourcePrefixEvidence = local.SourcePrefixEvidence;
-            remote.SourcePrefixConfidence = local.SourcePrefixConfidence;
-            remote.TraceReference = local.TraceReference;
-            remote.SourceAttachmentId = local.SourceAttachmentId;
-            remote.SourceJamaItemId = local.SourceJamaItemId;
-            remote.AtpDerivation = local.AtpDerivation;
+            if (local.SourceDocumentLevel is RequirementSourceLevel.L0 or RequirementSourceLevel.L1)
+            {
+                remote.Item = local.Item;
+                remote.GlobalId = local.GlobalId;
+                remote.SourceDocumentLevel = local.SourceDocumentLevel;
+                remote.SourceDocumentName = local.SourceDocumentName;
+                remote.SourceSection = local.SourceSection;
+                remote.SourcePrefix = local.SourcePrefix;
+                remote.SourcePrefixType = local.SourcePrefixType;
+                remote.SourcePrefixEvidence = local.SourcePrefixEvidence;
+                remote.SourcePrefixConfidence = local.SourcePrefixConfidence;
+                remote.TraceReference = local.TraceReference;
+                remote.SourceAttachmentId = local.SourceAttachmentId;
+                remote.SourceJamaItemId = local.SourceJamaItemId;
+                remote.AtpDerivation = local.AtpDerivation;
 
-            remote.SelectedAssumptionKeys = local.SelectedAssumptionKeys;
-            remote.ClarifyingQuestions = local.ClarifyingQuestions;
-            remote.Analysis = local.Analysis;
-            remote.CurrentResponse = local.CurrentResponse;
+                remote.SelectedAssumptionKeys = local.SelectedAssumptionKeys;
+                remote.ClarifyingQuestions = local.ClarifyingQuestions;
+                remote.Analysis = local.Analysis;
+                remote.CurrentResponse = local.CurrentResponse;
+            }
             if (local.GeneratedTestCases != null)
             {
                 foreach (var testCase in local.GeneratedTestCases)

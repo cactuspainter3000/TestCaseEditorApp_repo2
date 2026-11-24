@@ -99,6 +99,6 @@ public class WorkshopDocumentIntakeTests
         _mediator.SetupGet(mediator => mediator.Requirements).Returns(new ObservableCollection<Requirement>());
         return new WorkshopReproViewModel(_mediator.Object, Mock.Of<IWorkspaceDiagnosticsService>(),
             _fileDialog.Object, _parser.Object, Mock.Of<IWorkspaceContext>(), Mock.Of<IJamaConnectService>(),
-            Mock.Of<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseGenerationService>());
+            Mock.Of<TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseGenerationService>(), Mock.Of<IPersistenceService>());
     }
 }

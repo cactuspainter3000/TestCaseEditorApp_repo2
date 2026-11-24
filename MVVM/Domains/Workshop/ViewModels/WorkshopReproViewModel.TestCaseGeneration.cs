@@ -1,7 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.IO;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services;
 using TestCaseEditorApp.MVVM.Models;
+using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Models;
 
 namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels;
 
@@ -14,7 +16,17 @@ public partial class WorkshopReproViewModel
     [ObservableProperty]
     private string testCaseGenerationStatus = "Select a requirement and generate test cases. Save Project to keep the results.";
 
-    private bool CanGenerateTestCases() => CurrentRequirement != null && !IsGeneratingTestCases;
+    private bool CanGenerateTestCases() => CurrentRequirement != null && !IsGeneratingTestCases && !IsDraftWorkflowBusy;
+
+    partial void OnIsGeneratingTestCasesChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanEditDraftSelection));
+        LoadDraftRequirementsCommand.NotifyCanExecuteChanged();
+        GenerateSelectedDraftsCommand.NotifyCanExecuteChanged();
+        LoadDraftDestinationsCommand.NotifyCanExecuteChanged();
+        PreviewDraftPublicationCommand.NotifyCanExecuteChanged();
+        PublishDraftsCommand.NotifyCanExecuteChanged();
+    }
 
     [RelayCommand(CanExecute = nameof(CanGenerateTestCases))]
     private async Task GenerateTestCasesAsync()
@@ -40,6 +52,7 @@ public partial class WorkshopReproViewModel
         {
             _testCaseGenerationService.SetWorkspaceContext(workspaceName);
             string lastProgress = string.Empty;
+            var input = (requirement.Item, requirement.ApiId, requirement.Name, requirement.Description);
             var generated = await _testCaseGenerationService.GenerateTestCasesForSingleRequirementAsync(
                 requirement, (message, _, _) => lastProgress = message);
             if (!ReferenceEquals(_workspaceContext.CurrentWorkspace, workspace) ||
@@ -48,6 +61,8 @@ public partial class WorkshopReproViewModel
                 TestCaseGenerationStatus = "Generation results were not added because the project or requirement changed. Return to the intended project and try again.";
                 return;
             }
+            if (input != (requirement.Item, requirement.ApiId, requirement.Name, requirement.Description))
+                throw new InvalidOperationException("The requirement changed during generation; results were not attached.");
 
             if (generated.Count == 0)
             {
@@ -55,22 +70,7 @@ public partial class WorkshopReproViewModel
                 return;
             }
 
-            // Validate the entire response before changing the requirement.
-            if (generated.Any(testCase => string.IsNullOrWhiteSpace(testCase.Id) ||
-                string.IsNullOrWhiteSpace(testCase.Title) ||
-                testCase.CoveredRequirementIds.Count != 1 ||
-                testCase.CoveredRequirementIds[0] != requirement.Item))
-            {
-                TestCaseGenerationStatus = "Generation failed: returned cases have missing IDs/titles or do not reference only the selected requirement. No cases were added.";
-                return;
-            }
-
-            var additions = generated.DistinctBy(testCase => testCase.Id)
-                .Where(testCase => !requirement.GeneratedTestCases.Any(existing => existing.Id == testCase.Id))
-                .Select(testCase => testCase.ToWorkspaceTestCase())
-                .ToList();
-            foreach (var testCase in additions)
-                requirement.GeneratedTestCases.Add(testCase);
+            var additions = AddGeneratedDrafts(requirement, generated);
 
             if (additions.Count > 0)
             {
@@ -92,5 +92,20 @@ public partial class WorkshopReproViewModel
         {
             IsGeneratingTestCases = false;
         }
+    }
+
+    private static List<TestCase> AddGeneratedDrafts(Requirement requirement, List<LLMTestCase> generated)
+    {
+        if (generated.Any(testCase => string.IsNullOrWhiteSpace(testCase.Id) ||
+            string.IsNullOrWhiteSpace(testCase.Title) || testCase.Steps.Count == 0 ||
+            testCase.Steps.Any(step => string.IsNullOrWhiteSpace(step.Action) || string.IsNullOrWhiteSpace(step.ExpectedResult)) ||
+            testCase.CoveredRequirementIds.Count != 1 || testCase.CoveredRequirementIds[0] != requirement.Item))
+            throw new InvalidDataException("Returned cases have missing IDs, titles, steps, expected results, or incorrect requirement links. No cases were added.");
+        var additions = generated.DistinctBy(testCase => testCase.Id)
+            .Where(testCase => !requirement.GeneratedTestCases.Any(existing => existing.Id == testCase.Id))
+            .Select(testCase => testCase.ToWorkspaceTestCase()).ToList();
+        foreach (var testCase in additions)
+            requirement.GeneratedTestCases.Add(testCase);
+        return additions;
     }
 }

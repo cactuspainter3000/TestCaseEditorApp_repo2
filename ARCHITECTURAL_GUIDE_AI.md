@@ -24,6 +24,21 @@ All three paths feed the existing requirement analysis and test-case creation wo
 
 **Test-case generation:** In **Requirement Record**, select the requirement using **Requirement Record Navigation**, open **Test Case**, and choose **Generate Test Cases**. Generation uses the project's AnythingLLM workspace and appends cases linked to the selected requirement, retaining existing cases. Review **Generation / Validation Output**, the case count, and each case's steps and expected results. Use **Save Project**, reopen the same project, and verify the case IDs and linked requirement remain intact. Generation does not publish to Jama.
 
+### Selected-subset draft delivery
+
+Use **Workshop > Draft Test Case Delivery** for a saved project whose requirements already exist in Jama:
+
+1. Confirm the project's actual AnythingLLM chat and embedding providers are approved for its data. A workspace can override the system-default provider.
+2. Choose **Load Requirements**, then check the desired subset. Start with one requirement for the live smoke test.
+3. Choose **Generate Selected Drafts**. Requests run sequentially; results are saved after each completed requirement. **Cancel Generation** stops the run, retaining saved work. Resume skips requirements already containing local cases; failed requirements can be retried. At the observed 3 minutes 19 seconds per requirement, 50 sequential requests would take roughly 2 hours 46 minutes without retries; this is an estimate, not a deadline guarantee.
+4. Review cases in **Requirement Record > Test Case**. Return to delivery and choose **Load Jama Destinations**. This only reads project item types, existing compatible sets, and relationship types. Select the intended case item type, existing destination set, and requirement-to-case relationship type. No destination is automatically selected or created.
+5. Choose **Preview Selected Draft Publication** and review the full case text, project ID, set, item type, and relationship direction. **Publish Previewed Drafts to Jama** is the explicit write confirmation. Names are prefixed `[AI DRAFT]` and descriptions warn that engineering review is required; this label does not set a tenant-specific Jama workflow status.
+6. Verify one new Jama case and its requirement relationship before publishing the larger subset. The service never falls back to the root or retries item creation. IDs are checkpointed before linking, so a failed relationship can resume without recreating a known item. Unknown creation outcomes are blocked from automatic retry: inspect Jama and reconcile before proceeding. Publication stops on its first error.
+
+Ordinary Jama-imported requirements with generated local cases retain those cases and publication IDs across refresh, just as classified document requirements do. Missing remote requirements with local cases are retained rather than deleting draft work. The batch selection itself is not persisted; reload and reselect to resume.
+
+Draft steps and expected results are published in Jama's Description, not tenant-specific structured test-step fields. Required custom fields or relationship rules may reject publication; the reported Jama error must be resolved rather than changing destinations or blindly retrying.
+
 **Jama refresh on reopen:** Published document requirements match saved records by numeric Jama item ID, not by requirement title or displayed key. A match takes Jama's current requirement fields while preserving the workspace identifiers, structured provenance, and test cases. Unmatched L0/L1 records stay in the workspace, including unpublished drafts. A fresh Jama import without that saved workspace can read provenance in the Jama Description but does not reconstruct structured fields or local test-case links.
 
 ### Work-laptop Jama smoke test

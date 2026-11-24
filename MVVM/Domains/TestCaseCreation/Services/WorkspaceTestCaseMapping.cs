@@ -26,6 +26,7 @@ public static class WorkspaceTestCaseMapping
         {
             Id = source.Id,
             Name = source.Title,
+            Status = "AI Draft",
             TestCaseText = text.ToString(),
             Tags = string.Join(", ", source.Tags),
             Steps = new ObservableCollection<TestStep>(source.Steps.Select(step => new TestStep

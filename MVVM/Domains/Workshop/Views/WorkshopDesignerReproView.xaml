@@ -1810,6 +1810,78 @@
                 </Border>
             </Grid>
         </TabItem>
+        <TabItem Header="Draft Test Case Delivery">
+            <Grid Margin="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="2*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Selected requirements -> local AI drafts -> confirmed Jama publication"
+                               FontWeight="Bold" Foreground="{StaticResource Brush.Accent.Primary}"/>
+                    <TextBlock Text="Use only an approved model/provider. Review drafts before publishing. Start with one requirement and verify its Jama result before the larger batch."
+                               TextWrapping="Wrap" Foreground="{StaticResource Brush.Text.Secondary}" Margin="0,6"/>
+                    <WrapPanel>
+                        <Button Content="1) Load Requirements" Command="{Binding LoadDraftRequirementsCommand}" Margin="0,0,8,6" Padding="8,4"/>
+                        <Button Content="2) Generate Selected Drafts" Command="{Binding GenerateSelectedDraftsCommand}" Margin="0,0,8,6" Padding="8,4"/>
+                        <Button Content="Cancel Generation" Command="{Binding GenerateSelectedDraftsCancelCommand}" Margin="0,0,8,6" Padding="8,4"/>
+                        <Button Content="3) Load Jama Destinations" Command="{Binding LoadDraftDestinationsCommand}" Margin="0,0,8,6" Padding="8,4"/>
+                    </WrapPanel>
+                </StackPanel>
+                <TextBlock Grid.Row="1" Text="{Binding DraftSelectionSummary}" Margin="0,4"
+                           Foreground="{StaticResource Brush.Text.Primary}"/>
+                <ListBox Grid.Row="2" ItemsSource="{Binding DraftRequirements}" IsEnabled="{Binding CanEditDraftSelection}"
+                         Background="{StaticResource Brush.Background.Menu}" Foreground="{StaticResource Brush.Text.Primary}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="4">
+                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" Foreground="{StaticResource Brush.Text.Primary}">
+                                    <TextBlock>
+                                        <Run Text="{Binding Requirement.Item, Mode=OneWay}"/><Run Text=" - "/>
+                                        <Run Text="{Binding Requirement.Name, Mode=OneWay}"/>
+                                    </TextBlock>
+                                </CheckBox>
+                                <TextBlock Text="{Binding Result}" Margin="20,2,0,0" Foreground="{StaticResource Brush.Text.Secondary}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <StackPanel Grid.Row="3" Margin="0,8" IsEnabled="{Binding CanEditDraftSelection}">
+                    <TextBlock Text="Choose values read from the project. Sets must accept the selected item type."
+                               Foreground="{StaticResource Brush.Text.Secondary}"/>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/><ColumnDefinition Width="2*"/><ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,8,0">
+                            <TextBlock Text="Case item type" Foreground="{StaticResource Brush.Text.Primary}"/>
+                            <ComboBox ItemsSource="{Binding DraftItemTypes}" SelectedItem="{Binding SelectedDraftItemType}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                            <TextBlock Text="Existing destination set" Foreground="{StaticResource Brush.Text.Primary}"/>
+                            <ComboBox ItemsSource="{Binding DraftContainers}" SelectedItem="{Binding SelectedDraftContainer}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Requirement -> case relationship" Foreground="{StaticResource Brush.Text.Primary}"/>
+                            <ComboBox ItemsSource="{Binding DraftRelationshipTypes}" SelectedItem="{Binding SelectedDraftRelationshipType}"/>
+                        </StackPanel>
+                    </Grid>
+                    <WrapPanel>
+                        <Button Content="4) Preview Selected Draft Publication" Command="{Binding PreviewDraftPublicationCommand}" Padding="8,4" Margin="0,0,8,0"/>
+                        <Button Content="5) Publish Previewed Drafts to Jama" Command="{Binding PublishDraftsCommand}" Padding="8,4"/>
+                    </WrapPanel>
+                </StackPanel>
+                <TextBlock Grid.Row="4" Text="{Binding DraftWorkflowStatus}" TextWrapping="Wrap" Margin="0,4"
+                           Foreground="{StaticResource Brush.Accent.Primary}"/>
+                <TextBox Grid.Row="5" Text="{Binding DraftPublicationPreview, Mode=OneWay}" IsReadOnly="True"
+                         TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                         Background="{StaticResource Brush.Background.Header}" Foreground="{StaticResource Brush.Text.Primary}"/>
+            </Grid>
+        </TabItem>
     </TabControl>
 
 

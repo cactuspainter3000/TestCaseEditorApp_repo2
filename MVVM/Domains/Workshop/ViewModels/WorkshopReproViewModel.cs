@@ -59,6 +59,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
         private readonly IWorkspaceContext _workspaceContext;
         private readonly IJamaConnectService _jamaConnectService;
         private readonly TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseGenerationService _testCaseGenerationService;
+        private readonly IPersistenceService _draftPersistence;
         private JamaPublishPreview? _jamaPublishPreview;
 
         private sealed record JamaPublishPreview(
@@ -254,7 +255,8 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             IJamaDocumentParserService jamaDocumentParserService,
             IWorkspaceContext workspaceContext,
             IJamaConnectService jamaConnectService,
-            TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseGenerationService testCaseGenerationService)
+            TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Services.ITestCaseGenerationService testCaseGenerationService,
+            IPersistenceService draftPersistence)
         {
             _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
             _workspaceDiagnosticsService = workspaceDiagnosticsService ?? throw new ArgumentNullException(nameof(workspaceDiagnosticsService));
@@ -263,6 +265,7 @@ namespace TestCaseEditorApp.MVVM.Domains.Workshop.ViewModels
             _workspaceContext = workspaceContext ?? throw new ArgumentNullException(nameof(workspaceContext));
             _jamaConnectService = jamaConnectService ?? throw new ArgumentNullException(nameof(jamaConnectService));
             _testCaseGenerationService = testCaseGenerationService ?? throw new ArgumentNullException(nameof(testCaseGenerationService));
+            _draftPersistence = draftPersistence ?? throw new ArgumentNullException(nameof(draftPersistence));
 
             var logsDir = AppStoragePaths.LogsDirectory;
             Directory.CreateDirectory(logsDir);
