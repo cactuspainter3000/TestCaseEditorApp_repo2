@@ -249,7 +249,7 @@ public partial class WorkshopReproViewModel
             DraftPublicationPreview = $"Project: {workspace.JamaProjectName} (ID {projectId})\n" +
                 $"Existing destination: {container}\nItem type: {itemType}\n" +
                 $"Relationship: {relationship}; direction: requirement -> draft test case\n" +
-                $"{entries.Count} case(s). Names are prefixed [AI DRAFT]; Jama workflow status is NOT automatically changed.\n" +
+                $"{entries.Count} case(s). Jama workflow status is NOT automatically changed.\n" +
                 "No folder creation, root fallback, or automatic creation retry. Inspect content before confirming.\n\n" +
                 string.Join("\n\n", entries.Select(entry => $"{entry.Requirement.Item} -> {entry.Name}\n{entry.Description}"));
             DraftWorkflowStatus = "Preview ready. Review the project, set, relationship direction, and case contents. Publish is a separate action.";
@@ -325,8 +325,8 @@ public partial class WorkshopReproViewModel
     }
 
     private static DraftPublishEntry BuildDraftEntry(Requirement requirement, TestCase test) => new(
-        requirement, test, requirement.ApiId, test.ApiId, test.Status, $"[AI DRAFT] {test.Name}",
-        $"AI-generated draft - engineering review required.\nLocal case ID: {test.Id}\n" +
+        requirement, test, requirement.ApiId, test.ApiId, test.Status, test.Name,
+        $"Local case ID: {test.Id}\n" +
         $"Source requirement: {requirement.Item} (Jama item {requirement.ApiId})\n\n{test.TestCaseText}");
 
     private Workspace RequireDraftWorkspace()

@@ -163,13 +163,19 @@ public class WorkshopDraftMilestoneTests
         _jama.Verify(j => j.CreateDraftTestCaseAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(),
             It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         await Preview(vm);
-        _jama.Setup(j => j.CreateDraftTestCaseAsync(42, 501, 194, "[AI DRAFT] Verify warning",
+        Assert.IsFalse(vm.DraftPublicationPreview.Contains("[AI DRAFT]", StringComparison.Ordinal));
+        Assert.IsFalse(vm.DraftPublicationPreview.Contains("AI-generated draft", StringComparison.Ordinal));
+        _jama.Setup(j => j.CreateDraftTestCaseAsync(42, 501, 194, "Verify warning",
             It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(900);
         _jama.Setup(j => j.LinkDraftTestCaseAsync(42, 123, 900, 7, It.IsAny<CancellationToken>()))
             .Callback(() => Assert.AreEqual("900", Load().Requirements.Single().GeneratedTestCases.Single().ApiId))
             .Returns(Task.CompletedTask);
 
         await vm.PublishDraftsCommand.ExecuteAsync(null);
+        _jama.Verify(j => j.CreateDraftTestCaseAsync(42, 501, 194, "Verify warning",
+            It.Is<string>(description => description.StartsWith("Local case ID: TC-1\n") &&
+                description.Contains("Source requirement: DEMO-REQ-1 (Jama item 123)") &&
+                !description.Contains("AI-generated draft")), It.IsAny<CancellationToken>()), Times.Once);
         Assert.AreEqual("AI Draft - published and linked", Load().Requirements.Single().GeneratedTestCases.Single().Status);
         StringAssert.Contains(vm.DraftWorkflowStatus, "Published and linked 1");
     }
