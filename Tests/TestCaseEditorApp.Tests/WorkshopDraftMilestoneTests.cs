@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Xml.Linq;
 using Moq;
+using Microsoft.Extensions.Logging.Abstractions;
 using TestCaseEditorApp.MVVM.Domains.NewProject.Mediators;
 using TestCaseEditorApp.MVVM.Domains.Requirements.Mediators;
 using TestCaseEditorApp.MVVM.Domains.TestCaseCreation.Models;
@@ -60,6 +61,71 @@ public class WorkshopDraftMilestoneTests
         Assert.AreEqual("TC-1", Load().Requirements.Single(r => r.Item == "DEMO-REQ-1").GeneratedTestCases.Single().Id);
         _generation.Verify(g => g.GenerateTestCasesForSingleRequirementAsync(_requirement,
             It.IsAny<Action<string, int, int>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task SelectedGeneration_FileCheckpointReloadsWorkspace_ContinuesAndPublishesPreview()
+    {
+        var management = new Mock<INewProjectMediator>();
+        management.Setup(m => m.GetCurrentWorkspaceInfo()).Returns(new WorkspaceInfo { Path = _path });
+        var context = new WorkspaceContextService(management.Object, NullLogger<WorkspaceContextService>.Instance);
+        var vm = new WorkshopReproViewModel(_mediator.Object, Mock.Of<IWorkspaceDiagnosticsService>(),
+            Mock.Of<IFileDialogService>(), Mock.Of<IJamaDocumentParserService>(), context, _jama.Object,
+            _generation.Object, _persistence.Object);
+        var original = context.CurrentWorkspace;
+        var saveNumber = 0;
+        _persistence.Setup(p => p.Save(_path, It.IsAny<Workspace>()))
+            .Callback<string, Workspace>((path, workspace) =>
+            {
+                File.WriteAllText(path, JsonSerializer.Serialize(workspace));
+                File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddSeconds(++saveNumber));
+            });
+        vm.LoadDraftRequirementsCommand.Execute(null);
+        vm.DraftRequirements.Single().IsSelected = true;
+        _generation.Setup(g => g.GenerateTestCasesForSingleRequirementAsync(_requirement,
+            It.IsAny<Action<string, int, int>>(), It.IsAny<CancellationToken>())).ReturnsAsync([Generated()]);
+
+        await vm.GenerateSelectedDraftsCommand.ExecuteAsync(null);
+
+        Assert.AreNotSame(original, context.CurrentWorkspace);
+        Assert.AreEqual(1, Load().Requirements.Single().GeneratedTestCases.Count);
+        StringAssert.Contains(vm.DraftWorkflowStatus, "1 processed successfully");
+        await Preview(vm);
+        _jama.Setup(j => j.CreateDraftTestCaseAsync(42, 501, 194, It.IsAny<string>(),
+            It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(900);
+        await vm.PublishDraftsCommand.ExecuteAsync(null);
+        StringAssert.Contains(vm.DraftWorkflowStatus, "Published and linked 1");
+    }
+
+    [TestMethod]
+    public async Task SelectedGeneration_ProjectPathChangesAfterCheckpoint_StopsBeforeLlmRequest()
+    {
+        var vm = Create();
+        vm.DraftRequirements.Single().IsSelected = true;
+        _persistence.Setup(p => p.Save(_path, It.IsAny<Workspace>()))
+            .Callback(() => _context.SetupGet(c => c.CurrentWorkspaceInfo)
+                .Returns(new WorkspaceInfo { Path = _path + ".other" }));
+
+        await vm.GenerateSelectedDraftsCommand.ExecuteAsync(null);
+
+        StringAssert.Contains(vm.DraftWorkflowStatus, "project or selected requirements changed");
+        _generation.Verify(g => g.GenerateTestCasesForSingleRequirementAsync(It.IsAny<Requirement>(),
+            It.IsAny<Action<string, int, int>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task SelectedGeneration_JamaAssociationChangesAfterCheckpoint_StopsBeforeLlmRequest()
+    {
+        var vm = Create();
+        vm.DraftRequirements.Single().IsSelected = true;
+        _persistence.Setup(p => p.Save(_path, It.IsAny<Workspace>()))
+            .Callback(() => _workspace.JamaProjectId = 99);
+
+        await vm.GenerateSelectedDraftsCommand.ExecuteAsync(null);
+
+        StringAssert.Contains(vm.DraftWorkflowStatus, "project or selected requirements changed");
+        _generation.Verify(g => g.GenerateTestCasesForSingleRequirementAsync(It.IsAny<Requirement>(),
+            It.IsAny<Action<string, int, int>>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [TestMethod]

@@ -32,8 +32,8 @@ public partial class WorkshopReproViewModel
     public bool CanEditDraftSelection => !IsDraftWorkflowBusy && !IsGeneratingTestCases;
     public string DraftSelectionSummary => $"Checked requirements: {DraftRequirements.Count(row => row.IsSelected)} / {DraftRequirements.Count}";
     [ObservableProperty] private string draftPublicationPreview = string.Empty;
-    private Workspace? _draftSelectionWorkspace;
-    private Workspace? _draftOptionsWorkspace;
+    private DraftWorkspaceIdentity? _draftSelectionIdentity;
+    private DraftWorkspaceIdentity? _draftOptionsIdentity;
     private DraftPublishPlan? _draftPublishPlan;
     private const string DraftPending = "AI Draft - creation outcome unconfirmed";
     private const string DraftCreated = "AI Draft - created, link pending";
@@ -42,6 +42,20 @@ public partial class WorkshopReproViewModel
         string ExistingCaseApiId, string PublicationStatus, string Name, string Description);
     private sealed record DraftPublishPlan(Workspace Workspace, int ProjectId, JamaDraftOption Container,
         JamaDraftOption ItemType, JamaDraftOption RelationshipType, List<DraftPublishEntry> Entries);
+    private sealed record DraftWorkspaceIdentity(string Path, int? JamaProjectId, string? LlmWorkspace);
+
+    private DraftWorkspaceIdentity? GetDraftWorkspaceIdentity(Workspace? workspace)
+    {
+        var path = _workspaceContext.CurrentWorkspaceInfo?.Path;
+        return workspace == null || string.IsNullOrWhiteSpace(path) ? null :
+            new(Path.GetFullPath(path).ToUpperInvariant(), GetPublishProjectId(workspace),
+                workspace.AnythingLLMWorkspaceSlug ?? workspace.AnythingLLMWorkspaceName);
+    }
+
+    private bool IsCurrentDraftWorkspace(Workspace? workspace) =>
+        _draftSelectionIdentity != null &&
+        GetDraftWorkspaceIdentity(workspace) == _draftSelectionIdentity &&
+        GetDraftWorkspaceIdentity(_workspaceContext.CurrentWorkspace) == _draftSelectionIdentity;
 
     private bool CanRunDraftWorkflow() => !IsDraftWorkflowBusy && !IsGeneratingTestCases;
 
@@ -60,7 +74,7 @@ public partial class WorkshopReproViewModel
     {
         InvalidateDraftPreview();
         DraftRequirements.Clear();
-        _draftSelectionWorkspace = _workspaceContext.CurrentWorkspace;
+        _draftSelectionIdentity = GetDraftWorkspaceIdentity(_workspaceContext.CurrentWorkspace);
         foreach (var requirement in _mediator.Requirements)
         {
             var row = new DraftRequirementSelection(requirement)
@@ -138,7 +152,7 @@ public partial class WorkshopReproViewModel
                     additions = AddGeneratedDrafts(requirement, generated);
                 }
                 catch (OperationCanceledException) { throw; }
-                catch (Exception ex) when (ReferenceEquals(_workspaceContext.CurrentWorkspace, workspace))
+                catch (Exception ex) when (IsCurrentDraftWorkspace(workspace))
                 {
                     row.Result = $"Failed: {ex.Message}";
                     TestCaseEditorApp.Services.Logging.Log.Error(ex, "Selected draft generation failed");
@@ -178,7 +192,7 @@ public partial class WorkshopReproViewModel
         DraftContainers.Clear();
         DraftRelationshipTypes.Clear();
         SelectedDraftItemType = SelectedDraftContainer = SelectedDraftRelationshipType = null;
-        _draftOptionsWorkspace = null;
+        _draftOptionsIdentity = null;
         try
         {
             var workspace = RequireDraftWorkspace();
@@ -189,7 +203,7 @@ public partial class WorkshopReproViewModel
             foreach (var type in options.ItemTypes) DraftItemTypes.Add(type);
             foreach (var container in options.Containers) DraftContainers.Add(container);
             foreach (var type in options.RelationshipTypes) DraftRelationshipTypes.Add(type);
-            _draftOptionsWorkspace = workspace;
+            _draftOptionsIdentity = _draftSelectionIdentity;
             DraftWorkflowStatus = $"Read Jama project {projectId}: {options.Containers.Count} existing case sets. " +
                 "Choose the item type, compatible destination set, and relationship type. No remote changes were made.";
         }
@@ -208,7 +222,7 @@ public partial class WorkshopReproViewModel
         try
         {
             var workspace = RequireDraftWorkspace();
-            if (!ReferenceEquals(workspace, _draftOptionsWorkspace))
+            if (_draftOptionsIdentity == null || _draftOptionsIdentity != _draftSelectionIdentity)
                 throw new InvalidOperationException("Load destinations from the current Jama project first.");
             var projectId = GetPublishProjectId(workspace)
                 ?? throw new InvalidOperationException("No unambiguous Jama project ID is saved.");
@@ -318,14 +332,14 @@ public partial class WorkshopReproViewModel
     private Workspace RequireDraftWorkspace()
     {
         var workspace = _workspaceContext.CurrentWorkspace ?? throw new InvalidOperationException("Open a saved project first.");
-        if (!ReferenceEquals(workspace, _draftSelectionWorkspace))
+        if (!IsCurrentDraftWorkspace(workspace))
             throw new InvalidOperationException("Load the requirement selection for this project first.");
         return workspace;
     }
 
     private void EnsureDraftWorkspace(Workspace workspace)
     {
-        if (!ReferenceEquals(_workspaceContext.CurrentWorkspace, workspace) ||
+        if (!IsCurrentDraftWorkspace(workspace) ||
             DraftRequirements.Any(row => row.IsSelected && !_mediator.Requirements.Contains(row.Requirement)))
             throw new InvalidOperationException("The project or selected requirements changed. Work stopped without sending further requests.");
     }

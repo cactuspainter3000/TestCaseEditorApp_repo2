@@ -39,6 +39,8 @@ Ordinary Jama-imported requirements with generated local cases retain those case
 
 Draft steps and expected results are published in Jama's Description, not tenant-specific structured test-step fields. Required custom fields or relationship rules may reject publication; the reported Jama error must be resolved rather than changing destinations or blindly retrying.
 
+Checkpoint writes cause `WorkspaceContextService` to reload workspace objects. Draft delivery guards compare the saved project path and Jama/LLM associations, not workspace object references; selected requirement instances must still belong to the mediator.
+
 **Jama refresh on reopen:** Published document requirements match saved records by numeric Jama item ID, not by requirement title or displayed key. A match takes Jama's current requirement fields while preserving the workspace identifiers, structured provenance, and test cases. Unmatched L0/L1 records stay in the workspace, including unpublished drafts. A fresh Jama import without that saved workspace can read provenance in the Jama Description but does not reconstruct structured fields or local test-case links.
 
 ### Work-laptop Jama smoke test
