@@ -28,12 +28,12 @@ public partial class JamaConnectService
                 (GetStringProperty(type, "display") ?? "").Contains("case", StringComparison.OrdinalIgnoreCase))
             .Select(type => new JamaDraftOption(type.GetProperty("id").GetInt32(),
                 GetStringProperty(type, "display") ?? "Unnamed case type")).ToList();
-        var containers = items.Where(item => item.TryGetProperty("fields", out var fields) &&
-                fields.TryGetProperty("childItemType", out var child) && child.TryGetInt32(out var id) &&
+        var containers = items.Where(item => item.TryGetProperty("childItemType", out var child) &&
+                child.TryGetInt32(out var id) &&
                 caseTypes.Any(type => type.Id == id))
             .Select(item => new JamaDraftOption(item.GetProperty("id").GetInt32(),
                 $"{GetStringProperty(item, "documentKey")} - {GetStringProperty(item.GetProperty("fields"), "name")}",
-                item.GetProperty("fields").GetProperty("childItemType").GetInt32())).ToList();
+                item.GetProperty("childItemType").GetInt32())).ToList();
         return new JamaDraftOptions(caseTypes, containers, relationships.Select(type =>
             new JamaDraftOption(type.GetProperty("id").GetInt32(), GetStringProperty(type, "name") ?? "Unnamed relationship")).ToList());
     }
@@ -47,7 +47,7 @@ public partial class JamaConnectService
         await EnsureDraftAuthenticationAsync();
         var container = await ReadDraftItemAsync(containerId, cancellationToken);
         if (GetIntProperty(container, "project") != projectId ||
-            GetIntProperty(container.GetProperty("fields"), "childItemType") != itemTypeId)
+            GetIntProperty(container, "childItemType") != itemTypeId)
             throw new InvalidOperationException("The selected set no longer belongs to this project or accepts this item type.");
         foreach (var id in requirementIds.Distinct())
         {

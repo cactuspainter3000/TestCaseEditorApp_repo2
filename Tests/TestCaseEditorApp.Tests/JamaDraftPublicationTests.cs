@@ -27,7 +27,7 @@ public class JamaDraftPublicationTests
                 });
             return Json(new
             {
-                data = new[] { new { id = 501, documentKey = "DEMO-SET-1", fields = new { name = "Verification", childItemType = 194 } } },
+                data = new[] { new { id = 501, documentKey = "DEMO-SET-1", childItemType = 194, fields = new { name = "Verification" } } },
                 meta = new { pageInfo = new { totalResults = 51 } }
             });
         });
@@ -39,6 +39,22 @@ public class JamaDraftPublicationTests
     }
 
     [TestMethod]
+    [DataRow(42, 193)]
+    [DataRow(99, 194)]
+    public async Task Creation_RejectsIncompatibleDestinationWithoutWrites(int project, int childItemType)
+    {
+        var handler = new DraftHandler(_ => Json(new
+        {
+            data = new { id = 501, project, childItemType, fields = new { name = "Other set", childItemType = 194 } }
+        }));
+
+        await Assert.ThrowsExceptionAsync<InvalidOperationException>(() =>
+            Service(handler).CreateDraftTestCaseAsync(42, 501, 194, "Draft", "Draft text"));
+
+        Assert.IsTrue(handler.Calls.All(call => call.Method == HttpMethod.Get));
+    }
+
+    [TestMethod]
     [DataRow(true)]
     [DataRow(false)]
     public async Task Creation_UsesOnlyExplicitDestinationAndNeverFallsBackOrRetries(bool accepted)
@@ -46,7 +62,7 @@ public class JamaDraftPublicationTests
         var handler = new DraftHandler(request =>
         {
             if (request.Method == HttpMethod.Get)
-                return Json(new { data = new { id = 501, project = 42, fields = new { childItemType = 194 } } });
+                return Json(new { data = new { id = 501, project = 42, childItemType = 194, fields = new { name = "Verification" } } });
             return accepted ? Json(new { meta = new { id = 900 } }) : new HttpResponseMessage(HttpStatusCode.BadRequest);
         });
         var service = Service(handler);
@@ -67,7 +83,7 @@ public class JamaDraftPublicationTests
     {
         var handler = new DraftHandler(request =>
             request.RequestUri!.AbsolutePath.EndsWith("/501")
-                ? Json(new { data = new { id = 501, project = 42, fields = new { childItemType = 194 } } })
+                ? Json(new { data = new { id = 501, project = 42, childItemType = 194, fields = new { name = "Verification" } } })
                 : Json(new { data = new { id = 123, project = 99 } }));
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(() =>
             Service(handler).ValidateDraftDestinationAsync(42, 501, 194, [123]));
@@ -103,7 +119,7 @@ public class JamaDraftPublicationTests
     public async Task Creation_WithoutConfirmedIdFailsExplicitly()
     {
         var handler = new DraftHandler(request => request.Method == HttpMethod.Get
-            ? Json(new { data = new { project = 42, fields = new { childItemType = 194 } } })
+            ? Json(new { data = new { project = 42, childItemType = 194, fields = new { name = "Verification" } } })
             : Json(new { meta = new { status = "Created" } }));
         await Assert.ThrowsExceptionAsync<System.IO.InvalidDataException>(() =>
             Service(handler).CreateDraftTestCaseAsync(42, 501, 194, "Draft", "Draft text"));
