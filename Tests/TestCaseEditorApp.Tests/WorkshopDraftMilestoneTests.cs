@@ -331,6 +331,54 @@ public class WorkshopDraftMilestoneTests
     }
 
     [TestMethod]
+    public async Task BulkSelection_UpdatesAllRowsAndSummaryAndInvalidatesPreview()
+    {
+        _mediator.Object.Requirements.Add(new Requirement { Item = "SECOND", ApiId = "124" });
+        _requirement.GeneratedTestCases.Add(Generated().ToWorkspaceTestCase());
+        var vm = Create();
+        vm.DraftRequirements[0].IsSelected = true;
+        await Preview(vm);
+
+        vm.SelectAllDraftRequirementsCommand.Execute(null);
+
+        Assert.IsTrue(vm.DraftRequirements.All(row => row.IsSelected));
+        Assert.AreEqual("Checked requirements: 2 / 2", vm.DraftSelectionSummary);
+        Assert.AreEqual(string.Empty, vm.DraftPublicationPreview);
+
+        vm.ClearDraftRequirementSelectionCommand.Execute(null);
+
+        Assert.IsTrue(vm.DraftRequirements.All(row => !row.IsSelected));
+        Assert.AreEqual("Checked requirements: 0 / 2", vm.DraftSelectionSummary);
+        _generation.VerifyNoOtherCalls();
+        _jama.Verify(j => j.CreateDraftTestCaseAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(),
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public void BulkSelection_DisabledDuringBatchOrSingleGeneration(bool batch)
+    {
+        var vm = Create();
+        var notifications = 0;
+        vm.SelectAllDraftRequirementsCommand.CanExecuteChanged += (_, _) => notifications++;
+        vm.ClearDraftRequirementSelectionCommand.CanExecuteChanged += (_, _) => notifications++;
+        if (batch) vm.IsDraftWorkflowBusy = true;
+        else vm.IsGeneratingTestCases = true;
+
+        Assert.IsFalse(vm.SelectAllDraftRequirementsCommand.CanExecute(null));
+        Assert.IsFalse(vm.ClearDraftRequirementSelectionCommand.CanExecute(null));
+        Assert.AreEqual(2, notifications);
+
+        if (batch) vm.IsDraftWorkflowBusy = false;
+        else vm.IsGeneratingTestCases = false;
+
+        Assert.IsTrue(vm.SelectAllDraftRequirementsCommand.CanExecute(null));
+        Assert.IsTrue(vm.ClearDraftRequirementSelectionCommand.CanExecute(null));
+        Assert.AreEqual(4, notifications);
+    }
+
+    [TestMethod]
     public void DeliveryTab_IsTopLevelAndUsesBoundCommands()
     {
         var root = new DirectoryInfo(AppContext.BaseDirectory);
@@ -341,6 +389,10 @@ public class WorkshopDraftMilestoneTests
         var tab = view.Descendants(p + "TabItem").Single(item => (string?)item.Attribute("Header") == "Draft Test Case Delivery");
         Assert.IsFalse(tab.Ancestors(p + "TabItem").Any());
         Assert.IsTrue(tab.Descendants(p + "Button").All(button => button.Attribute("Command") != null));
+        Assert.AreEqual("{Binding SelectAllDraftRequirementsCommand}", (string?)tab.Descendants(p + "Button")
+            .Single(button => (string?)button.Attribute("Content") == "Select All").Attribute("Command"));
+        Assert.AreEqual("{Binding ClearDraftRequirementSelectionCommand}", (string?)tab.Descendants(p + "Button")
+            .Single(button => (string?)button.Attribute("Content") == "Clear Selection").Attribute("Command"));
     }
 
     private WorkshopReproViewModel Create()

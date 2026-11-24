@@ -22,6 +22,8 @@ public partial class WorkshopReproViewModel
     {
         OnPropertyChanged(nameof(CanEditDraftSelection));
         LoadDraftRequirementsCommand.NotifyCanExecuteChanged();
+        SelectAllDraftRequirementsCommand.NotifyCanExecuteChanged();
+        ClearDraftRequirementSelectionCommand.NotifyCanExecuteChanged();
         GenerateSelectedDraftsCommand.NotifyCanExecuteChanged();
         LoadDraftDestinationsCommand.NotifyCanExecuteChanged();
         PreviewDraftPublicationCommand.NotifyCanExecuteChanged();

@@ -63,6 +63,8 @@ public partial class WorkshopReproViewModel
     {
         GenerateTestCasesCommand.NotifyCanExecuteChanged();
         LoadDraftRequirementsCommand.NotifyCanExecuteChanged();
+        SelectAllDraftRequirementsCommand.NotifyCanExecuteChanged();
+        ClearDraftRequirementSelectionCommand.NotifyCanExecuteChanged();
         GenerateSelectedDraftsCommand.NotifyCanExecuteChanged();
         LoadDraftDestinationsCommand.NotifyCanExecuteChanged();
         PreviewDraftPublicationCommand.NotifyCanExecuteChanged();
@@ -93,6 +95,18 @@ public partial class WorkshopReproViewModel
         }
         OnPropertyChanged(nameof(DraftSelectionSummary));
         DraftWorkflowStatus = $"Loaded {DraftRequirements.Count} requirements. Check only the requirements needed for this milestone.";
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRunDraftWorkflow))]
+    private void SelectAllDraftRequirements()
+    {
+        foreach (var row in DraftRequirements) row.IsSelected = true;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRunDraftWorkflow))]
+    private void ClearDraftRequirementSelection()
+    {
+        foreach (var row in DraftRequirements) row.IsSelected = false;
     }
 
     [RelayCommand(IncludeCancelCommand = true, CanExecute = nameof(CanRunDraftWorkflow))]
